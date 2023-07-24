@@ -111,16 +111,6 @@ class Node():
     
     
     @property
-    def autodependency_links(self):
-        autodep_links = list()
-        if self.is_autodependent:
-            for s in self.sources: 
-                if s[0] == self.name: 
-                    autodep_links.append(s)
-        return autodep_links
-    
-    
-    @property
     def get_max_autodependent(self):
         max_score = 0
         max_s = None

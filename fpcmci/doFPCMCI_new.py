@@ -10,7 +10,7 @@ from fpcmci.basics.constants import *
 from fpcmci.graph.DAG import DAG
 from fpcmci.basics.logger import Logger
 import fpcmci.basics.utils as utils
-from fpcmci.PCMCI import PCMCI
+from fpcmci.PCMCI_new import PCMCI
 from fpcmci.preprocessing.data import Data 
 
 
@@ -105,22 +105,21 @@ class doFPCMCI():
             DAG: causal model with context
         """
         # Run PC algorithm on selected links
-        tmp_dag = self.validator.run_pc(self.validator_data, link_assumptions)
-        tmp_dag.sys_context = self.CM.sys_context
+        tmp_dag = self.validator.run_pc(self.obs_data, link_assumptions)
         
-        if tmp_dag.autodep_int_nodes:
+        # if tmp_dag.autodep_nodes:
+                    
+        #     tmp_link_assumptions = tmp_dag.get_link_assumptions()
+            
+        #     # Auto-dependency Check
+        #     tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)
+            
+        # Add again context for final MCI test on obs and inter data
+        # tmp_dag.add_context()
         
-            # Remove context from parents
-            tmp_dag.remove_context()
-            
-            tmp_link_assumptions = tmp_dag.get_link_assumptions()
-            
-            # Auto-dependency Check
-            tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)
-            
-            # Add again context for final MCI test on obs and inter data
-            tmp_dag.add_context()
-        
+        # shrink dataframe d by using the filter result
+        self.validator_data.shrink(tmp_dag.features)
+                
         # Causal Model
         link_assumptions = tmp_dag.get_link_assumptions()
         causal_model = self.validator.run_mci(self.validator_data, link_assumptions, tmp_dag.get_parents())
@@ -175,32 +174,70 @@ class doFPCMCI():
         # list of selected features based on filter dependencies
         self.CM.remove_unneeded_features()
         if not self.CM.features: return None, None
-        self.obs_data.shrink(self.CM.features)
-        f_dag = copy.deepcopy(self.CM)
         
         ## 2. VALIDATOR
-        # Add dependencies corresponding to the context variables 
-        # ONLY if the the related system variable is still present
-        self.CM.add_context() 
-
         # shrink dataframe d by using the filter result
-        self.validator_data.shrink(self.CM.features)
+        self.obs_data.shrink(self.CM.features)
         
         # selected links to check by the validator
         link_assumptions = self.CM.get_link_assumptions()
             
         # calculate dependencies on selected links
-        self.CM = self.run_validator(link_assumptions)
+        f_dag = copy.deepcopy(self.CM)
+        self.CM = self.validator.run(self.obs_data, link_assumptions)
+        
+        # selected links to check by the validator
+        self.CM = self.validator.check_interventions(self.filter_data, self.CM)
         
         # list of selected features based on validator dependencies
         self.CM.remove_unneeded_features()
-        if self.exclude_context: self.CM.remove_context()
-        
-        # Print and save final causal model
+    
+        # Saving final causal model
         self.__print_differences(f_dag, self.CM)
         self.save()
         
         return self.CM.features, self.CM
+    
+    
+    # def run(self):
+    #     """
+    #     Run Selector and Validator
+        
+    #     Returns:
+    #         list(str): list of selected variable names
+    #         DAG: causal model
+    #     """
+        
+    #     ## 1. FILTER
+    #     self.run_filter()
+        
+    #     # list of selected features based on filter dependencies
+    #     self.CM.remove_unneeded_features()
+    #     if not self.CM.features: return None, None
+    #     self.obs_data.shrink(self.CM.features)
+        
+    #     ## 2. VALIDATOR
+    #     # Add dependencies corresponding to the context variables 
+    #     # ONLY if the the related system variable is still present
+    #     # self.CM.add_context() 
+        
+    #     # selected links to check by the validator
+    #     link_assumptions = self.CM.get_link_assumptions()
+            
+    #     # calculate dependencies on selected links
+    #     f_dag = copy.deepcopy(self.CM)
+    #     self.CM = self.run_validator(link_assumptions)
+        
+    #     # list of selected features based on validator dependencies
+    #     self.CM.remove_unneeded_features()
+    #     self.__print_differences(f_dag, self.CM)
+        
+    #     if self.exclude_context: self.CM.remove_context()
+        
+    #     # Saving final causal model
+    #     self.save()
+        
+    #     return self.CM.features, self.CM
       
     
     def dag(self,
@@ -374,6 +411,7 @@ class doFPCMCI():
             
             # Store a dict of context variable and system variable corresponding to an intervention
             self.CM.sys_context[int_var] = context_varname
+            self.CM.g[int_var].intervention_node = True
             
             # Create context variable data
             context_data = int_data.d[int_var]

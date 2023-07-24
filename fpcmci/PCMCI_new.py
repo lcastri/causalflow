@@ -109,7 +109,7 @@ class PCMCI():
         return self.__PC_to_DAG(parents, data.features)
     
     
-    def __my_mci(self, link_assumptions=None, parents=None):
+    def check_interventions(self, data: Data, dag: DAG):
         """
         Performs MCI test
 
@@ -120,78 +120,56 @@ class PCMCI():
         Returns:
             (dict): MCI result
         """
+        CP.info("\n##")
+        CP.info("## Interventions test analysis")
+        CP.info("##")
+
+        # build tigramite dataset
+        vector = np.vectorize(float)
+        d = vector(data.d)
+        dataframe = pp.DataFrame(data = d, var_names = data.features)
+        
+        # init and run pcmci
+        self.val_method = VAL(dataframe = dataframe,
+                              cond_ind_test = self.val_condtest,
+                              verbosity = 0)
+        
+        link_assumptions = dag.get_link_assumptions_for_interventions()
+        parents = dag.get_parents()
+        
         _int_link_assumptions = self.val_method._set_link_assumptions(link_assumptions, self.min_lag, self.max_lag)
 
         # Set the maximum condition dimension for Y and X
         max_conds_py = self.val_method._set_max_condition_dim(None, self.min_lag, self.max_lag)
-        max_conds_px = self.val_method._set_max_condition_dim(None, self.min_lag, self.max_lag)
+        max_conds_px = 0
         
         # Get the parents that will be checked
         _int_parents = self.val_method._get_int_parents(parents)
-        
-        # Initialize the return values
-        val_matrix = np.zeros((self.val_method.dataframe.N, self.val_method.dataframe.N, self.max_lag + 1))
-        p_matrix = np.ones((self.val_method.dataframe.N, self.val_method.dataframe.N, self.max_lag + 1))
-        # Initialize the optional return of the confidance matrix
-        conf_matrix = None
-        if self.val_method.cond_ind_test.confidence is not None:
-            conf_matrix = np.zeros((self.val_method.dataframe.N, self.val_method.dataframe.N, self.max_lag + 1, 2))
-
+         
         # Get the conditions as implied by the input arguments
         for j, i, tau, Z in self.val_method._iter_indep_conds(_int_parents,
                                                               _int_link_assumptions,
                                                               max_conds_py,
                                                               max_conds_px):
+            
             # Set X and Y (for clarity of code)
             X = [(i, tau)]
             Y = [(j, 0)]
+            if (data.features[i], abs(tau), data.features[j]) not in dag.interventions_links: continue
+            
+            CP.info("\tlink: (" + data.features[i] + " " + str(tau) + ") -?> (" + data.features[j] + "):")
+            val, pval = self.val_method.cond_ind_test.run_test(X, Y, Z=Z, tau_max=self.max_lag)
 
-            if ((i, -abs(tau)) in _int_link_assumptions[j] and _int_link_assumptions[j][(i, -abs(tau))] in ['-->', 'o-o']):
-                val = 1. 
-                pval = 0.
+            if pval > self.alpha:
+                dag.del_source(data.features[j], data.features[i], abs(tau))
+                CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- removed\n")
+
             else:
-                val, pval = self.val_method.cond_ind_test.run_test(X, Y, Z=Z, tau_max=self.max_lag)
-            val_matrix[i, j, abs(tau)] = val
-            p_matrix[i, j, abs(tau)] = pval
-            CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))))
+                dag.g[data.features[j]].sources[(data.features[i], abs(tau))][SCORE] = val
+                dag.g[data.features[j]].sources[(data.features[i], abs(tau))][PVAL] = pval
+                CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- ok\n")
 
-
-            # Get the confidence value, returns None if cond_ind_test.confidence
-            # is False
-            conf = self.val_method.cond_ind_test.get_confidence(X, Y, Z=Z, tau_max=self.max_lag)
-            # Record the value if the conditional independence requires it
-            if self.val_method.cond_ind_test.confidence:
-                conf_matrix[i, j, abs(tau)] = conf
-
-        # Threshold p_matrix to get graph
-        final_graph = p_matrix <= self.alpha
-
-        # Convert to string graph representation
-        graph = self.val_method.convert_to_string_graph(final_graph)
-
-        # Symmetrize p_matrix and val_matrix
-        symmetrized_results = self.val_method.symmetrize_p_and_val_matrix(
-                            p_matrix=p_matrix, 
-                            val_matrix=val_matrix, 
-                            link_assumptions=_int_link_assumptions,
-                            conf_matrix=conf_matrix)
-
-        if self.verbosity > 0:
-            self.val_method.print_significant_links(graph = graph,
-                                                    p_matrix = symmetrized_results['p_matrix'], 
-                                                    val_matrix = symmetrized_results['val_matrix'],
-                                                    conf_matrix = symmetrized_results['conf_matrix'],
-                                                    alpha_level = self.alpha)
-
-        # Return the values as a dictionary and store in class
-        results = {
-            'graph': graph,
-            'p_matrix': symmetrized_results['p_matrix'],
-            'val_matrix': symmetrized_results['val_matrix'],
-            'conf_matrix': symmetrized_results['conf_matrix'],
-                   }
-        self.results = results
-        return results
+        return dag
     
     
     def check_autodependency(self, data: Data, dag:DAG, link_assumptions) -> DAG:
@@ -252,7 +230,7 @@ class PCMCI():
         return dag
  
     
-    def run_mci(self, data: Data, link_assumptions, parents):
+    def run_mci(self, data: Data, dag:DAG, link_assumptions, parents):
         """
         Run MCI test on observational data using the causal structure computed by the validator 
 
@@ -321,6 +299,7 @@ class PCMCI():
         vars = self.result['var_names']
         tmp_dag = DAG(vars, self.min_lag, self.max_lag)
         tmp_dag.sys_context = self.sys_context
+        for k in tmp_dag.sys_context: tmp_dag.g[k].intervention_node = True
         N, lags = self.result['graph'][0].shape
         for s in range(len(self.result['graph'])):
             for t in range(N):

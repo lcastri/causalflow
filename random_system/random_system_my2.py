@@ -20,35 +20,10 @@ class PriorityOp(Enum):
 
 class RandomSystem:
     def __init__(self, nvars, nsamples, max_terms, coeff_range: tuple, 
-                 min_lag, max_lag, max_exp = None, noise_config: tuple = None, 
+                 max_exp, min_lag, max_lag, noise_config: tuple = None, 
                  operators = ['+', '-', '*'], 
                  functions = ['','sin', 'cos', 'exp', 'abs', 'pow'],
-                 n_hidden_confounders = 0,
-                 n_confounded = 0):
-        """
-        RandomSystem constructor
-
-        Args:
-            nvars (int): Number of variable
-            nsamples (int): Number of samples
-            max_terms (int): Max number of parents per variable
-            coeff_range (tuple): Coefficient range. E.g. (-1, 1)
-            min_lag (int): Min lagged dependency
-            max_lag (int): Max lagged dependency
-            max_exp (int): Max permitted exponent used by the 'pow' function. Used only if 'pow' is in the list of functions. Defaults to None.
-            noise_config (tuple, optional): Noise configuration, e.g. (NoiseType.Uniform, -0.1, 0.1). Defaults to None.
-            operators (list, optional): list of possible operators between variables. Defaults to ['+', '-', '*'].
-            functions (list, optional): list of possible functions. Defaults to ['','sin', 'cos', 'exp', 'abs', 'pow'].
-            n_hidden_confounders (int, optional): Number of hidden confounders. Defaults to 0.
-
-        Raises:
-            ValueError: max_exp cannot be None if functions list contains pow
-        """
-        
-        if 'pow' in functions and max_exp is None:
-            raise ValueError('max_exp cannot be None if functions list contains pow')
-        
-        # random.seed(random.randint(1, 2000))
+                 n_hidden_confounders = 0):
         
         self.T = nsamples
         self.max_terms = max_terms
@@ -57,7 +32,6 @@ class RandomSystem:
         self.min_lag = min_lag
         self.max_lag = max_lag
         self.n_hidden_confounders = n_hidden_confounders
-        self.n_confounded = n_confounded
         
         self.obsVar = ['X_' + str(i) for i in range(nvars)]
         self.hiddenVar = ['H_' + str(i) for i in range(n_hidden_confounders)]
@@ -78,60 +52,27 @@ class RandomSystem:
     
     @property            
     def variables(self):
-        """
-        Complete set of variables (observed and hidden)
-
-        Returns:
-            list: complete set of variables
-        """
         return self.obsVar + self.hiddenVar 
     
     
     @property            
     def Nobs(self):
-        """
-        Number of observable variables
-
-        Returns:
-            int: number of observable variables
-        """
         return len(self.obsVar) 
     
          
     @property            
     def N(self):
-        """
-        Total number of variables (observed and hidden)
-
-        Returns:
-            int: total number of variables
-        """
         return len(self.obsVar) + len(self.hiddenVar)
     
     
     @property
     def obsEquations(self):
-        """
-        Equations corresponding to the observed variables
-
-        Returns:
-            dict: equations corresponding to the observed variables
-        """
         tmp = copy.deepcopy(self.equations)
         for h in self.hiddenVar: del tmp[h]
         return tmp
     
                 
     def __build_equation(self, var_choice: list):
-        """
-        Generates random equations
-
-        Args:
-            var_choice (list): list of possible parents for the target variable
-
-        Returns:
-            list: equation (list of tuple)
-        """
         equation = []
         for _ in range(random.randint(1, self.max_terms)):
             coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
@@ -142,7 +83,7 @@ class RandomSystem:
             function = random.choice(self.functions)
             if function == 'pow':
                 exponent = random.choice(self.exponents)
-                term = (operator, coefficient, function, variable, lag, exponent)
+                term = (operator, coefficient, function, variable, exponent, lag)
             else:
                 term = (operator, coefficient, function, variable, lag)
             equation.append(term)
@@ -162,37 +103,18 @@ class RandomSystem:
             self.equations[hid] = self.__build_equation(var_choice)
             
         self.__add_conf_links()
+            
         
         
     def __add_conf_links(self):
-        """
-        Adds confounder links to a predefined causal model
-        """
-        self.expected_spurious_links = list()
-        firstvar_choice = copy.deepcopy(self.obsVar)
         for hid in self.hiddenVar:
             firstConf = True
             var_choice = copy.deepcopy(self.obsVar)
-            n_confounded = random.randint(2, self.Nobs) if self.n_confounded == 0 else self.n_confounded 
-            
-            var_t1 = None
-            var_t = list()
+            n_confounded = random.randint(2, self.Nobs)
             for _ in range(n_confounded):
                 coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
-                if firstConf:
-                    variable = random.choice(firstvar_choice)
-                    firstvar_choice.remove(variable)
-                    var_choice.remove(variable)
-                    
-                    var_t1 = variable
-                else:
-                    variable = random.choice(var_choice)
-                    var_choice.remove(variable)
-                    var_t.append(variable)
-                    
-                    if (var_t1, -1) in self.get_SCM()[variable]:
-                        self.equations[variable] = list(filter(lambda item: item[3] != var_t1 and item[3] != -1, self.equations[variable]))
-                    
+                variable = random.choice(var_choice)
+                var_choice.remove(variable)
                 operator = random.choice(self.operators)
                 if firstConf:
                     lag = self.min_lag
@@ -204,15 +126,12 @@ class RandomSystem:
                 function = random.choice(self.functions)
                 if function == 'pow':
                     exponent = random.choice(self.exponents)
-                    term = (operator, coefficient, function, hid, lag, exponent)
+                    term = (operator, coefficient, function, hid, exponent, lag)
                 else:
                     term = (operator, coefficient, function, hid, lag)
                 self.equations[variable].append(term)
             
                 self.confounders[hid].append((variable, lag))
-            for v in var_t:
-                if not (var_t1, -1) in self.get_SCM()[v]:
-                    self.expected_spurious_links.append((var_t1, v))
 
 
     def print_equations(self):
@@ -223,7 +142,7 @@ class RandomSystem:
             equation_str = target + '(t) = '
             for i, term in enumerate(eq):
                 if len(term) == 6:
-                    operator, coefficient, function, variable, lag, exponent = term
+                    operator, coefficient, function, variable, exponent, lag = term
                     if i != 0: 
                         term_str = f"{operator} {coefficient} * {function}({variable}, {exponent})(t-{lag}) "
                     else:
@@ -415,7 +334,27 @@ class RandomSystem:
         """
         scm = self.get_SCM()
         for t in scm: print(t + ' : ' + str(scm[t]))    
-          
+    
+    
+    # def hide_var(self, var):
+    #     """
+    #     Hides a variable
+
+    #     Args:
+    #         var (str): variable name
+
+    #     Raises:
+    #         ValueError: if the specified variable is the one used for the intervention
+    #     """
+    #     if var in self.int_data:
+    #         raise ValueError("Cannot hide the specified variable since it is used as intervention variable.")
+    #     self.variables.remove(var)
+    #     del self.equations[var]
+    #     self.data.shrink(self.variables)
+        
+    #     for var in self.int_data:
+    #         self.int_data[var].shrink(self.variables)
+        
         
     def intervene(self, int_var, int_len, int_value):
         """
@@ -471,176 +410,119 @@ class RandomSystem:
                         t_lag -= s[1]
                         
         g.ts_dag(self.max_lag, save_name = save_name, node_color = node_color, edge_color = edge_color)
-        
-        
-    def get_TP(self, cm):
-        """
-        True positive number:
-        edge present in the causal model 
-        and present in the groundtruth
-
-        Args:
-            cm (dict): estimated SCM
-
-        Returns:
-            int: true positive
-        """
-        gt = self.get_SCM()
-        counter = 0
-        for node in cm.keys():
-            for edge in cm[node]:
-                if edge in gt[node]: counter += 1
-        return counter
 
 
-    def get_TN(self, cm):
-        """
-        True negative number:
-        edge absent in the groundtruth 
-        and absent in the causal model
-        
-        Args:
-            cm (dict): estimated SCM
+    # def get_lagged_confounders(self):
+    #     """
+    #     Returns lagged confounders list
 
-        Returns:
-            int: true negative
-        """
-        fullg = DAG(self.obsVar, self.min_lag, self.max_lag, False)
-        fullg.fully_connected_dag()
-        fullscm = fullg.get_SCM()
-        gt = self.get_SCM()
-        gt_TN = copy.deepcopy(fullscm)
-        
-        # Build the True Negative graph [complementary graph of the ground-truth]
-        for node in fullscm:
-            for edge in fullscm[node]:
-                if edge in gt[node]:
-                    gt_TN[node].remove(edge)
-                    
-        counter = 0
-        for node in gt_TN.keys():
-            for edge in gt_TN[node]:
-                if edge not in cm[node]: counter += 1
-        return counter
-    
-    
-    def get_FP(self, cm):
-        """
-        False positive number:
-        edge present in the causal model 
-        but absent in the groundtruth
-
-        Args:
-            cm (dict): estimated SCM
-
-        Returns:
-            int: false positive
-        """
-        gt = self.get_SCM()
-        counter = 0
-        for node in cm.keys():
-            for edge in cm[node]:
-                if edge not in gt[node]: counter += 1
-        return counter
-
-
-    def get_FN(self, cm):
-        """
-        False negative number:
-        edge present in the groundtruth 
-        but absent in the causal model
-        
-        Args:
-            cm (dict): estimated SCM
-
-        Returns:
-            int: false negative
-        """
-        gt = self.get_SCM()
-        counter = 0
-        for node in gt.keys():
-            for edge in gt[node]:
-                if edge not in cm[node]: counter += 1
-        return counter
-    
-    
-
-
-    def shd(self, cm):
-        """
-        Computes Structural Hamming Distance between ground-truth causal graph and the estimated one
-
-        Args:
-            cm (dict): estimated SCM
-
-        Returns:
-            int: shd
-        """
-        fn = self.get_FN(cm)
-        fp = self.get_FP(cm)
-        return fn + fp
-
-
-    def precision(self, cm):
-        """
-        Computes Precision between ground-truth causal graph and the estimated one
-
-        Args:
-            cm (dict): estimated SCM
-
-        Returns:
-            float: precision
-        """
-        tp = self.get_TP(cm)
-        fp = self.get_FP(cm)
-        if tp + fp == 0: return 0
-        return tp/(tp + fp)
+    #     Returns:
+    #         list: list of lagged confounders
+    #     """
+    #     gt = self.get_SCM()
+    #     confounders = list()
+    #     for t in gt.keys():
+    #         for s in gt[t]:
+    #             if s[0] != t:
+    #                 tmp  = copy.deepcopy(gt)
+    #                 del tmp[t]
+    #                 confTriples = self.__lookForSource(tmp, s, t)
+    #                 if not isinstance(confTriples, list): confTriples = list(confTriples)
+    #                 if confTriples:
+    #                     for confTriple in confTriples:
+    #                         if not self.__exists(confounders, confTriple) and not self.__isThereALink(gt, confTriple):
+    #                             confounders.append(confTriple)
+    #     return confounders
 
         
-    def recall(self, cm):
-        """
-        Computes Recall between ground-truth causal graph and the estimated one
+    # def __isThereALink(self, gt, confTriple):
+    #     """
+    #     Returns True if there is a link between the two confounded variables. False otherwise
 
-        Args:
-            cm (dict): estimated SCM
+    #     Args:
+    #         gt (dict): structural causal model
+    #         confTriple (str): confounder triple
 
-        Returns:
-            float: recall
-        """
-        tp = self.get_TP(cm)
-        fn = self.get_FN(cm)
-        if tp + fn == 0: return 0
-        return tp/(tp + fn)
+    #     Returns:
+    #         bool: Returns True if there is a link between the two confounded variables. False otherwise
+    #     """
 
-
-    def f1_score(self, cm):
-        """
-        Computes F1-score between ground-truth causal graph and the estimated one
-
-        Args:
-            cm (dict): estimated SCM
-
-        Returns:
-            float: f1-score
-        """
-        p = self.precision(cm)
-        r = self.recall(cm)
-        if p + r == 0: return 0
-        return (2 * p * r) / (p + r)
+    #     confounder = next(iter(confTriple.keys()))
+    #     int_var = min(confTriple[confounder], key=lambda x: abs(x[2]))[0]
+    #     other = max(confTriple[confounder], key=lambda x: abs(x[2]))[0]
+    #     for s in gt[other]:
+    #         if s[0] == int_var: return True
+    #     return False
     
     
-    def FPR(self, cm):
-        """
-        Computes False Positve Rate between ground-truth causal graph and the estimated one
+    # def __lookForSource(self, gt, source, target):
+    #     """
+    #     Searches the second confounded variable given the first and the confounder
 
-        Args:
-            cm (dict): estimated SCM
+    #     Args:
+    #         gt (dict): structural causal model
+    #         source (str): confounded variable
+    #         target (str): confounder
 
-        Returns:
-            float: false positive rate
-        """
-        fp = self.get_FP(cm)
-        tn = self.get_TN(cm)
-        if tn + fp == 0: return 0
-        return fp / (tn + fp)
+    #     Returns:
+    #         list: list of confonded variables
+    #     """
+    #     confounded = list()
+    #     for t in gt.keys():
+    #         for s in gt[t]:
+    #             if s[0] != t and s[0] != target and s[0] == source[0] and s[1] != source[1]:
+    #                 confounded.append({s[0]: [(target, source[0], source[1]), (t, s[0], s[1])]})
+    #     return confounded
 
+
+    # def __exists(self, confs, c):
+    #     """
+    #     Checks if the new confounder has been already considered
+
+    #     Args:
+    #         confs (list): confounders
+    #         c (dict): new confounder
+
+    #     Returns:
+    #         bool: True if the confounder is already in the list. False otherwise
+    #     """
+    #     for conf in confs:
+    #         c1 = list(conf.keys())[0]
+    #         c2 = list(c.keys())[0]
+    #         if c1 == c2 and conf[c1][0] == c[c2][1] and conf[c1][1] == c[c2][0]: 
+    #             return True
+    #     return False
+
+
+# # Example usage
+# N = 5
+# T = 1500
+# noise = (NoiseType.Uniform, -0.1, 0.1)
+
+# RS = RandomSystem(nvars = N, nsamples = T, 
+#                   max_terms = 3, coeff_range = (-0.5, 0.5), max_exp = 2, 
+#                   min_lag = 1, max_lag = 2, noise = noise,
+#                   functions = [''])
+
+# RS.gen_equations()
+# RS.print_SCM()
+
+# # Observational data
+# obs_data = RS.gen_obs_ts()
+
+# # Confounders list
+# confounders = RS.get_lagged_confounders()
+# print(confounders)
+# sel_confounder = random.choice(confounders)
+# print(sel_confounder)
+# conf_to_hide = next(iter(sel_confounder.keys()))
+# int_var = min(sel_confounder[conf_to_hide], key=lambda x: abs(x[2]))[0]
+
+# # Interventional data
+# int_data = RS.interv_var(int_var, T, 5)
+
+# # Hide variable
+# RS.hide_var(conf_to_hide)
+
+# obs_data.plot_timeseries()
+# int_data[int_var].plot_timeseries()

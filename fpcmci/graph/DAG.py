@@ -26,7 +26,7 @@ class DAG():
 
     
     @property
-    def autodep_nodes(self):
+    def autodep_int_nodes(self):
         autodeps = list()
         for t in self.g:
             # NOTE: I commented this because I want to check all the auto-dep nodes with obs data
@@ -96,19 +96,28 @@ class DAG():
                 del self.g[context_var]
                 
                 
-    def get_link_assumptions(self, autodep_ok = False):
+    def get_link_assumptions(self):
         link_assump = {self.features.index(f): dict() for f in self.features}
         for t in self.g:
             for s in self.g[t].sources:
-                if autodep_ok and s[0] == t: # NOTE: new condition added in order to not control twice the autodependency links
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
-                    
-                elif s[0] not in list(self.sys_context.values()):
+                if s[0] not in list(self.sys_context.values()):
                     link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-?>'
                     
                 elif t in self.sys_context.keys() and s[0] == self.sys_context[t]:
                     link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
+        return link_assump
+    
+    
+    # FIXME: only used in PCMCI_new. If the latter is not used then remove
+    def get_link_assumptions_for_interventions(self):
+        link_assump = {self.features.index(f): dict() for f in self.features}
+        for t in self.g:
+            for s in self.g[t].sources:
+                if self.g[s[0]].intervention_node:
+                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-?>'
                     
+                else:
+                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
         return link_assump
 
 
