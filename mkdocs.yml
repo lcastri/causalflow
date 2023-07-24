@@ -1,0 +1,41 @@
+site_name: FPCMCI
+site_author: 'Luca Castri'
+
+theme:
+  name: 'material'
+  palette:
+    
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: orange
+      accent: light blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    
+    # Dark Mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: orange
+      accent: light blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  logo: assets/logo.png
+  favicon: assets/icon.png
+
+
+plugins:
+  - search
+  - mkdocstrings
+
+
+nav:
+  - Overview: index.md
+  - Preprocessing: preprocessing.md
+  - Subsampling: subsampling_method.md
+  - Feature Selection Methods: feature_selection_method.md
+  - FPCMCI: fpcmci.md
+  - Causal Graph: causal_graph.md
