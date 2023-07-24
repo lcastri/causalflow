@@ -108,7 +108,7 @@ class doFPCMCI():
         tmp_dag = self.validator.run_pc(self.validator_data, link_assumptions)
         tmp_dag.sys_context = self.CM.sys_context
         
-        if tmp_dag.autodep_int_nodes:
+        if tmp_dag.autodep_nodes:
         
             # Remove context from parents
             tmp_dag.remove_context()
@@ -122,10 +122,18 @@ class doFPCMCI():
             tmp_dag.add_context()
         
         # Causal Model
-        link_assumptions = tmp_dag.get_link_assumptions()
-        causal_model = self.validator.run_mci(self.validator_data, link_assumptions, tmp_dag.get_parents())
+        causal_model = self.validator.run_mci(self.validator_data, tmp_dag)
+        causal_model = self.__change_score_and_pval(tmp_dag, causal_model) 
         return causal_model
     
+    
+    def __change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
+        for t in dest_cm.g:
+            if dest_cm.g[t].is_autodependent:
+                for s in dest_cm.g[t].autodependency_links:
+                    dest_cm.g[t].sources[s][SCORE] = orig_cm.g[t].sources[s][SCORE]
+                    dest_cm.g[t].sources[s][PVAL] = orig_cm.g[t].sources[s][PVAL]
+        return dest_cm
 
     def run_pcmci(self):
         """

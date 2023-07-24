@@ -66,7 +66,9 @@ class PCMCI():
         self.result = self.val_method.run_pcmci(link_assumptions = link_assumptions,
                                                 tau_max = self.max_lag,
                                                 tau_min = self.min_lag,
-                                                alpha_level = self.alpha)
+                                                alpha_level = self.alpha,
+                                                # pc_alpha = self.alpha
+                                                )
         
         self.result['var_names'] = data.features
         self.result['pretty_var_names'] = data.pretty_features
@@ -104,12 +106,13 @@ class PCMCI():
         parents = self.val_method.run_pc_stable(link_assumptions = link_assumptions,
                                                 tau_max = self.max_lag,
                                                 tau_min = self.min_lag,
-                                                pc_alpha = 0.05)
+                                                # pc_alpha = self.alpha,
+                                                )
     
         return self.__PC_to_DAG(parents, data.features)
     
     
-    def __my_mci(self, link_assumptions=None, parents=None):
+    def __my_mci(self, autodep_dag: DAG):#, link_assumptions=None, parents=None):
         """
         Performs MCI test
 
@@ -120,14 +123,15 @@ class PCMCI():
         Returns:
             (dict): MCI result
         """
-        _int_link_assumptions = self.val_method._set_link_assumptions(link_assumptions, self.min_lag, self.max_lag)
+        _int_link_assumptions = self.val_method._set_link_assumptions(autodep_dag.get_link_assumptions(autodep_ok = True), 
+                                                                      self.min_lag, self.max_lag)
 
         # Set the maximum condition dimension for Y and X
         max_conds_py = self.val_method._set_max_condition_dim(None, self.min_lag, self.max_lag)
         max_conds_px = self.val_method._set_max_condition_dim(None, self.min_lag, self.max_lag)
         
         # Get the parents that will be checked
-        _int_parents = self.val_method._get_int_parents(parents)
+        _int_parents = self.val_method._get_int_parents(autodep_dag.get_parents())
         
         # Initialize the return values
         val_matrix = np.zeros((self.val_method.dataframe.N, self.val_method.dataframe.N, self.max_lag + 1))
@@ -147,8 +151,12 @@ class PCMCI():
             Y = [(j, 0)]
 
             if ((i, -abs(tau)) in _int_link_assumptions[j] and _int_link_assumptions[j][(i, -abs(tau))] in ['-->', 'o-o']):
-                val = 1. 
-                pval = 0.
+                if autodep_dag.g[autodep_dag.features[j]].is_autodependent:
+                    val = autodep_dag.g[autodep_dag.features[j]].sources[(autodep_dag.features[i], abs(tau))][SCORE]
+                    pval = autodep_dag.g[autodep_dag.features[j]].sources[(autodep_dag.features[i], abs(tau))][PVAL]
+                else:
+                    val = 1. 
+                    pval = 0.
             else:
                 val, pval = self.val_method.cond_ind_test.run_test(X, Y, Z=Z, tau_max=self.max_lag)
             val_matrix[i, j, abs(tau)] = val
@@ -208,7 +216,7 @@ class PCMCI():
         """
         
         CP.info("\n##")
-        CP.info("## Auto-dependency check on intervention variables by MCI test analysis")
+        CP.info("## Auto-dependency check on observational data")
         CP.info("##")
         
         # build tigramite dataset
@@ -233,7 +241,7 @@ class PCMCI():
         # Get the conditions as implied by the input arguments
         links_tocheck = self.val_method._iter_indep_conds(_int_parents, _int_link_assumptions, max_conds_py, max_conds_px)
         for j, i, tau, Z in links_tocheck:
-            if data.features[j] not in dag.autodep_int_nodes or j != i: continue
+            if data.features[j] not in dag.autodep_nodes or j != i: continue
             else:
                 # Set X and Y (for clarity of code)
                 X = [(i, tau)]
@@ -247,12 +255,14 @@ class PCMCI():
                     CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- removed")
 
                 else:
+                    dag.g[data.features[j]].sources[(data.features[i], abs(tau))][SCORE] = val
+                    dag.g[data.features[j]].sources[(data.features[i], abs(tau))][PVAL] = pval
                     CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- ok")
                 
         return dag
  
     
-    def run_mci(self, data: Data, link_assumptions, parents):
+    def run_mci(self, data: Data, autodep_dag:DAG):#, link_assumptions, parents):
         """
         Run MCI test on observational data using the causal structure computed by the validator 
 
@@ -279,8 +289,9 @@ class PCMCI():
                               cond_ind_test = self.val_condtest,
                               verbosity = self.verbosity)
 
-        self.result = self.__my_mci(link_assumptions = link_assumptions,
-                                    parents = parents)
+        # self.result = self.__my_mci(link_assumptions = autodep_dag.get_link_assumptions(autodep_ok = True),
+        #                             parents = autodep_dag.get_parents())
+        self.result = self.__my_mci(autodep_dag)
         
         self.result['var_names'] = data.features
         self.result['pretty_var_names'] = data.pretty_features
@@ -307,7 +318,7 @@ class PCMCI():
                 if features[t] in self.sys_context.keys() and features[s[0]] == self.sys_context[features[t]]:
                     tmp_dag.g[features[t]].intervention_node = True
                     tmp_dag.g[features[t]].associated_context = features[s[0]]
-                tmp_dag.add_source(features[t], features[s[0]], 1, 0, s[1])
+                tmp_dag.add_source(features[t], features[s[0]], 1.0, 0.0, s[1])
         return tmp_dag
     
     
