@@ -4,11 +4,11 @@ import os
 import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
-from fpcmci.CPrinter import CPLevel
-from fpcmci.doFPCMCI import doFPCMCI
-from fpcmci.FPCMCI import FPCMCI
-from fpcmci.selection_methods.TE import TE, TEestimator
-from fpcmci.random_system.RandomSystem import NoiseType, RandomSystem
+from ts_causal_discovery.CPrinter import CPLevel
+from ts_causal_discovery.CAnDOIT import CAnDOIT
+from ts_causal_discovery.FPCMCI import FPCMCI
+from ts_causal_discovery.selection_methods.TE import TE, TEestimator
+from ts_causal_discovery.random_system.RandomSystem import NoiseType, RandomSystem
 from pathlib import Path
 
 from time import time
@@ -234,7 +234,7 @@ if __name__ == '__main__':
             
                     #########################################################################################################################
                     # doFPCMCI
-                    dofpcmci = doFPCMCI(deepcopy(d_obs), 
+                    dofpcmci = CAnDOIT(deepcopy(d_obs), 
                                         deepcopy(d_int),
                                         f_alpha = f_alpha, 
                                         pcmci_alpha = pcmci_alpha, 

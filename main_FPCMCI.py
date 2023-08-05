@@ -1,10 +1,10 @@
 from tigramite.independence_tests.gpdc import GPDC
-from fpcmci.CPrinter import CPLevel
-from fpcmci.doFPCMCI import doFPCMCI
-from fpcmci.FPCMCI import FPCMCI
-from fpcmci.preprocessing.data import Data
-from fpcmci.selection_methods.TE import TE, TEestimator
-from fpcmci.basics.constants import LabelType
+from ts_causal_discovery.CPrinter import CPLevel
+from ts_causal_discovery.CAnDOIT import CAnDOIT
+from ts_causal_discovery.FPCMCI import FPCMCI
+from ts_causal_discovery.preprocessing.data import Data
+from ts_causal_discovery.selection_methods.TE import TE, TEestimator
+from ts_causal_discovery.basics.constants import LabelType
 import numpy as np
 
 

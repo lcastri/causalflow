@@ -2,12 +2,12 @@ import copy
 import os
 # from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from tigramite.independence_tests.gpdc import GPDC
-from fpcmci.CPrinter import CPLevel
-from fpcmci.basics.constants import ImageExt
-from fpcmci.doFPCMCI import doFPCMCI
-from fpcmci.FPCMCI import FPCMCI
-from fpcmci.preprocessing.data import Data
-from fpcmci.selection_methods.TE import TE, TEestimator
+from ts_causal_discovery.CPrinter import CPLevel
+from ts_causal_discovery.basics.constants import ImageExt
+from ts_causal_discovery.CAnDOIT import CAnDOIT
+from ts_causal_discovery.FPCMCI import FPCMCI
+from ts_causal_discovery.preprocessing.data import Data
+from ts_causal_discovery.selection_methods.TE import TE, TEestimator
 
 if __name__ == '__main__':   
     resfolder = "CW_result"
@@ -34,8 +34,8 @@ if __name__ == '__main__':
                     resfolder = resfolder + "/fpcmci" + str(noise))
     
     features, cm = fpcmci.run()
-    fpcmci.timeseries_dag()
-    fpcmci.timeseries_dag(img_ext=ImageExt.PDF)
+    fpcmci.timeseries_dag(font_size = 14)
+    fpcmci.timeseries_dag(font_size = 14, img_ext=ImageExt.PDF)
     
     
     shrinkVars = ['F_c', 'B_c', 'v', 'd_b']
@@ -54,8 +54,8 @@ if __name__ == '__main__':
                     resfolder = resfolder + "/fpcmci" + str(noise) + "_hc")
     
     features, cm = fpcmci.run()
-    fpcmci.timeseries_dag()
-    fpcmci.timeseries_dag(img_ext=ImageExt.PDF)
+    fpcmci.timeseries_dag(font_size = 14)
+    fpcmci.timeseries_dag(font_size = 14, img_ext=ImageExt.PDF)
     
     
     ######################################################################################################
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     int_data = Data(os.getcwd() + "/" + datafolder + "/ReachingSingleFinger_int_noise" + str(noise) + ".csv")
     int_data.shrink(shrinkVars)
     df_int = {'B_c': int_data}
-    dofpcmci = doFPCMCI(copy.deepcopy(df_obs), 
+    dofpcmci = CAnDOIT(copy.deepcopy(df_obs), 
                         copy.deepcopy(df_int),
                         f_alpha = f_alpha, 
                         pcmci_alpha = pcmci_alpha, 
@@ -78,5 +78,5 @@ if __name__ == '__main__':
                         exclude_context = True)
     
     features, cm = dofpcmci.run()
-    dofpcmci.timeseries_dag()
-    dofpcmci.timeseries_dag(img_ext=ImageExt.PDF)
+    dofpcmci.timeseries_dag(font_size = 14)
+    dofpcmci.timeseries_dag(font_size = 14, img_ext=ImageExt.PDF)

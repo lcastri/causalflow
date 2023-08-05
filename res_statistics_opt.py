@@ -28,7 +28,7 @@ yLabel = {_TIME : 'Time [s]',
           _SHD : 'SHD',
           _PCMCI : 'PCMCI',
           _FPCMCI : 'FPCMCI',
-          _doFPCMCI : 'doFPCMCI',
+          _doFPCMCI : 'CAnDOIT',
           _FPR: 'False Positive Rate',
           _N_ESPU : '# Sp. links estimated / # Sp. links'}
 
@@ -196,8 +196,10 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
     
 if __name__ == '__main__':   
 
-    resfolder = ['good/nvariable_1hconf_nonlin_1000_1000_0_0.5']
-    vars = [7, 14]
+    # resfolder = ['nvariable_1hconf_nonlin_1000_1000_0_0.5']
+    # vars = [7, 14]
+    resfolder = ['nconfounded_nonlin_1000_1000_0_0.5']
+    vars = [2, 7]
     bootstrap = True
     algorithms = [_FPCMCI, _doFPCMCI]
     # algorithms = [_PCMCI, _FPCMCI, _doFPCMCI]
@@ -206,4 +208,4 @@ if __name__ == '__main__':
                   _doFPCMCI: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}}
     for r in resfolder:
         for metric in [_TIME,_F1SCORE, _PREC, _RECA, _SHD, _FPR, _N_ESPU]:
-            compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# vars')
+            compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
