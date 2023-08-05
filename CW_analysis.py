@@ -2,12 +2,12 @@ import copy
 import os
 # from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from tigramite.independence_tests.gpdc import GPDC
-from ts_causal_discovery.CPrinter import CPLevel
-from ts_causal_discovery.basics.constants import ImageExt
-from ts_causal_discovery.CAnDOIT import CAnDOIT
-from ts_causal_discovery.FPCMCI import FPCMCI
-from ts_causal_discovery.preprocessing.data import Data
-from ts_causal_discovery.selection_methods.TE import TE, TEestimator
+from ts_causaldisco.CPrinter import CPLevel
+from ts_causaldisco.basics.constants import ImageExt
+from ts_causaldisco.CAnDOIT import CAnDOIT
+from ts_causaldisco.FPCMCI import FPCMCI
+from ts_causaldisco.preprocessing.data import Data
+from ts_causaldisco.selection_methods.TE import TE, TEestimator
 
 if __name__ == '__main__':   
     resfolder = "CW_result"

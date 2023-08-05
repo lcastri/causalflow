@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from ts_causal_discovery.basics.constants import *
+from ts_causaldisco.basics.constants import *
 
 
 def cls():

@@ -1,6 +1,6 @@
-from ts_causal_discovery.selection_methods.SelectionMethod import SelectionMethod, CTest
+from ts_causaldisco.selection_methods.SelectionMethod import SelectionMethod, CTest
 from sklearn.feature_selection import f_regression
-from ts_causal_discovery.CPrinter import CP
+from ts_causaldisco.CPrinter import CP
 
 class Corr(SelectionMethod):
     """

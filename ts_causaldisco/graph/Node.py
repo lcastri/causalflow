@@ -1,4 +1,4 @@
-from ts_causal_discovery.basics.constants import SCORE
+from ts_causaldisco.basics.constants import SCORE
 
 
 class Node():

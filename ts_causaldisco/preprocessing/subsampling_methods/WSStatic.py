@@ -1,5 +1,5 @@
-from ts_causal_discovery.preprocessing.subsampling_methods.EntropyBasedMethod import EntropyBasedMethod
-from ts_causal_discovery.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod, SSMode
+from ts_causaldisco.preprocessing.subsampling_methods.EntropyBasedMethod import EntropyBasedMethod
+from ts_causaldisco.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod, SSMode
 
 
 class WSStatic(SubsamplingMethod, EntropyBasedMethod):

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from ts_causal_discovery.preprocessing.subsampling_methods.moving_window import MovingWindow
+from ts_causaldisco.preprocessing.subsampling_methods.moving_window import MovingWindow
 
     
 class EntropyBasedMethod(ABC):

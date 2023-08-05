@@ -1,5 +1,5 @@
-from ts_causal_discovery.selection_methods.SelectionMethod import SelectionMethod, CTest
-from ts_causal_discovery.CPrinter import CP
+from ts_causaldisco.selection_methods.SelectionMethod import SelectionMethod, CTest
+from ts_causaldisco.CPrinter import CP
 from scipy import stats, linalg
 import numpy as np
 

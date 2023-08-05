@@ -1,5 +1,5 @@
 import sys
-from ts_causal_discovery.basics.utils import cls
+from ts_causaldisco.basics.utils import cls
 
 
 class Logger(object):

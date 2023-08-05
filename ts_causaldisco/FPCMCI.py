@@ -1,48 +1,41 @@
 import sys
 import copy
 import pickle
-import numpy as np
-import pandas as pd
 from tigramite.independence_tests.independence_tests_base import CondIndTest
-from ts_causal_discovery.selection_methods.SelectionMethod import SelectionMethod
-from ts_causal_discovery.CPrinter import CPLevel, CP
-from ts_causal_discovery.basics.constants import *
-from ts_causal_discovery.graph.DAG import DAG
-from ts_causal_discovery.basics.logger import Logger
-import ts_causal_discovery.basics.utils as utils
-from ts_causal_discovery.PCMCI import PCMCI
-from ts_causal_discovery.preprocessing.data import Data 
+from ts_causaldisco.graph.DAG import DAG
+from ts_causaldisco.selection_methods.SelectionMethod import SelectionMethod
+from ts_causaldisco.CPrinter import CPLevel, CP
+from ts_causaldisco.basics.constants import *
+from ts_causaldisco.basics.logger import Logger
+import ts_causaldisco.basics.utils as utils
+from ts_causaldisco.PCMCI import PCMCI
+from ts_causaldisco.preprocessing.data import Data 
 
 
-class CAnDOIT():
+class FPCMCI():
     """
-    CAnDOIT class.
+    FPCMCI class.
 
-    CAnDOIT is a causal feature selector framework for large-scale time series datasets. 
-    Starting from a Data object and it selects the main features responsible for the
-    evolution of the analysed system. Based on the selected features, the framework outputs a causal model.
-    It extends F-PCMCI by introducing the possibility to perform the causal analysis using 
-    observational and interventional data.
+    FPCMCI is a causal feature selector framework for large-scale time series
+    datasets. Sarting from a Data object and it selects the main features
+    responsible for the evolution of the analysed system. Based on the selected features,
+    the framework outputs a causal model.
     """
 
     def __init__(self, 
-                 observation_data: Data, 
-                 intervention_data: dict, 
-                 min_lag, max_lag,
+                 data: Data, 
+                 min_lag, max_lag, 
                  sel_method: SelectionMethod, val_condtest: CondIndTest, 
                  verbosity: CPLevel, 
                  f_alpha = 0.05, 
                  pcmci_alpha = 0.05, 
                  resfolder = None,
-                 neglect_only_autodep = False,
-                 exclude_context = True,
-                 plot_data = False):
+                 neglect_only_autodep = False):
         """
-        CAnDOIT class contructor
+        FPCMCI class contructor
 
         Args:
-            observation_data (Data): observational data to analyse
-            intervention_data (dict): interventional data to analyse in the form {INTERVENTION_VARIABLE : Data (same variables of observation_data)}
+            data (Data): data to analyse
             min_lag (int): minimum time lag
             max_lag (int): maximum time lag
             sel_method (SelectionMethod): selection method
@@ -52,21 +45,16 @@ class CAnDOIT():
             pcmci_alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
-            exclude_context (bool, optional): Bit for neglecting context variables. Defaults to False.
         """
         
-        self.obs_data = observation_data
+        self.data = data
         self.f_alpha = f_alpha
         self.pcmci_alpha = pcmci_alpha
         self.min_lag = min_lag
         self.max_lag = max_lag
         self.sel_method = sel_method
-        self.CM = DAG(self.obs_data.features, min_lag, max_lag, neglect_only_autodep)
+        self.CM = DAG(self.data.features, min_lag, max_lag, neglect_only_autodep)
         self.neglect_only_autodep = neglect_only_autodep
-        self.exclude_context = exclude_context
-        
-        # Create filter and validator data
-        self.filter_data, self.validator_data = self.__prepare_data(self.obs_data, intervention_data, plot_data)
 
         self.respath, self.dag_path, self.ts_dag_path = None, None, None
         if resfolder is not None:
@@ -74,8 +62,7 @@ class CAnDOIT():
             logpath, self.respath, self.dag_path, self.ts_dag_path = utils.get_selectorpath(resfolder)  
             sys.stdout = Logger(logpath)
         
-        self.validator = PCMCI(self.pcmci_alpha, self.min_lag, self.max_lag, val_condtest, verbosity, self.CM.sys_context)
-        
+        self.validator = PCMCI(self.pcmci_alpha, min_lag, max_lag, val_condtest, verbosity)       
         CP.set_verbosity(verbosity)
 
 
@@ -85,57 +72,15 @@ class CAnDOIT():
         """
         CP.info("\n")
         CP.info(DASH)
-        CP.info("Selecting relevant features among: " + str(self.filter_data.features))
+        CP.info("Selecting relevant features among: " + str(self.data.features))
         CP.info("Selection method: " + self.sel_method.name)
         CP.info("Significance level: " + str(self.f_alpha))
         CP.info("Max lag time: " + str(self.max_lag))
         CP.info("Min lag time: " + str(self.min_lag))
-        CP.info("Data length: " + str(self.filter_data.T))
+        CP.info("Data length: " + str(self.data.T))
        
-        self.sel_method.initialise(self.obs_data, self.f_alpha, self.min_lag, self.max_lag, self.CM)
-        self.CM = self.sel_method.compute_dependencies()
-        
-    
-    def run_validator(self, link_assumptions = None):
-        """
-        Runs Validator (PCMCI)
-
-        Args:
-            link_assumptions (dict, optional): link assumption with context. Defaults to None.
-
-        Returns:
-            DAG: causal model with context
-        """
-        # Run PC algorithm on selected links
-        tmp_dag = self.validator.run_pc(self.validator_data, link_assumptions)
-        tmp_dag.sys_context = self.CM.sys_context
-        
-        if tmp_dag.autodep_nodes:
-        
-            # Remove context from parents
-            tmp_dag.remove_context()
-            
-            tmp_link_assumptions = tmp_dag.get_link_assumptions()
-            
-            # Auto-dependency Check
-            tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)
-            
-            # Add again context for final MCI test on obs and inter data
-            tmp_dag.add_context()
-        
-        # Causal Model
-        causal_model = self.validator.run_mci(self.validator_data, tmp_dag)
-        causal_model = self.__change_score_and_pval(tmp_dag, causal_model) 
-        return causal_model
-    
-    
-    def __change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
-        for t in dest_cm.g:
-            if dest_cm.g[t].is_autodependent:
-                for s in dest_cm.g[t].autodependency_links:
-                    dest_cm.g[t].sources[s][SCORE] = orig_cm.g[t].sources[s][SCORE]
-                    dest_cm.g[t].sources[s][PVAL] = orig_cm.g[t].sources[s][PVAL]
-        return dest_cm
+        self.sel_method.initialise(self.data, self.f_alpha, self.min_lag, self.max_lag, self.CM)
+        self.CM = self.sel_method.compute_dependencies()  
 
 
     def run_pcmci(self):
@@ -144,32 +89,24 @@ class CAnDOIT():
         
         Returns:
             list(str): list of selected variable names
-            DAG: causal model
+            dict(str:list(tuple)): causal model
         """
         CP.info("Significance level: " + str(self.pcmci_alpha))
         CP.info("Max lag time: " + str(self.max_lag))
         CP.info("Min lag time: " + str(self.min_lag))
-        CP.info("Data length: " + str(self.validator_data.T))
-        
-        # add context to the fake link assumptions (complete set of links)
-        self.CM.fully_connected_dag()
-        self.CM.add_context()
-        # selected links to check by the validator
-        link_assumptions = self.CM.get_link_assumptions()
+        CP.info("Data length: " + str(self.data.T))
 
         # calculate dependencies on selected links
-        self.CM = self.run_validator(link_assumptions)
+        self.CM = self.validator.run(self.data)
         
         # list of selected features based on validator dependencies
         self.CM.remove_unneeded_features()
-        
-        if self.exclude_context: self.CM.remove_context()
-        
+                
         # Saving final causal model
         self.save()
         
         return self.CM.features, self.CM
-    
+
     
     def run(self):
         """
@@ -177,7 +114,7 @@ class CAnDOIT():
         
         Returns:
             list(str): list of selected variable names
-            DAG: causal model
+            dict(str,TargetDep): causal model
         """
         
         ## 1. FILTER
@@ -186,34 +123,28 @@ class CAnDOIT():
         # list of selected features based on filter dependencies
         self.CM.remove_unneeded_features()
         if not self.CM.features: return None, None
-        self.obs_data.shrink(self.CM.features)
-        f_dag = copy.deepcopy(self.CM)
         
         ## 2. VALIDATOR
-        # Add dependencies corresponding to the context variables 
-        # ONLY if the the related system variable is still present
-        self.CM.add_context() 
-
         # shrink dataframe d by using the filter result
-        self.validator_data.shrink(self.CM.features)
+        self.data.shrink(self.CM.features)
         
         # selected links to check by the validator
         link_assumptions = self.CM.get_link_assumptions()
             
         # calculate dependencies on selected links
-        self.CM = self.run_validator(link_assumptions)
+        f_dag = copy.deepcopy(self.CM)
+        self.CM = self.validator.run(self.data, link_assumptions)
         
         # list of selected features based on validator dependencies
         self.CM.remove_unneeded_features()
-        if self.exclude_context: self.CM.remove_context()
-        
-        # Print and save final causal model
+    
+        # Saving final causal model
         self.__print_differences(f_dag, self.CM)
         self.save()
         
         return self.CM.features, self.CM
-      
     
+
     def dag(self,
             node_layout = 'dot',
             min_width = 1,
@@ -324,8 +255,8 @@ class CAnDOIT():
                     pickle.dump(res, resfile)
             else:
                 CP.warning("Causal model impossible to save")
-     
-
+    
+    
     def __print_differences(self, old_dag : DAG, new_dag : DAG):
         """
         Print difference between old and new dependencies
@@ -355,51 +286,3 @@ class CAnDOIT():
                     CP.info("Removed (" + str(diff[0]) + " -" + str(diff[1]) +") --> (" + str(diff[2]) + ")")
                 else:
                     CP.info(diff + " removed")
-                
-                
-    def __prepare_data(self, obser_data, inter_data, plot_data):
-        """
-        Prepares data for filter and validator phases
-        
-        Args:
-            obser_data (Data): observational data
-            inter_data (Data): interventional data
-            plot_data (bool): boolean bit to plot the generated data
-
-        Returns:
-            Data, Data: filter data obj and validator data obj     
-        """
-        
-        # Filter phase data preparation
-        filter_data = copy.deepcopy(obser_data.d)
-        for int_data in inter_data.values(): filter_data = pd.concat([filter_data, int_data.d], axis = 0, ignore_index = True)
-        filter_data = Data(filter_data, vars = obser_data.features)
-        
-        # Validator phase data preparation
-        validator_data = copy.deepcopy(obser_data.d)
-        context_vars = dict()
-        for int_var, int_data in inter_data.items():
-            
-            # Create context variable name
-            context_varname = 'C' + int_var
-            
-            # Store a dict of context variable and system variable corresponding to an intervention
-            self.CM.sys_context[int_var] = context_varname
-            
-            # Create context variable data
-            context_data = int_data.d[int_var]
-            context_start = len(validator_data) - 1
-            context_end = context_start + len(context_data)
-            context_vars[context_varname] = {'data': context_data, 'start': context_start, 'end': context_end}
-            
-            validator_data = pd.concat([validator_data, int_data.d], axis = 0, ignore_index = True)
-            
-        for var in context_vars:
-            new_column = np.zeros(shape = (len(validator_data),))
-            new_column[context_vars[var]['start']: context_vars[var]['end']] = context_vars[var]['data']
-            validator_data[var] = new_column
-        
-        validator_data = Data(validator_data, vars = list(validator_data.columns))
-        
-        if plot_data: validator_data.plot_timeseries()
-        return filter_data, validator_data

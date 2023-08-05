@@ -2,10 +2,10 @@ from tigramite.pcmci import PCMCI as VAL
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
 import numpy as np
-from ts_causal_discovery.CPrinter import CPLevel, CP
-from ts_causal_discovery.basics.constants import *
-from ts_causal_discovery.graph.DAG import DAG
-from ts_causal_discovery.preprocessing.data import Data
+from ts_causaldisco.CPrinter import CPLevel, CP
+from ts_causaldisco.basics.constants import *
+from ts_causaldisco.graph.DAG import DAG
+from ts_causaldisco.preprocessing.data import Data
 
 
 class PCMCI():

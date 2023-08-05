@@ -1,7 +1,7 @@
 import copy
 import numpy as np
-from ts_causal_discovery.graph.Node import Node
-from ts_causal_discovery.basics.constants import *
+from ts_causaldisco.graph.Node import Node
+from ts_causaldisco.basics.constants import *
 from matplotlib import pyplot as plt
 import networkx as nx
 from netgraph import Graph

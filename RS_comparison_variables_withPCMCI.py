@@ -4,11 +4,11 @@ import os
 import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
-from ts_causal_discovery.CPrinter import CPLevel
-from ts_causal_discovery.CAnDOIT import CAnDOIT
-from ts_causal_discovery.FPCMCI import FPCMCI
-from ts_causal_discovery.selection_methods.TE import TE, TEestimator
-from ts_causal_discovery.random_system.RandomSystem import NoiseType, RandomSystem
+from ts_causaldisco.CPrinter import CPLevel
+from ts_causaldisco.CAnDOIT import CAnDOIT
+from ts_causaldisco.FPCMCI import FPCMCI
+from ts_causaldisco.selection_methods.TE import TE, TEestimator
+from ts_causaldisco.random_system.RandomSystem import NoiseType, RandomSystem
 from pathlib import Path
 
 from time import time
