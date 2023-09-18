@@ -108,7 +108,7 @@ class FPCMCI():
         return self.CM.features, self.CM
 
     
-    def run(self):
+    def run(self, remove_unneeded = True):
         """
         Run Selector and Validator
         
@@ -136,7 +136,7 @@ class FPCMCI():
         self.CM = self.validator.run(self.data, link_assumptions)
         
         # list of selected features based on validator dependencies
-        self.CM.remove_unneeded_features()
+        if remove_unneeded: self.CM.remove_unneeded_features()
     
         # Saving final causal model
         self.__print_differences(f_dag, self.CM)

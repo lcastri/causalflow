@@ -171,7 +171,7 @@ class CAnDOIT():
         return self.CM.features, self.CM
     
     
-    def run(self):
+    def run(self, remove_unneeded = True ):
         """
         Run Selector and Validator
         
@@ -204,7 +204,7 @@ class CAnDOIT():
         self.CM = self.run_validator(link_assumptions)
         
         # list of selected features based on validator dependencies
-        self.CM.remove_unneeded_features()
+        if remove_unneeded: self.CM.remove_unneeded_features()
         if self.exclude_context: self.CM.remove_context()
         
         # Print and save final causal model

@@ -4,6 +4,7 @@ import os
 import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
+
 from ts_causaldisco.CPrinter import CPLevel
 from ts_causaldisco.CAnDOIT import CAnDOIT
 from ts_causaldisco.FPCMCI import FPCMCI
@@ -50,7 +51,7 @@ EMPTY_RES = {"GT" : None,
                             sta._SCM: None,
                             "SpuriousLinks": None,
                             "N_SpuriousLinks": None},   
-             sta._doFPCMCI : {sta._TIME : None, 
+             sta._CAnDOIT : {sta._TIME : None, 
                               sta._FN : None, 
                               sta._FP : None, 
                               sta._TP : None, 
@@ -92,7 +93,7 @@ def get_spurious_links(scm):
     return spurious
 
     
-def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, dofpcmci_t, dofpcmci_scm):
+def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm):
     print("\n")
     print("Number of variable = " + str(n))
     print("Ground truth = " + str(RS.get_SCM()))
@@ -107,7 +108,7 @@ def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, dofpcmci_t, dofpcmci_s
     res_tmp["ExpectedSpuriousLinks"] = str(RS.expected_spurious_links)
     res_tmp["N_ExpectedSpuriousLinks"] = len(RS.expected_spurious_links)
     
-    for algo, scm, t in zip([sta._PCMCI, sta._FPCMCI, sta._doFPCMCI], [pcmci_scm, fpcmci_scm, dofpcmci_scm], [pcmci_t, fpcmci_t, dofpcmci_t]):
+    for algo, scm, t in zip([sta._PCMCI, sta._FPCMCI, sta._CAnDOIT], [pcmci_scm, fpcmci_scm, candoit_scm], [pcmci_t, fpcmci_t, candoit_t]):
         res_tmp[algo][sta._TIME] = t
         res_tmp[algo][sta._FN] = RS.get_FN(cm = scm)
         res_tmp[algo][sta._FP] = RS.get_FP(cm = scm)
@@ -140,14 +141,13 @@ if __name__ == '__main__':
     max_c = 0.5
     nsample = 1000
     nvars = 7
-    nconfounded = range(2, 3)
+    nconfounded = range(2, 8)
     nrun = 25
     noise = (NoiseType.Uniform, -0.1, 0.1)
     
     
     for n in nconfounded:
         for nr in range(nrun):
-            if nr <= 13: continue
             #########################################################################################################################
             # DATA
             while True:
@@ -198,8 +198,8 @@ if __name__ == '__main__':
 
                     new_start = time()
                     features, fpcmci_cm = fpcmci.run()
-                    elapsed_newFPCMCI = time() - new_start
-                    fpcmci_time = str(timedelta(seconds = elapsed_newFPCMCI))
+                    elapsed_fpcmci = time() - new_start
+                    fpcmci_time = str(timedelta(seconds = elapsed_fpcmci))
                     print(fpcmci_time)
                     fpcmci.timeseries_dag()
                     gc.collect()
@@ -225,35 +225,35 @@ if __name__ == '__main__':
                     
                     new_start = time()
                     features, pcmci_cm = pcmci.run_pcmci()
-                    elapsed_newFPCMCI = time() - new_start
-                    pcmci_time = str(timedelta(seconds = elapsed_newFPCMCI))
+                    elapsed_pcmci = time() - new_start
+                    pcmci_time = str(timedelta(seconds = elapsed_pcmci))
                     print(pcmci_time)
                     pcmci.timeseries_dag()
                     gc.collect()
                                     
             
                     #########################################################################################################################
-                    # doFPCMCI
-                    dofpcmci = CAnDOIT(deepcopy(d_obs), 
-                                        deepcopy(d_int),
-                                        f_alpha = f_alpha, 
-                                        pcmci_alpha = pcmci_alpha, 
-                                        min_lag = min_lag, 
-                                        max_lag = max_lag, 
-                                        sel_method = TE(TEestimator.Gaussian), 
-                                        val_condtest = GPDC(significance = 'analytic'),
-                                        verbosity = CPLevel.INFO,
-                                        neglect_only_autodep = False,
-                                        resfolder = resfolder + "/dofpcmci",
-                                        plot_data = False,
-                                        exclude_context = True)
+                    # CAnDOIT
+                    candoit = CAnDOIT(deepcopy(d_obs), 
+                                       deepcopy(d_int),
+                                       f_alpha = f_alpha, 
+                                       pcmci_alpha = pcmci_alpha, 
+                                       min_lag = min_lag, 
+                                       max_lag = max_lag, 
+                                       sel_method = TE(TEestimator.Gaussian), 
+                                       val_condtest = GPDC(significance = 'analytic'),
+                                       verbosity = CPLevel.INFO,
+                                       neglect_only_autodep = False,
+                                       resfolder = resfolder + "/candoit",
+                                       plot_data = False,
+                                       exclude_context = True)
                     
                     new_start = time()
-                    features, dofpcmci_cm = dofpcmci.run()
-                    elapsed_newFPCMCI = time() - new_start
-                    dofpcmci_time = str(timedelta(seconds = elapsed_newFPCMCI))
-                    print(dofpcmci_time)
-                    dofpcmci.timeseries_dag()
+                    features, candoit_cm = candoit.run()
+                    elapsed_candoit = time() - new_start
+                    candoit_time = str(timedelta(seconds = elapsed_candoit))
+                    print(candoit_time)
+                    candoit.timeseries_dag()
                     gc.collect()
                         
                     break
@@ -268,7 +268,7 @@ if __name__ == '__main__':
             # SAVE
             save_result(pcmci_time, get_correct_SCM(GT, pcmci_cm.get_SCM()),
                         fpcmci_time, get_correct_SCM(GT, fpcmci_cm.get_SCM()),
-                        dofpcmci_time, get_correct_SCM(GT, dofpcmci_cm.get_SCM()))
+                        candoit_time, get_correct_SCM(GT, candoit_cm.get_SCM()))
             
             Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
             filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
