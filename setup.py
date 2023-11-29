@@ -18,15 +18,15 @@ INSTALL_REQUIRES = ["tigramite>=5.1.0.3",
                     ]
 
 setup(
-    name = 'fpcmci',
+    name = 'connectingdots',
     version = VERSION,    
-    description = 'A causal discovery Python package',
+    description = 'A Python library for Causal Inference in Time-Series domain',
     long_description = long_description,
     long_description_content_type = 'text/markdown',
     url = 'https://github.com/lcastri/fpcmci',
     author = 'Luca Castri',
     author_email = 'lucacastri94@gmail.com',
-    packages = ['fpcmci', "fpcmci.preprocessing", "fpcmci.preprocessing.subsampling_methods", "fpcmci.basics", "fpcmci.selection_methods", "fpcmci.graph"],
+    packages = ['connectingdots', "connectingdots.preprocessing", "connectingdots.preprocessing.subsampling_methods", "connectingdots.basics", "connectingdots.selection_methods", "connectingdots.graph", "connectingdots.random_system"],
     python_requires='>=3',
     install_requires = INSTALL_REQUIRES,
 

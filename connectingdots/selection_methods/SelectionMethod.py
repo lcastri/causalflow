@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from contextlib import contextmanager
 import sys, os
-from ts_causaldisco.preprocessing.data import Data
-from ts_causaldisco.basics.constants import *
-from ts_causaldisco.CPrinter import CP
-from ts_causaldisco.graph.DAG import DAG
+from connectingdots.preprocessing.data import Data
+from connectingdots.basics.constants import *
+from connectingdots.CPrinter import CP
+from connectingdots.graph.DAG import DAG
 
 
 class CTest(Enum):

@@ -5,11 +5,11 @@ import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
 
-from ts_causaldisco.CPrinter import CPLevel
-from ts_causaldisco.CAnDOIT import CAnDOIT
-from ts_causaldisco.FPCMCI import FPCMCI
-from ts_causaldisco.selection_methods.TE import TE, TEestimator
-from ts_causaldisco.random_system.RandomSystem import NoiseType, RandomSystem
+from connectingdots.CPrinter import CPLevel
+from connectingdots.CAnDOIT import CAnDOIT
+from connectingdots.FPCMCI import FPCMCI
+from connectingdots.selection_methods.TE import TE, TEestimator
+from connectingdots.random_system.RandomSystem import NoiseType, RandomSystem
 from pathlib import Path
 
 from time import time

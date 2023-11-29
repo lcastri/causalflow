@@ -1,6 +1,6 @@
 from scipy.fft import rfft, rfftfreq
-from ts_causaldisco.preprocessing.subsampling_methods.EntropyBasedMethod import EntropyBasedMethod
-from ts_causaldisco.preprocessing.subsampling_methods.SubsamplingMethod import SSMode, SubsamplingMethod
+from connectingdots.preprocessing.subsampling_methods.EntropyBasedMethod import EntropyBasedMethod
+from connectingdots.preprocessing.subsampling_methods.SubsamplingMethod import SSMode, SubsamplingMethod
 import numpy as np
 import pylab as pl
 from math import ceil

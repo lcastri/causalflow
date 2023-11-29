@@ -1,5 +1,5 @@
-from ts_causaldisco.selection_methods.SelectionMethod import SelectionMethod, CTest
-from ts_causaldisco.CPrinter import CP
+from connectingdots.selection_methods.SelectionMethod import SelectionMethod, CTest
+from connectingdots.CPrinter import CP
 from scipy import stats, linalg
 import numpy as np
 

@@ -1,9 +1,9 @@
 from tigramite.independence_tests.gpdc import GPDC
-from ts_causaldisco.CPrinter import CPLevel
-from ts_causaldisco.CAnDOIT import CAnDOIT
-from ts_causaldisco.preprocessing.data import Data
-from ts_causaldisco.selection_methods.TE import TE, TEestimator
-from ts_causaldisco.basics.constants import LabelType
+from connectingdots.CPrinter import CPLevel
+from connectingdots.CAnDOIT import CAnDOIT
+from connectingdots.preprocessing.data import Data
+from connectingdots.selection_methods.TE import TE, TEestimator
+from connectingdots.basics.constants import LabelType
 import numpy as np
 
 from time import time

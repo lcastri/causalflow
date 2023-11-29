@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from ts_causaldisco.basics.constants import *
+from connectingdots.basics.constants import *
 
 
 def cls():

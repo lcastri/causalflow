@@ -3,8 +3,8 @@ import pandas as pd
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
-from ts_causaldisco.preprocessing.Subsampler import Subsampler
-from ts_causaldisco.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod
+from connectingdots.preprocessing.Subsampler import Subsampler
+from connectingdots.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod
 
 
 class Data():

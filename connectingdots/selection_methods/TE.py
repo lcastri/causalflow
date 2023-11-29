@@ -1,10 +1,10 @@
 from enum import Enum
 import numpy as np
-from ts_causaldisco.selection_methods.SelectionMethod import SelectionMethod, CTest, _suppress_stdout
+from connectingdots.selection_methods.SelectionMethod import SelectionMethod, CTest, _suppress_stdout
 from idtxl.multivariate_te import MultivariateTE
 from idtxl.bivariate_mi import BivariateMI
 from idtxl.data import Data
-from ts_causaldisco.CPrinter import CP
+from connectingdots.CPrinter import CP
 
 
 class TEestimator(Enum):

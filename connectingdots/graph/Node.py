@@ -1,4 +1,4 @@
-from ts_causaldisco.basics.constants import SCORE
+from connectingdots.basics.constants import SCORE
 
 
 class Node():

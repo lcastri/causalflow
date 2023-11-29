@@ -4,14 +4,14 @@ import pickle
 import numpy as np
 import pandas as pd
 from tigramite.independence_tests.independence_tests_base import CondIndTest
-from ts_causaldisco.selection_methods.SelectionMethod import SelectionMethod
-from ts_causaldisco.CPrinter import CPLevel, CP
-from ts_causaldisco.basics.constants import *
-from ts_causaldisco.graph.DAG import DAG
-from ts_causaldisco.basics.logger import Logger
-import ts_causaldisco.basics.utils as utils
-from ts_causaldisco.PCMCI import PCMCI
-from ts_causaldisco.preprocessing.data import Data 
+from connectingdots.selection_methods.SelectionMethod import SelectionMethod
+from connectingdots.CPrinter import CPLevel, CP
+from connectingdots.basics.constants import *
+from connectingdots.graph.DAG import DAG
+from connectingdots.basics.logger import Logger
+import connectingdots.basics.utils as utils
+from connectingdots.PCMCI import PCMCI
+from connectingdots.preprocessing.data import Data 
 
 
 class CAnDOIT():
