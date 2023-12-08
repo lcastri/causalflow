@@ -3,8 +3,8 @@ from enum import Enum
 import math
 import random
 import numpy as np
-from fpcmci.graph.DAG import DAG
-from fpcmci.preprocessing.data import Data
+from connectingdots.graph.DAG import DAG
+from connectingdots.preprocessing.data import Data
 import networkx as nx
 
 
@@ -24,7 +24,7 @@ class RandomSystem:
                  operators = ['+', '-', '*'], 
                  functions = ['','sin', 'cos', 'exp', 'abs', 'pow'],
                  n_hidden_confounders = 0,
-                 n_confounded = 0):
+                 n_confounded = None):
         """
         RandomSystem constructor
 
@@ -173,7 +173,7 @@ class RandomSystem:
         for hid in self.hiddenVar:
             firstConf = True
             var_choice = copy.deepcopy(self.obsVar)
-            n_confounded = random.randint(2, self.Nobs) if self.n_confounded == 0 else self.n_confounded 
+            n_confounded = random.randint(2, self.Nobs) if self.n_confounded is None else self.n_confounded 
             
             var_t1 = None
             var_t = list()
