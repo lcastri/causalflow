@@ -10,7 +10,7 @@ from connectingdots.basics.constants import *
 from connectingdots.graph.DAG import DAG
 from connectingdots.basics.logger import Logger
 import connectingdots.basics.utils as utils
-from connectingdots.PCMCI import PCMCI
+from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
 from connectingdots.preprocessing.data import Data 
 
 
@@ -66,7 +66,7 @@ class CAnDOIT():
         self.exclude_context = exclude_context
         
         # Create filter and validator data
-        self.filter_data, self.validator_data = self.__prepare_data(self.obs_data, intervention_data, plot_data)
+        self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
 
         self.respath, self.dag_path, self.ts_dag_path = None, None, None
         if resfolder is not None:
@@ -125,11 +125,11 @@ class CAnDOIT():
         
         # Causal Model
         causal_model = self.validator.run_mci(self.validator_data, tmp_dag)
-        causal_model = self.__change_score_and_pval(tmp_dag, causal_model) 
+        causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
         return causal_model
     
     
-    def __change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
+    def _change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
         for t in dest_cm.g:
             if dest_cm.g[t].is_autodependent:
                 for s in dest_cm.g[t].autodependency_links:
@@ -138,67 +138,69 @@ class CAnDOIT():
         return dest_cm
 
 
-    def run_pcmci(self):
+    # def run_pcmci(self):
+    #     """
+    #     Run PCMCI
+        
+    #     Returns:
+    #         list(str): list of selected variable names
+    #         DAG: causal model
+    #     """
+    #     CP.info("Significance level: " + str(self.pcmci_alpha))
+    #     CP.info("Max lag time: " + str(self.max_lag))
+    #     CP.info("Min lag time: " + str(self.min_lag))
+    #     CP.info("Data length: " + str(self.validator_data.T))
+        
+    #     # add context to the fake link assumptions (complete set of links)
+    #     self.CM.fully_connected_dag()
+    #     self.CM.add_context()
+    #     # selected links to check by the validator
+    #     link_assumptions = self.CM.get_link_assumptions()
+
+    #     # calculate dependencies on selected links
+    #     self.CM = self.run_validator(link_assumptions)
+        
+    #     # list of selected features based on validator dependencies
+    #     self.CM.remove_unneeded_features()
+        
+    #     if self.exclude_context: self.CM.remove_context()
+        
+    #     # Saving final causal model
+    #     self.save()
+        
+    #     return self.CM.features, self.CM
+    
+    
+    def run(self, remove_unneeded = True, nofilter = False):
         """
-        Run PCMCI
+        Run F-PCMCI
         
         Returns:
             list(str): list of selected variable names
             DAG: causal model
         """
-        CP.info("Significance level: " + str(self.pcmci_alpha))
-        CP.info("Max lag time: " + str(self.max_lag))
-        CP.info("Min lag time: " + str(self.min_lag))
-        CP.info("Data length: " + str(self.validator_data.T))
         
-        # add context to the fake link assumptions (complete set of links)
-        self.CM.fully_connected_dag()
-        self.CM.add_context()
-        # selected links to check by the validator
-        link_assumptions = self.CM.get_link_assumptions()
+        if not nofilter:
+            ## 1. FILTER
+            self.run_filter()
+        
+            # list of selected features based on filter dependencies
+            self.CM.remove_unneeded_features()
+            if not self.CM.features: return None, None
+            
+            self.obs_data.shrink(self.CM.features)
+            f_dag = copy.deepcopy(self.CM)
+        
+            ## 2. VALIDATOR
+            # Add dependencies corresponding to the context variables 
+            # ONLY if the the related system variable is still present
+            self.CM.add_context() 
 
-        # calculate dependencies on selected links
-        self.CM = self.run_validator(link_assumptions)
-        
-        # list of selected features based on validator dependencies
-        self.CM.remove_unneeded_features()
-        
-        if self.exclude_context: self.CM.remove_context()
-        
-        # Saving final causal model
-        self.save()
-        
-        return self.CM.features, self.CM
-    
-    
-    def run(self, remove_unneeded = True ):
-        """
-        Run Selector and Validator
-        
-        Returns:
-            list(str): list of selected variable names
-            DAG: causal model
-        """
-        
-        ## 1. FILTER
-        self.run_filter()
-        
-        # list of selected features based on filter dependencies
-        self.CM.remove_unneeded_features()
-        if not self.CM.features: return None, None
-        self.obs_data.shrink(self.CM.features)
-        f_dag = copy.deepcopy(self.CM)
-        
-        ## 2. VALIDATOR
-        # Add dependencies corresponding to the context variables 
-        # ONLY if the the related system variable is still present
-        self.CM.add_context() 
-
-        # shrink dataframe d by using the filter result
-        self.validator_data.shrink(self.CM.features)
-        
-        # selected links to check by the validator
-        link_assumptions = self.CM.get_link_assumptions()
+            # shrink dataframe d by using the filter result
+            self.validator_data.shrink(self.CM.features)
+            
+            # selected links to check by the validator
+            link_assumptions = self.CM.get_link_assumptions()
             
         # calculate dependencies on selected links
         self.CM = self.run_validator(link_assumptions)
@@ -208,7 +210,7 @@ class CAnDOIT():
         if self.exclude_context: self.CM.remove_context()
         
         # Print and save final causal model
-        self.__print_differences(f_dag, self.CM)
+        if not nofilter: self.__print_differences(f_dag, self.CM)
         self.save()
         
         return self.CM.features, self.CM
@@ -357,7 +359,7 @@ class CAnDOIT():
                     CP.info(diff + " removed")
                 
                 
-    def __prepare_data(self, obser_data, inter_data, plot_data):
+    def _prepare_data(self, obser_data, inter_data, plot_data):
         """
         Prepares data for filter and validator phases
         

@@ -1,7 +1,7 @@
 from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
-from connectingdots.CAnDOIT import CAnDOIT
-from connectingdots.FPCMCI import FPCMCI
+from connectingdots.causal_discovery.FPCMCI import FPCMCI
+from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
 from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.basics.constants import LabelType
@@ -26,17 +26,21 @@ if __name__ == '__main__':
     df = Data(d, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
     
     
-    fpcmci = FPCMCI(df,
-                        f_alpha = f_alpha, 
-                        pcmci_alpha = pcmci_alpha, 
-                        min_lag = min_lag, 
-                        max_lag = max_lag, 
-                        sel_method = TE(TEestimator.Gaussian), 
-                        val_condtest = GPDC(significance = 'analytic', gp_params = None),
-                        verbosity = CPLevel.DEBUG,
-                        neglect_only_autodep = True,
-                        resfolder = 'FPCMCI_test_2')
+    # fpcmci = FPCMCI(df,
+    #                     f_alpha = f_alpha, 
+    #                     pcmci_alpha = pcmci_alpha, 
+    #                     min_lag = min_lag, 
+    #                     max_lag = max_lag, 
+    #                     sel_method = TE(TEestimator.Gaussian), 
+    #                     val_condtest = GPDC(significance = 'analytic', gp_params = None),
+    #                     verbosity = CPLevel.DEBUG,
+    #                     neglect_only_autodep = True)
     
-    features, cm = fpcmci.run()
-    fpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    fpcmci.timeseries_dag()
+    # features, cm = fpcmci.run()
+    # fpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # fpcmci.timeseries_dag()
+    
+    dynotears = DYNOTEARS(alpha = pcmci_alpha,
+                          max_lag = max_lag)
+    cm = dynotears.run(df.d)
+    cm.dag()

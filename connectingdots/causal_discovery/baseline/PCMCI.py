@@ -73,7 +73,7 @@ class PCMCI():
         self.result['var_names'] = data.features
         self.result['pretty_var_names'] = data.pretty_features
         
-        self.dependencies = self.__PCMCI_to_DAG()
+        self.dependencies = self._to_DAG()
         return self.dependencies
     
     
@@ -296,7 +296,7 @@ class PCMCI():
         self.result['var_names'] = data.features
         self.result['pretty_var_names'] = data.pretty_features
         
-        self.dependencies = self.__PCMCI_to_DAG()
+        self.dependencies = self._to_DAG()
         return self.dependencies
     
     
@@ -322,7 +322,7 @@ class PCMCI():
         return tmp_dag
     
     
-    def __PCMCI_to_DAG(self):
+    def _to_DAG(self):
         """
         Re-elaborates the PCMCI result in a new dictionary
 

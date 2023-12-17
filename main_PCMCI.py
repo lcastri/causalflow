@@ -1,6 +1,6 @@
 from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
-from connectingdots.FPCMCI import FPCMCI
+from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.preprocessing.data import Data
 from connectingdots.preprocessing.subsampling_methods.Static import Static
 from connectingdots.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod

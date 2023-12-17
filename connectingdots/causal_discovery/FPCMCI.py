@@ -8,7 +8,7 @@ from connectingdots.CPrinter import CPLevel, CP
 from connectingdots.basics.constants import *
 from connectingdots.basics.logger import Logger
 import connectingdots.basics.utils as utils
-from connectingdots.PCMCI import PCMCI
+from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
 from connectingdots.preprocessing.data import Data 
 
 
@@ -83,63 +83,66 @@ class FPCMCI():
         self.CM = self.sel_method.compute_dependencies()  
 
 
-    def run_pcmci(self):
-        """
-        Run PCMCI
+    # def run_pcmci(self):
+    #     """
+    #     Run PCMCI
         
-        Returns:
-            list(str): list of selected variable names
-            dict(str:list(tuple)): causal model
-        """
-        CP.info("Significance level: " + str(self.pcmci_alpha))
-        CP.info("Max lag time: " + str(self.max_lag))
-        CP.info("Min lag time: " + str(self.min_lag))
-        CP.info("Data length: " + str(self.data.T))
+    #     Returns:
+    #         list(str): list of selected variable names
+    #         dict(str:list(tuple)): causal model
+    #     """
+    #     CP.info("Significance level: " + str(self.pcmci_alpha))
+    #     CP.info("Max lag time: " + str(self.max_lag))
+    #     CP.info("Min lag time: " + str(self.min_lag))
+    #     CP.info("Data length: " + str(self.data.T))
 
-        # calculate dependencies on selected links
-        self.CM = self.validator.run(self.data)
+    #     # calculate dependencies on selected links
+    #     self.CM = self.validator.run(self.data)
         
-        # list of selected features based on validator dependencies
-        self.CM.remove_unneeded_features()
+    #     # list of selected features based on validator dependencies
+    #     self.CM.remove_unneeded_features()
                 
-        # Saving final causal model
-        self.save()
+    #     # Saving final causal model
+    #     self.save()
         
-        return self.CM.features, self.CM
+    #     return self.CM.features, self.CM
 
     
-    def run(self, remove_unneeded = True):
+    def run(self, remove_unneeded = True, nofilter = False):
         """
-        Run Selector and Validator
+        Run F-PCMCI
         
         Returns:
             list(str): list of selected variable names
-            dict(str,TargetDep): causal model
+            DAG: causal model
         """
+        link_assumptions = None
         
-        ## 1. FILTER
-        self.run_filter()
+        if not nofilter:
+            ## 1. FILTER
+            self.run_filter()
         
-        # list of selected features based on filter dependencies
-        self.CM.remove_unneeded_features()
-        if not self.CM.features: return None, None
+            # list of selected features based on filter dependencies
+            self.CM.remove_unneeded_features()
+            if not self.CM.features: return None, None
         
-        ## 2. VALIDATOR
-        # shrink dataframe d by using the filter result
-        self.data.shrink(self.CM.features)
+            ## 2. VALIDATOR
+            # shrink dataframe d by using the filter result
+            self.data.shrink(self.CM.features)
         
-        # selected links to check by the validator
-        link_assumptions = self.CM.get_link_assumptions()
+            # selected links to check by the validator
+            link_assumptions = self.CM.get_link_assumptions()
             
-        # calculate dependencies on selected links
-        f_dag = copy.deepcopy(self.CM)
+            # calculate dependencies on selected links
+            f_dag = copy.deepcopy(self.CM)
+            
         self.CM = self.validator.run(self.data, link_assumptions)
-        
+
         # list of selected features based on validator dependencies
         if remove_unneeded: self.CM.remove_unneeded_features()
     
         # Saving final causal model
-        self.__print_differences(f_dag, self.CM)
+        if not nofilter: self._print_differences(f_dag, self.CM)
         self.save()
         
         return self.CM.features, self.CM
@@ -257,7 +260,7 @@ class FPCMCI():
                 CP.warning("Causal model impossible to save")
     
     
-    def __print_differences(self, old_dag : DAG, new_dag : DAG):
+    def _print_differences(self, old_dag : DAG, new_dag : DAG):
         """
         Print difference between old and new dependencies
 

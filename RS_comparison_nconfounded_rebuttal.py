@@ -6,8 +6,8 @@ from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
 
 from connectingdots.CPrinter import CPLevel
-from connectingdots.CAnDOIT import CAnDOIT
-from connectingdots.FPCMCI import FPCMCI
+from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
+from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.random_system.RandomSystem import NoiseType, RandomSystem
 from pathlib import Path
