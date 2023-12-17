@@ -70,7 +70,7 @@ class TE(SelectionMethod):
             auto_pval = res_auto._single_target[0]['selected_sources_pval']
             if auto_score is not None:
                 for score, pval, lag in zip(auto_score, auto_pval, auto_lag):
-                    self._add_dependecy(self.data.features[t], self.data.features[t], score, pval, lag)
+                    self._add_dependency(self.data.features[t], self.data.features[t], score, pval, lag)
             
             # Cross-dependencies handling    
             sel_sources = [s[0] for s in res_cross._single_target[t]['selected_vars_sources']]
@@ -79,7 +79,7 @@ class TE(SelectionMethod):
                 sel_sources_score = res_cross._single_target[t]['selected_sources_te']
                 sel_sources_pval = res_cross._single_target[t]['selected_sources_pval']
                 for s, score, pval, lag in zip(sel_sources, sel_sources_score, sel_sources_pval, sel_sources_lag):
-                    self._add_dependecy(self.data.features[t], self.data.features[s], score, pval, lag)
+                    self._add_dependency(self.data.features[t], self.data.features[s], score, pval, lag)
             
             if auto_score is None and not sel_sources:
                 CP.info("\tno sources selected")

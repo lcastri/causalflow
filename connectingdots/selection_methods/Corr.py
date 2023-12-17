@@ -38,6 +38,6 @@ class Corr(SelectionMethod):
                 sel_sources, sel_sources_score, sel_sources_pval = X.columns[f].tolist(), scores[f].tolist(), pval[f].tolist()
 
                 for s, score, pval in zip(sel_sources, sel_sources_score, sel_sources_pval):
-                    self._add_dependecy(target, s, score, pval, lag)
+                    self._add_dependency(target, s, score, pval, lag)
 
         return self.result

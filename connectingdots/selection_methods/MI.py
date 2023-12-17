@@ -50,6 +50,6 @@ class MI(SelectionMethod):
                 sel_sources_score = results._single_target[t]['selected_sources_mi']
                 sel_sources_pval = results._single_target[t]['selected_sources_pval']
                 for s, score, pval, lag in zip(sel_sources, sel_sources_score, sel_sources_pval, sel_sources_lag):
-                    self._add_dependecy(self.features[t], self.features[s], score, pval, lag)
+                    self._add_dependency(self.features[t], self.features[s], score, pval, lag)
 
         return self.result

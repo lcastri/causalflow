@@ -76,7 +76,7 @@ class ParCorr(SelectionMethod):
                             tmp_res = (candidate, score, pval)
 
                     if tmp_res is not None: 
-                        self._add_dependecy(target, tmp_res[0], tmp_res[1], tmp_res[2], lag)
+                        self._add_dependency(target, tmp_res[0], tmp_res[1], tmp_res[2], lag)
                         candidates.remove(tmp_res[0])
                     else:
                         break

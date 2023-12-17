@@ -103,7 +103,7 @@ class SelectionMethod(ABC):
         return X, Y
 
 
-    def _add_dependecy(self, t, s, score, pval, lag):
+    def _add_dependency(self, t, s, score, pval, lag):
         """
         Adds found dependency from source (s) to target (t) specifying the 
         score, pval and the lag

@@ -57,19 +57,18 @@ if __name__ == '__main__':
     dofpcmci = CAnDOIT(df, 
                         int_data,
                         f_alpha = f_alpha, 
-                        pcmci_alpha = pcmci_alpha, 
+                        alpha = pcmci_alpha, 
                         min_lag = min_lag, 
                         max_lag = max_lag, 
                         sel_method = TE(TEestimator.Gaussian), 
                         val_condtest = GPDC(significance = 'analytic', gp_params = None),
                         verbosity = CPLevel.DEBUG,
                         neglect_only_autodep = True,
-                        resfolder = 'CAnDOIT',
-                        plot_data = False,
+                        plot_data = True,
                         exclude_context = True)
     
     new_start = time()
-    features, cm = dofpcmci.run()
+    cm = dofpcmci.run()
     elapsed_newFPCMCI = time() - new_start
     print(str(timedelta(seconds = elapsed_newFPCMCI)))
     dofpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')

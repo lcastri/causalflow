@@ -11,9 +11,6 @@ from connectingdots.preprocessing.data import Data
 class PCMCI():
     """
     PCMCI class.
-
-    PCMCI works with FSelector in order to find the causal 
-    model starting from a prefixed set of variables and links.
     """
     def __init__(self, alpha, min_lag, max_lag, val_condtest: CondIndTest, verbosity: CPLevel, sys_context = dict()):
         """

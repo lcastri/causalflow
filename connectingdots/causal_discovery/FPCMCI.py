@@ -6,20 +6,20 @@ from connectingdots.graph.DAG import DAG
 from connectingdots.selection_methods.SelectionMethod import SelectionMethod
 from connectingdots.CPrinter import CPLevel, CP
 from connectingdots.basics.constants import *
-from connectingdots.basics.logger import Logger
-import connectingdots.basics.utils as utils
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
 from connectingdots.preprocessing.data import Data 
+from connectingdots.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 
 
-class FPCMCI():
+class FPCMCI(CausalDiscoveryMethod):
     """
-    FPCMCI class.
+    F-PCMCI class.
 
-    FPCMCI is a causal feature selector framework for large-scale time series
-    datasets. Sarting from a Data object and it selects the main features
-    responsible for the evolution of the analysed system. Based on the selected features,
-    the framework outputs a causal model.
+    F-PCMCI is a causal discovery method that uses observational data to reconstruct causal models
+    from large-scale time series datasets.
+    Starting from a Data object, it selects the main features responsible for the 
+    evolution of the analysed system. Based on the selected features, the framework 
+    outputs a causal model.
     """
 
     def __init__(self, 
@@ -28,7 +28,7 @@ class FPCMCI():
                  sel_method: SelectionMethod, val_condtest: CondIndTest, 
                  verbosity: CPLevel, 
                  f_alpha = 0.05, 
-                 pcmci_alpha = 0.05, 
+                 alpha = 0.05, 
                  resfolder = None,
                  neglect_only_autodep = False):
         """
@@ -42,27 +42,16 @@ class FPCMCI():
             val_condtest (CondIndTest): validation method
             verbosity (CPLevel): verbosity level
             f_alpha (float, optional): filter significance level. Defaults to 0.05.
-            pcmci_alpha (float, optional): PCMCI significance level. Defaults to 0.05.
+            alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
         """
+        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
         
-        self.data = data
         self.f_alpha = f_alpha
-        self.pcmci_alpha = pcmci_alpha
-        self.min_lag = min_lag
-        self.max_lag = max_lag
         self.sel_method = sel_method
-        self.CM = DAG(self.data.features, min_lag, max_lag, neglect_only_autodep)
-        self.neglect_only_autodep = neglect_only_autodep
-
-        self.respath, self.dag_path, self.ts_dag_path = None, None, None
-        if resfolder is not None:
-            utils.create_results_folder()
-            logpath, self.respath, self.dag_path, self.ts_dag_path = utils.get_selectorpath(resfolder)  
-            sys.stdout = Logger(logpath)
         
-        self.validator = PCMCI(self.pcmci_alpha, min_lag, max_lag, val_condtest, verbosity)       
+        self.validator = PCMCI(self.alpha, min_lag, max_lag, val_condtest, verbosity)       
         CP.set_verbosity(verbosity)
 
 
@@ -82,38 +71,12 @@ class FPCMCI():
         self.sel_method.initialise(self.data, self.f_alpha, self.min_lag, self.max_lag, self.CM)
         self.CM = self.sel_method.compute_dependencies()  
 
-
-    # def run_pcmci(self):
-    #     """
-    #     Run PCMCI
-        
-    #     Returns:
-    #         list(str): list of selected variable names
-    #         dict(str:list(tuple)): causal model
-    #     """
-    #     CP.info("Significance level: " + str(self.pcmci_alpha))
-    #     CP.info("Max lag time: " + str(self.max_lag))
-    #     CP.info("Min lag time: " + str(self.min_lag))
-    #     CP.info("Data length: " + str(self.data.T))
-
-    #     # calculate dependencies on selected links
-    #     self.CM = self.validator.run(self.data)
-        
-    #     # list of selected features based on validator dependencies
-    #     self.CM.remove_unneeded_features()
-                
-    #     # Saving final causal model
-    #     self.save()
-        
-    #     return self.CM.features, self.CM
-
-    
-    def run(self, remove_unneeded = True, nofilter = False):
+   
+    def run(self, remove_unneeded = True, nofilter = False) -> DAG:
         """
         Run F-PCMCI
         
         Returns:
-            list(str): list of selected variable names
             DAG: causal model
         """
         link_assumptions = None
@@ -145,85 +108,8 @@ class FPCMCI():
         if not nofilter: self._print_differences(f_dag, self.CM)
         self.save()
         
-        return self.CM.features, self.CM
-    
-
-    def dag(self,
-            node_layout = 'dot',
-            min_width = 1,
-            max_width = 5,
-            min_score = 0,
-            max_score = 1,
-            node_size = 8,
-            node_color = 'orange',
-            edge_color = 'grey',
-            font_size = 12,
-            label_type = LabelType.Lag,
-            save_name = None,
-            img_ext = ImageExt.PNG):
-        """
-        Saves dag plot if resfolder has been set otherwise it shows the figure
-        
-        Args:
-            node_layout (str, optional): Node layout. Defaults to 'dot'.
-            min_width (int, optional): minimum linewidth. Defaults to 1.
-            max_width (int, optional): maximum linewidth. Defaults to 5.
-            min_score (int, optional): minimum score range. Defaults to 0.
-            max_score (int, optional): maximum score range. Defaults to 1.
-            node_size (int, optional): node size. Defaults to 8.
-            node_color (str, optional): node color. Defaults to 'orange'.
-            edge_color (str, optional): edge color. Defaults to 'grey'.
-            font_size (int, optional): font size. Defaults to 12.
-            label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
-            img_ext (ImageExt, optional): dag image extention (.png, .pdf, ..). Default ImageExt.PNG.
-        """
-        
-        if self.CM:
-            if save_name is None: save_name = self.dag_path
-            self.CM.dag(node_layout, min_width, 
-                        max_width, min_score, max_score,
-                        node_size, node_color, edge_color,
-                        font_size, label_type, save_name,
-                        img_ext)
-        else:
-            CP.warning("Dag impossible to create: causal model not estimated yet")
-    
-        
-    def timeseries_dag(self,
-                       min_width = 1,
-                       max_width = 5,
-                       min_score = 0,
-                       max_score = 1,
-                       node_size = 8,
-                       font_size = 12,
-                       node_color = 'orange',
-                       edge_color = 'grey',
-                       save_name = None,
-                       img_ext = ImageExt.PNG):
-        """
-        Saves timeseries dag plot if resfolder has been set otherwise it shows the figure
-        
-        Args:
-            min_width (int, optional): minimum linewidth. Defaults to 1.
-            max_width (int, optional): maximum linewidth. Defaults to 5.
-            min_score (int, optional): minimum score range. Defaults to 0.
-            max_score (int, optional): maximum score range. Defaults to 1.
-            node_size (int, optional): node size. Defaults to 8.
-            node_color (str, optional): node color. Defaults to 'orange'.
-            edge_color (str, optional): edge color. Defaults to 'grey'.
-            font_size (int, optional): font size. Defaults to 12.
-            img_ext (ImageExt, optional): dag image extention (.png, .pdf, ..). Default ImageExt.PNG.
-        """
-        
-        if self.CM:
-            if save_name is None: save_name = self.ts_dag_path
-            self.CM.ts_dag(self.max_lag, min_width,
-                           max_width, min_score, max_score,
-                           node_size, node_color, edge_color,
-                           font_size, save_name, img_ext)
-        else:
-            CP.warning("Timeseries dag impossible to create: causal model not estimated yet")
-            
+        return self.CM
+              
     
     def load(self, res_path):
         """
@@ -236,7 +122,7 @@ class FPCMCI():
             r = pickle.load(f)
             self.CM = r['causal_model']
             self.f_alpha = r['filter_alpha']
-            self.pcmci_alpha = r['pcmci_alpha']
+            self.alpha = r['alpha']
             self.dag_path = r['dag_path']
             self.ts_dag_path = r['ts_dag_path']
             
@@ -251,7 +137,7 @@ class FPCMCI():
                 res['causal_model'] = copy.deepcopy(self.CM)
                 res['features'] = copy.deepcopy(self.CM.features)
                 res['filter_alpha'] = self.f_alpha
-                res['pcmci_alpha'] = self.pcmci_alpha
+                res['alpha'] = self.alpha
                 res['dag_path'] = self.dag_path
                 res['ts_dag_path'] = self.ts_dag_path
                 with open(self.respath, 'wb') as resfile:
