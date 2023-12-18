@@ -2,6 +2,7 @@ from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
+from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
 from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.basics.constants import LabelType
@@ -26,21 +27,41 @@ if __name__ == '__main__':
     df = Data(d, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
     
     
-    fpcmci = FPCMCI(df,
-                    f_alpha = f_alpha, 
-                    alpha = pcmci_alpha, 
-                    min_lag = min_lag, 
-                    max_lag = max_lag, 
-                    sel_method = TE(TEestimator.Gaussian), 
-                    val_condtest = GPDC(significance = 'analytic', gp_params = None),
-                    verbosity = CPLevel.DEBUG,
-                    neglect_only_autodep = True)
+    # fpcmci = FPCMCI(df,
+    #                 f_alpha = f_alpha, 
+    #                 alpha = pcmci_alpha, 
+    #                 min_lag = min_lag, 
+    #                 max_lag = max_lag, 
+    #                 sel_method = TE(TEestimator.Gaussian), 
+    #                 val_condtest = GPDC(significance = 'analytic', gp_params = None),
+    #                 verbosity = CPLevel.DEBUG,
+    #                 neglect_only_autodep = True)
     
-    cm = fpcmci.run()
-    fpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    fpcmci.timeseries_dag()
+    # cm = fpcmci.run()
+    # fpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # fpcmci.timeseries_dag()
     
-    # dynotears = DYNOTEARS(alpha = pcmci_alpha,
-    #                       max_lag = max_lag)
-    # cm = dynotears.run(df.d)
-    # cm.dag()
+    
+    
+    # pcmci = PCMCI(df,
+    #               min_lag = min_lag, 
+    #               max_lag = max_lag, 
+    #               val_condtest = GPDC(significance = 'analytic', gp_params = None),
+    #               verbosity = CPLevel.DEBUG,
+    #               alpha = pcmci_alpha, 
+    #               neglect_only_autodep = True)
+    
+    # cm = pcmci.run()
+    # pcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # pcmci.timeseries_dag()
+    
+    
+    
+    dynotears = DYNOTEARS(df,
+                          max_lag = max_lag,
+                          verbosity = CPLevel.DEBUG,
+                          alpha = pcmci_alpha,
+                          neglect_only_autodep = True)
+    cm = dynotears.run()
+    dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # dynotears.timeseries_dag()

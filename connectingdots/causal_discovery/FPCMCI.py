@@ -6,7 +6,7 @@ from connectingdots.graph.DAG import DAG
 from connectingdots.selection_methods.SelectionMethod import SelectionMethod
 from connectingdots.CPrinter import CPLevel, CP
 from connectingdots.basics.constants import *
-from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
+from connectingdots.causal_discovery.myPCMCI import myPCMCI
 from connectingdots.preprocessing.data import Data 
 from connectingdots.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 
@@ -32,7 +32,7 @@ class FPCMCI(CausalDiscoveryMethod):
                  resfolder = None,
                  neglect_only_autodep = False):
         """
-        FPCMCI class contructor
+        F-PCMCI class contructor
 
         Args:
             data (Data): data to analyse
@@ -51,8 +51,7 @@ class FPCMCI(CausalDiscoveryMethod):
         self.f_alpha = f_alpha
         self.sel_method = sel_method
         
-        self.validator = PCMCI(self.alpha, min_lag, max_lag, val_condtest, verbosity)       
-        CP.set_verbosity(verbosity)
+        self.validator = myPCMCI(self.alpha, min_lag, max_lag, val_condtest, verbosity)       
 
 
     def run_filter(self):

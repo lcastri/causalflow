@@ -291,11 +291,12 @@ class DAG():
             node_label = {t: [] for t in r.g.keys()}
             for t in r.g:
                 if r.g[t].is_autodependent:
-                    autodep = r.g[t].get_max_autodependent
-                    if label_type == LabelType.Lag:
-                        node_label[t].append(autodep[1])
-                    elif label_type == LabelType.Score:
-                        node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
+                    for s in r.g[t].sources:
+                        if s[0] == t:
+                            if label_type == LabelType.Lag:
+                                node_label[t].append(s[1])
+                            elif label_type == LabelType.Score:
+                                node_label[t].append(round(r.g[t].sources[s][SCORE], 2))
                 node_label[t] = ",".join(str(s) for s in node_label[t])
 
 
@@ -320,7 +321,7 @@ class DAG():
                         if label_type == LabelType.Lag:
                             edge_label[(s[0], t)].append(s[1])
                         elif label_type == LabelType.Score:
-                            edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
+                            edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 2))
             for k in edge_label.keys():
                 edge_label[k] = ",".join(str(s) for s in edge_label[k])
 
@@ -390,11 +391,15 @@ class DAG():
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
 
-        # add nodes
-        G = nx.grid_2d_graph(tau + 1, len(r.g.keys()))
+        G = nx.DiGraph()
+
+        # Add nodes to the graph
+        for i in range(len(self.features)):
+            for j in range(tau + 1):
+                G.add_node((j, i))
+                
         pos = {n : (n[0], n[1]/2) for n in G.nodes()}
         scale = max(pos.values())
-        G.remove_edges_from(G.edges())
         
         # Nodes color definition
         # node_c = ['tab:blue', 'tab:orange','tab:red', 'tab:purple']
@@ -412,15 +417,25 @@ class DAG():
                 s_index = len(r.g.keys())-1 - list(r.g.keys()).index(s[0])
                 t_index = len(r.g.keys())-1 - list(r.g.keys()).index(t)
                 
-                s_lag = tau - s[1]
-                t_lag = tau
-                while s_lag >= 0:
-                    s_node = (s_lag, s_index)
-                    t_node = (t_lag, t_index)
-                    edges.append((s_node, t_node))
-                    edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-                    s_lag -= s[1]
-                    t_lag -= s[1]
+                # Contemporaneous dependecies
+                if s[1] == 0:
+                    for i in range(tau + 1):
+                        s_node = (i, s_index)
+                        t_node = (i, t_index)
+                        edges.append((s_node, t_node))
+                        edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+                        
+                # Lagged dependecies
+                else:
+                    s_lag = tau - s[1]
+                    t_lag = tau
+                    while s_lag >= 0:
+                        s_node = (s_lag, s_index)
+                        t_node = (t_lag, t_index)
+                        edges.append((s_node, t_node))
+                        edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+                        s_lag -= s[1]
+                        t_lag -= s[1]
                     
         G.add_edges_from(edges)
 

@@ -8,7 +8,7 @@ from connectingdots.selection_methods.SelectionMethod import SelectionMethod
 from connectingdots.CPrinter import CPLevel, CP
 from connectingdots.basics.constants import *
 from connectingdots.graph.DAG import DAG
-from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
+from connectingdots.causal_discovery.myPCMCI import myPCMCI
 from connectingdots.preprocessing.data import Data 
 from connectingdots.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 
@@ -64,10 +64,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         # Create filter and validator data
         self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
         
-        self.validator = PCMCI(self.alpha, self.min_lag, self.max_lag, val_condtest, verbosity, self.CM.sys_context)
+        self.validator = myPCMCI(self.alpha, self.min_lag, self.max_lag, val_condtest, verbosity, self.CM.sys_context)
         
-        CP.set_verbosity(verbosity)
-
 
     def run_filter(self):
         """
