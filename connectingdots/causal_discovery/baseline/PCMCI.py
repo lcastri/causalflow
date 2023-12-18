@@ -11,7 +11,7 @@ from connectingdots.causal_discovery.CausalDiscoveryMethod import CausalDiscover
 
 class PCMCI(CausalDiscoveryMethod):
     """
-    PCMCI class.
+    PCMCI causal discovery method.
     """
     def __init__(self, 
                  data: Data, 

@@ -2,6 +2,7 @@ from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
+from connectingdots.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
 from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
@@ -57,11 +58,20 @@ if __name__ == '__main__':
     
     
     
-    dynotears = DYNOTEARS(df,
+    # dynotears = DYNOTEARS(df,
+    #                       max_lag = max_lag,
+    #                       verbosity = CPLevel.DEBUG,
+    #                       alpha = pcmci_alpha,
+    #                       neglect_only_autodep = True)
+    # cm = dynotears.run()
+    # dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # dynotears.timeseries_dag()
+    
+    varlingam = VarLiNGAM(df,
                           max_lag = max_lag,
                           verbosity = CPLevel.DEBUG,
                           alpha = pcmci_alpha,
                           neglect_only_autodep = True)
-    cm = dynotears.run()
-    dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    # dynotears.timeseries_dag()
+    cm = varlingam.run()
+    varlingam.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    varlingam.timeseries_dag()

@@ -15,7 +15,7 @@ from connectingdots.causal_discovery.CausalDiscoveryMethod import CausalDiscover
 
 class CAnDOIT(CausalDiscoveryMethod):
     """
-    CAnDOIT class.
+    CAnDOIT causal discovery method.
 
     CAnDOIT is a causal discovery method that uses observational and interventional data to reconstruct 
     causal models from large-scale time series datasets.

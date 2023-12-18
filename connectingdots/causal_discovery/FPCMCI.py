@@ -13,7 +13,7 @@ from connectingdots.causal_discovery.CausalDiscoveryMethod import CausalDiscover
 
 class FPCMCI(CausalDiscoveryMethod):
     """
-    F-PCMCI class.
+    F-PCMCI causal discovery method.
 
     F-PCMCI is a causal discovery method that uses observational data to reconstruct causal models
     from large-scale time series datasets.
