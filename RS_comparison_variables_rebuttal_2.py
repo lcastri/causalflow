@@ -77,7 +77,7 @@ def remove_directory(directory_path):
 
 def get_correct_SCM(gt, scm):
     new_scm = {v: list() for v in gt.keys()}
-    if features:
+    if list(scm.keys()):
         for k in scm:
             new_scm[k] = scm[k]
     return new_scm
