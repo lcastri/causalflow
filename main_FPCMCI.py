@@ -4,6 +4,7 @@ from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
 from connectingdots.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
+from connectingdots.causal_discovery.baseline.oCSE import oCSE
 from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.basics.constants import LabelType
@@ -67,11 +68,20 @@ if __name__ == '__main__':
     # dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
     # dynotears.timeseries_dag()
     
-    varlingam = VarLiNGAM(df,
-                          max_lag = max_lag,
-                          verbosity = CPLevel.DEBUG,
-                          alpha = pcmci_alpha,
-                          neglect_only_autodep = True)
-    cm = varlingam.run()
-    varlingam.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    varlingam.timeseries_dag()
+    # varlingam = VarLiNGAM(df,
+    #                       max_lag = max_lag,
+    #                       verbosity = CPLevel.DEBUG,
+    #                       alpha = pcmci_alpha,
+    #                       neglect_only_autodep = True)
+    # cm = varlingam.run()
+    # varlingam.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # varlingam.timeseries_dag()
+    
+    ocse = oCSE(df,
+                     max_lag = max_lag,
+                     verbosity = CPLevel.DEBUG,
+                     alpha = pcmci_alpha,
+                     neglect_only_autodep = True)
+    cm = ocse.run()
+    ocse.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    ocse.timeseries_dag()

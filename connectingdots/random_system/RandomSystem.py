@@ -566,8 +566,6 @@ class RandomSystem:
         return counter
     
     
-
-
     def shd(self, cm):
         """
         Computes Structural Hamming Distance between ground-truth causal graph and the estimated one
