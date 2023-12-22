@@ -9,7 +9,7 @@ from connectingdots.CPrinter import CPLevel
 from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.selection_methods.TE import TE, TEestimator
-from connectingdots.random_system.RandomSystem import NoiseType, RandomSystem
+from connectingdots.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
 
 from time import time
@@ -156,7 +156,7 @@ if __name__ == '__main__':
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
-                    RS = RandomSystem(nvars = nvars, nsamples = nsample, 
+                    RS = RandomDAG(nvars = nvars, nsamples = nsample, 
                                       max_terms = 2, coeff_range = (min_c, max_c), max_exp = 2, 
                                       min_lag = min_lag, max_lag = max_lag, noise_config = noise,
                                       functions = [''], operators=['+', '-', '*'], n_hidden_confounders = 1, n_confounded=n)

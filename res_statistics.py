@@ -66,7 +66,10 @@ def extract_data(file_path, algorithms, data, mode = ExtractDataMode.MeandStd):
                 
             elif data == _N_ESPU:
                 for algo in algorithms:
-                    ext_data[algo]["samples"].append((r[i][algo][data])/r[i][_N_GSPU])
+                    if r[i][_N_GSPU] != 0:
+                        ext_data[algo]["samples"].append((r[i][algo][data])/r[i][_N_GSPU])
+                    else:
+                        ext_data[algo]["samples"].append(0)
                 
             else:
                 for algo in algorithms:
@@ -202,8 +205,9 @@ if __name__ == '__main__':
     
     
     # To use to plot RS_comparison_nconfounded
-    resfolder = ['nconfounded_nonlin_1000_1000_0_0.5']
-    vars = [2, 7]
+    resfolder = ['rebuttal_nconfounded_nonlin_1000_500']
+    # resfolder = ['nconfounded_nonlin_1000_1000_0_0.5']
+    vars = [0, 7]
     
     
     bootstrap = True

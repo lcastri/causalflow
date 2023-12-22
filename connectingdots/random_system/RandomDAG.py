@@ -18,7 +18,7 @@ class PriorityOp(Enum):
     D = '/'
     
 
-class RandomSystem:
+class RandomDAG:
     def __init__(self, nvars, nsamples, max_terms, coeff_range: tuple, 
                  min_lag, max_lag, max_exp = None, noise_config: tuple = None, 
                  operators = ['+', '-', '*'], 
@@ -26,7 +26,7 @@ class RandomSystem:
                  n_hidden_confounders = 0,
                  n_confounded = None):
         """
-        RandomSystem constructor
+        RandomDAG constructor
 
         Args:
             nvars (int): Number of variable
@@ -47,9 +47,7 @@ class RandomSystem:
         
         if 'pow' in functions and max_exp is None:
             raise ValueError('max_exp cannot be None if functions list contains pow')
-        
-        # random.seed(random.randint(1, 2000))
-        
+               
         self.T = nsamples
         self.max_terms = max_terms
         self.coeff_range = coeff_range

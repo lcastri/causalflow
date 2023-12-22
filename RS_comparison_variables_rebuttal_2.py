@@ -9,7 +9,7 @@ from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
 from connectingdots.selection_methods.TE import TE, TEestimator
-from connectingdots.random_system.RandomSystem import NoiseType, RandomSystem
+from connectingdots.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
 
 from time import time
@@ -119,8 +119,13 @@ def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm
         res_tmp[algo][sta._F1SCORE] = RS.f1_score(cm = scm)
         res_tmp[algo][sta._SHD] = RS.shd(cm = scm)
         res_tmp[algo][sta._SCM] = str(scm)
-        res_tmp[algo]["SpuriousLinks"] = str(get_spurious_links(scm))
-        res_tmp[algo]["N_SpuriousLinks"] = len(get_spurious_links(scm))
+        spurious_links = get_spurious_links(scm)
+        res_tmp[algo]["SpuriousLinks"] = str(spurious_links)
+        res_tmp[algo]["N_SpuriousLinks"] = len(spurious_links)
+        res_tmp[algo]["N_ExpEquiDAG_3"] = len(RS.expected_spurious_links)*3
+        res_tmp[algo]["N_EquiDAG_3"] = len(spurious_links)*3
+        res_tmp[algo]["N_ExpEquiDAG_2"] = len(RS.expected_spurious_links)*2
+        res_tmp[algo]["N_EquiDAG_2"] = len(spurious_links)*2
         print(algo + " statistics:")
         print("\t|TP score = " + str(res_tmp[algo][sta._TP]))
         print("\t|FP score = " + str(res_tmp[algo][sta._FP]))
@@ -132,15 +137,15 @@ def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm
 
     
 if __name__ == '__main__':   
-    resdir = "rebuttal_nvariable_1hconf_nonlin_1000_200"
+    nsample_obs = 1250
+    nsample_int = 250
+    resdir = "rebuttal_nvariable_1hconf_nonlin_" + str(nsample_obs) + "_" + str(nsample_int)
     f_alpha = 0.05
     pcmci_alpha = 0.05
     min_lag = 1
     max_lag = 2
     min_c = 0
     max_c = 0.5
-    nsample_obs = 1000
-    nsample_int = 500
     nfeature = range(7, 15)
     nrun = 25
     noise = (NoiseType.Uniform, -0.1, 0.1)
@@ -156,10 +161,10 @@ if __name__ == '__main__':
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
-                    RS = RandomSystem(nvars = n, nsamples = nsample_obs+nsample_int, 
+                    RS = RandomDAG(nvars = n, nsamples = nsample_obs+nsample_int, 
                                         max_terms = 2, coeff_range = (min_c, max_c), max_exp = 2, 
                                         min_lag = min_lag, max_lag = max_lag, noise_config = noise,
-                                        functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
+                                        functions = ['', 'sin', 'cos', 'abs', 'exp', 'pow'], operators=['+', '-', '*'], n_hidden_confounders = 1)
                     RS.gen_equations()
 
                     d_obs = RS.gen_obs_ts()
@@ -235,18 +240,18 @@ if __name__ == '__main__':
                     new_d_obs = deepcopy(d_obs)
                     new_d_obs.d = new_d_obs.d[:-nsample_int]
                     candoit = CAnDOIT(new_d_obs, 
-                                        deepcopy(d_int),
-                                        f_alpha = f_alpha, 
-                                        alpha = pcmci_alpha, 
-                                        min_lag = min_lag, 
-                                        max_lag = max_lag, 
-                                        sel_method = TE(TEestimator.Gaussian), 
-                                        val_condtest = GPDC(significance = 'analytic'),
-                                        verbosity = CPLevel.INFO,
-                                        neglect_only_autodep = False,
-                                        resfolder = resfolder + "/candoit",
-                                        plot_data = False,
-                                        exclude_context = True)
+                                      deepcopy(d_int),
+                                      f_alpha = f_alpha, 
+                                      alpha = pcmci_alpha, 
+                                      min_lag = min_lag, 
+                                      max_lag = max_lag, 
+                                      sel_method = TE(TEestimator.Gaussian), 
+                                      val_condtest = GPDC(significance = 'analytic'),
+                                      verbosity = CPLevel.INFO,
+                                      neglect_only_autodep = False,
+                                      resfolder = resfolder + "/candoit",
+                                      plot_data = False,
+                                      exclude_context = True)
                     
                     new_start = time()
                     candoit_cm = candoit.run()

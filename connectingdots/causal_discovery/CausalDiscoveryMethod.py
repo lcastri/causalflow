@@ -46,6 +46,7 @@ class CausalDiscoveryMethod(ABC):
         self.CM = DAG(self.data.features, min_lag, max_lag, neglect_only_autodep)
         self.neglect_only_autodep = neglect_only_autodep
 
+        self.resfolder = resfolder
         self.respath, self.dag_path, self.ts_dag_path = None, None, None
         if resfolder is not None:
             utils.create_results_folder()
