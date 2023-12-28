@@ -98,10 +98,45 @@ def addFalsePositiveRate(resfolder, nvars):
         # Save the dictionary back to a JSON file
         with open(res_path, 'w') as file:
             json.dump(r, file)
+            
+            
+def addEquiDag(resfolder, nvars):
+    for n in range(nvars[0], nvars[1]+1):
+        res_path = os.getcwd() + "/results/" + resfolder + "/" + str(n) + ".json"
+        with open(res_path) as json_file:
+            r = json.load(json_file)
+            for i in r.keys():
+                NSP = int(r[i]["pcmci"]["N_SpuriousLinks"])
+                # NSP = eval(r[i]["pcmci"]["N_SpuriousLinks"])
+                r[i]["pcmci"]["N_EquiDAG_2exp"] = 2**NSP
+                NSP = int(r[i]["fpcmci"]["N_SpuriousLinks"])
+                r[i]["fpcmci"]["N_EquiDAG_2exp"] = 2**NSP
+                NSP = int(r[i]["candoit"]["N_SpuriousLinks"])
+                r[i]["candoit"]["N_EquiDAG_2exp"] = 2**NSP
+                if "N_ExpEquiDAG_3" in r[i]["pcmci"]:
+                    del r[i]["pcmci"]['N_ExpEquiDAG_3']
+                    del r[i]["pcmci"]['N_EquiDAG_3']
+                    del r[i]["pcmci"]['N_ExpEquiDAG_2']
+                    del r[i]["pcmci"]['N_EquiDAG_2']
+                    del r[i]["fpcmci"]['N_ExpEquiDAG_3']
+                    del r[i]["fpcmci"]['N_EquiDAG_3']
+                    del r[i]["fpcmci"]['N_ExpEquiDAG_2']
+                    del r[i]["fpcmci"]['N_EquiDAG_2']
+                    del r[i]["candoit"]['N_ExpEquiDAG_3']
+                    del r[i]["candoit"]['N_EquiDAG_3']
+                    del r[i]["candoit"]['N_ExpEquiDAG_2']
+                    del r[i]["candoit"]['N_EquiDAG_2']
+
+                
+        # Save the dictionary back to a JSON file
+        with open(res_path, 'w') as file:
+            json.dump(r, file)
 
     
 if __name__ == '__main__':   
 
-    resfolder = ['single_conf_nonlin_1000_1000_0_0.5']
+    # resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
+    resfolder = ['rebuttal/nvariable_1hconf_nonlin_1250_250']
     for r in resfolder:
-        addFalsePositiveRate(r, [7, 14])
+        # addEquiDag(r, [0, 7])
+        addEquiDag(r, [7, 14])

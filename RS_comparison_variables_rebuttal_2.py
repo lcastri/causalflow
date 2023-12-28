@@ -122,10 +122,7 @@ def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm
         spurious_links = get_spurious_links(scm)
         res_tmp[algo]["SpuriousLinks"] = str(spurious_links)
         res_tmp[algo]["N_SpuriousLinks"] = len(spurious_links)
-        res_tmp[algo]["N_ExpEquiDAG_3"] = len(RS.expected_spurious_links)*3
-        res_tmp[algo]["N_EquiDAG_3"] = len(spurious_links)*3
-        res_tmp[algo]["N_ExpEquiDAG_2"] = len(RS.expected_spurious_links)*2
-        res_tmp[algo]["N_EquiDAG_2"] = len(spurious_links)*2
+        res_tmp[algo]["N_EquiDAG_2exp"] = 2**len(spurious_links)
         print(algo + " statistics:")
         print("\t|TP score = " + str(res_tmp[algo][sta._TP]))
         print("\t|FP score = " + str(res_tmp[algo][sta._FP]))
@@ -164,7 +161,7 @@ if __name__ == '__main__':
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs+nsample_int, 
                                         max_terms = 2, coeff_range = (min_c, max_c), max_exp = 2, 
                                         min_lag = min_lag, max_lag = max_lag, noise_config = noise,
-                                        functions = ['', 'sin', 'cos', 'abs', 'exp', 'pow'], operators=['+', '-', '*'], n_hidden_confounders = 1)
+                                        functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
                     RS.gen_equations()
 
                     d_obs = RS.gen_obs_ts()

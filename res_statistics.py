@@ -19,7 +19,9 @@ _FPCMCI = 'fpcmci'
 _CAnDOIT = 'candoit'
 _SCM = 'scm'
 _N_ESPU = 'N_SpuriousLinks'
+_N_EqDAG= 'N_EquiDAG_2exp'
 _N_GSPU = 'N_ExpectedSpuriousLinks'
+
 
 yLabel = {_TIME : 'Time [s]',
           _PREC : 'Precision',
@@ -30,7 +32,9 @@ yLabel = {_TIME : 'Time [s]',
           _FPCMCI : 'FPCMCI',
           _CAnDOIT : 'CAnDOIT',
           _FPR: 'False Positive Rate',
-          _N_ESPU : '# Sp. links estimated / # Sp. links'}
+          _N_ESPU : '# Sp. links estimated / # Sp. links',
+          _N_EqDAG : "# Equ. DAGs"}
+
 
 titleLabel = {_TIME : 'Time',
               _PREC : 'Precision',
@@ -38,13 +42,16 @@ titleLabel = {_TIME : 'Time',
               _F1SCORE : 'F1-score',
               _SHD : 'SHD',
               _FPR: 'FPR',
-              _N_ESPU : 'Spurious Links'}
+              _N_ESPU : 'Spurious Links',
+              _N_EqDAG : 'Equivalent DAGs',}
+
 
 class plotType(Enum):
     Line = 0
     LinewErrorBar = 1
     LinewErrorBand = 2
     BoxPlot = 3
+    
     
 class ExtractDataMode(Enum):
     MeandStd = 0
@@ -101,6 +108,15 @@ def compare(resfolder, algorithms, data, nvars, plotStyle, plot_type = plotType.
             toPlot[algo]["samples"].append(ext_data[algo]["samples"])
             toPlot[algo]["means"].append(ext_data[algo]["mean"])
             toPlot[algo]["confidences"].append(ext_data[algo]["confidence"])
+
+    # print("Score: " + str(data))
+    # for algo in algorithms:
+    #     stri = list()
+    #     print("Algorithm: " + str(algo))
+    #     for m, c in zip(toPlot[algo]["means"], toPlot[algo]["confidences"]):
+    #         stri.append(str(round(m,3)) + "\u00B1" + str(round(c,3)))
+    #         # print("| " + str(round(m,3)) + "\u00B1" + str(round(c,3)) + " |")
+    #     print(" | ".join(stri))
             
     if plot_type != plotType.BoxPlot:
         fig, ax = plt.subplots(figsize=(6,4))
@@ -161,11 +177,11 @@ def compare(resfolder, algorithms, data, nvars, plotStyle, plot_type = plotType.
         ax1.grid()
         ax1.legend([bp['boxes'][0] for bp in boxplots], [yLabel[algo] for algo in algorithms], loc='best')
          
-    if show:
-        plt.show()
-    else:
-        plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.pdf')
-        plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.png')
+    # if show:
+    #     plt.show()
+    # else:
+    #     plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.pdf')
+    #     plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.png')
 
 
 def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
@@ -194,7 +210,7 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
     lower = np.percentile(resample_stats, (1 - confidence_level) / 2 * 100)
     upper = np.percentile(resample_stats, (1 + confidence_level) / 2 * 100)
     
-    return lower, upper    
+    return lower, upper
 
     
 if __name__ == '__main__':   
@@ -205,9 +221,10 @@ if __name__ == '__main__':
     
     
     # To use to plot RS_comparison_nconfounded
-    resfolder = ['rebuttal_nconfounded_nonlin_1000_500']
-    # resfolder = ['nconfounded_nonlin_1000_1000_0_0.5']
+    resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
     vars = [0, 7]
+    # resfolder = ['rebuttal/nvariable_1hconf_nonlin_1250_250']
+    # vars = [7, 14]
     
     
     bootstrap = True
@@ -216,5 +233,6 @@ if __name__ == '__main__':
                   _FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
                   _CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}}
     for r in resfolder:
-        for metric in [_TIME,_F1SCORE, _PREC, _RECA, _SHD, _FPR, _N_ESPU]:
+        for metric in [_TIME,_F1SCORE, _PREC, _RECA, _SHD, _FPR, _N_ESPU, _N_EqDAG]:
             compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
+            # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)

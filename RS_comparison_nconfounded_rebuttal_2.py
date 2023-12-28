@@ -123,10 +123,7 @@ def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm
         spurious_links = get_spurious_links(scm)
         res_tmp[algo]["SpuriousLinks"] = str(spurious_links)
         res_tmp[algo]["N_SpuriousLinks"] = len(spurious_links)
-        res_tmp[algo]["N_ExpEquiDAG_3"] = len(RS.expected_spurious_links)*3
-        res_tmp[algo]["N_EquiDAG_3"] = len(spurious_links)*3
-        res_tmp[algo]["N_ExpEquiDAG_2"] = len(RS.expected_spurious_links)*2
-        res_tmp[algo]["N_EquiDAG_2"] = len(spurious_links)*2
+        res_tmp[algo]["N_EquiDAG_2exp"] = 2**len(spurious_links)
         print(algo + " statistics:")
         print("\t|TP score = " + str(res_tmp[algo][sta._TP]))
         print("\t|FP score = " + str(res_tmp[algo][sta._FP]))
@@ -148,7 +145,7 @@ if __name__ == '__main__':
     min_c = 0
     max_c = 0.5
     nvars = 7
-    nconfounded = range(7, 8)
+    nconfounded = range(0, 8)
     nrun = 25
     noise = (NoiseType.Uniform, -0.1, 0.1)
     
