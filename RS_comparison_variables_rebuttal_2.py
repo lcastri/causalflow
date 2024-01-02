@@ -141,7 +141,7 @@ if __name__ == '__main__':
     pcmci_alpha = 0.05
     min_lag = 1
     max_lag = 2
-    min_c = 0
+    min_c = 0.1
     max_c = 0.5
     nfeature = range(7, 15)
     nrun = 25
