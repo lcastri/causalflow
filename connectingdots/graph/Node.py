@@ -39,8 +39,7 @@ class Node():
             bool: Returns True if the node is isolated. Otherwise False
         """
         if self.neglect_autodep:
-            return (self.is_exogenous or self.is_only_autodep or self.is_only_autodep_context) and not self.has_child
-        
+            return (self.is_exogenous and not self.has_child) or self.is_only_autodep or self.is_only_autodep_context
         return (self.is_exogenous or self.has_only_context) and not self.has_child
     
     
@@ -52,7 +51,7 @@ class Node():
         Returns:
             bool: Returns True if the node is ONLY auto-dependent. Otherwise False
         """
-        return len(self.sources) == 1 and self.name in self.sourcelist
+        return len(self.sources) == 1 and self.name in self.sourcelist and len(self.children) == 1 and self.name in self.children
     
     
     @property
@@ -74,7 +73,7 @@ class Node():
         Returns:
             bool: Returns True if the node has ONLY the context variable and itself as parent. Otherwise False
         """
-        return len(self.sources) == 2 and self.name in self.sourcelist and self.associated_context in self.sourcelist
+        return len(self.sources) == 2 and self.name in self.sourcelist and self.associated_context in self.sourcelist and len(self.children) == 1 and self.name in self.children
     
     
     @property

@@ -14,7 +14,7 @@ class myPCMCI():
     
     It wraps the PCMCI causal disocvery method and augments it with some functionalities for F-PCMCI and CAnDOIT.
     """
-    def __init__(self, alpha, min_lag, max_lag, val_condtest: CondIndTest, verbosity: CPLevel, sys_context = dict()):
+    def __init__(self, alpha, min_lag, max_lag, val_condtest: CondIndTest, verbosity: CPLevel, sys_context = dict(), neglect_only_autodep = False):
         """
         PCMCI class constructor
 
@@ -34,6 +34,7 @@ class myPCMCI():
         self.val_condtest = val_condtest
         self.verbosity = verbosity.value
         self.sys_context = sys_context
+        self.neglect_only_autodep = neglect_only_autodep
         
 
     def run(self, data: Data, link_assumptions = None):
@@ -201,7 +202,7 @@ class myPCMCI():
         return results
     
     
-    def check_autodependency(self, data: Data, dag:DAG, link_assumptions) -> DAG:
+    def check_autodependency(self, data: Data, dag: DAG, link_assumptions) -> DAG:
         """
         Run MCI test on observational data using the causal structure computed by the validator 
 
@@ -310,7 +311,7 @@ class myPCMCI():
         Returns:
             (DAG): pc result re-elaborated
         """
-        tmp_dag = DAG(features, self.min_lag, self.max_lag)
+        tmp_dag = DAG(features, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = self.sys_context
         for t in parents:
             for s in parents[t]:
@@ -329,7 +330,7 @@ class myPCMCI():
             (DAG): pcmci result re-elaborated
         """
         vars = self.result['var_names']
-        tmp_dag = DAG(vars, self.min_lag, self.max_lag)
+        tmp_dag = DAG(vars, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = self.sys_context
         N, lags = self.result['graph'][0].shape
         for s in range(len(self.result['graph'])):

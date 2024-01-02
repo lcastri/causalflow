@@ -51,7 +51,7 @@ class FPCMCI(CausalDiscoveryMethod):
         self.f_alpha = f_alpha
         self.sel_method = sel_method
         
-        self.validator = myPCMCI(self.alpha, min_lag, max_lag, val_condtest, verbosity)       
+        self.validator = myPCMCI(self.alpha, min_lag, max_lag, val_condtest, verbosity, neglect_only_autodep = neglect_only_autodep)       
 
 
     def run_filter(self):
