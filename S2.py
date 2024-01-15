@@ -8,64 +8,51 @@ from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from connectingdots.CPrinter import CPLevel
 from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
+from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
+from connectingdots.causal_discovery.baseline.TCDF import TCDF
+from connectingdots.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
+from connectingdots.causal_discovery.baseline.tsFCI import tsFCI
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
 
 from time import time
 from datetime import timedelta
-import res_statistics as sta
+from res_statistics_new import *
 import gc
 import shutil
 
 
-EMPTY_RES = {"GT" : None,
-             "Confounders" : None,
-             "HiddenConfounders" : None, 
-             "InterventionVariables" : None,
-             "ExpectedSpuriousLinks" : None,
-             "N_ExpectedSpuriousLinks" : None,
-             sta._PCMCI : {sta._TIME : None, 
-                           sta._FN : None, 
-                           sta._FP : None, 
-                           sta._TP : None, 
-                           sta._FPR : None,
-                           sta._PREC : None, 
-                           sta._PREC : None, 
-                           sta._RECA : None, 
-                           sta._F1SCORE : None, 
-                           sta._SHD : None, 
-                           sta._SCM: None,
-                           "SpuriousLinks": None,
-                           "N_SpuriousLinks": None},
-             sta._FPCMCI : {sta._TIME : None, 
-                            sta._FN : None, 
-                            sta._FP : None, 
-                            sta._TP : None, 
-                            sta._FPR : None,
-                            sta._PREC : None, 
-                            sta._PREC : None, 
-                            sta._RECA : None, 
-                            sta._F1SCORE : None, 
-                            sta._SHD : None, 
-                            sta._SCM: None,
-                            "SpuriousLinks": None,
-                            "N_SpuriousLinks": None},   
-             sta._CAnDOIT : {sta._TIME : None, 
-                             sta._FN : None, 
-                             sta._FP : None, 
-                             sta._TP : None, 
-                             sta._FPR : None,
-                             sta._PREC : None, 
-                             sta._RECA : None, 
-                             sta._F1SCORE : None, 
-                             sta._SHD : None, 
-                             sta._SCM: None,
-                             "SpuriousLinks": None,
-                             "N_SpuriousLinks": None}
-             }
+ALGO_RES = {Metric.TIME.value : None,
+            Metric.FN.value : None,
+            Metric.FP.value : None,
+            Metric.TP.value : None,
+            Metric.FPR.value : None,
+            Metric.PREC.value : None,
+            Metric.RECA.value : None,
+            Metric.F1SCORE.value : None,
+            Metric.SHD.value : None,
+            jWord.SCM.value : None,
+            jWord.SpuriousLinks.value: None,
+            Metric.N_ESPU.value : None,
+            Metric.N_EqDAG.value: None}
 
+
+EMPTY_RES = {jWord.GT.value : None,
+             jWord.Confounders.value : None,
+             jWord.HiddenConfounders.value : None, 
+             jWord.InterventionVariables.value : None,
+             jWord.ExpectedSpuriousLinks.value : None,
+             jWord.N_GSPU.value : None,
+             Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
+             Algo.DYNOTEARS.value : deepcopy(ALGO_RES),   
+             Algo.FPCMCI.value : deepcopy(ALGO_RES),   
+             Algo.PCMCI.value : deepcopy(ALGO_RES),
+             Algo.TCDF.value : deepcopy(ALGO_RES),   
+             Algo.tsFCI.value : deepcopy(ALGO_RES),   
+             Algo.VarLiNGAM.value : deepcopy(ALGO_RES),   
+             }
 
 def remove_directory(directory_path):
     try:
@@ -94,52 +81,37 @@ def get_spurious_links(scm):
     return spurious
 
     
-def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm):
-    print("\n")
-    print("Number of variable = " + str(n))
-    print("Ground truth = " + str(RS.get_SCM()))
-    print("Confounders: " + str(RS.confounders))
-    print("Hidden confounder: " + str(list(RS.confounders.keys())))
-    print("Intervention variable: " + str(list(d_int.keys())))
+def save_result(d):  
+    res_tmp[jWord.GT.value] = str(RS.get_SCM())
+    res_tmp[jWord.Confounders.value] = str(RS.confounders)
+    res_tmp[jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
+    res_tmp[jWord.InterventionVariables.value] = str(list(d_int.keys()))
+    res_tmp[jWord.ExpectedSpuriousLinks.value] = str(RS.expected_spurious_links)
+    res_tmp[jWord.N_GSPU.value] = len(RS.expected_spurious_links)
     
-    res_tmp["GT"] = str(RS.get_SCM())
-    res_tmp["Confounders"] = str(RS.confounders)
-    res_tmp["HiddenConfounders"] = str(list(RS.confounders.keys()))
-    res_tmp["InterventionVariables"] = str(list(d_int.keys()))
-    res_tmp["ExpectedSpuriousLinks"] = str(RS.expected_spurious_links)
-    res_tmp["N_ExpectedSpuriousLinks"] = len(RS.expected_spurious_links)
-    
-    for algo, scm, t in zip([sta._PCMCI, sta._FPCMCI, sta._CAnDOIT], [pcmci_scm, fpcmci_scm, candoit_scm], [pcmci_t, fpcmci_t, candoit_t]):
-        res_tmp[algo][sta._TIME] = t
-        res_tmp[algo][sta._FN] = RS.get_FN(cm = scm)
-        res_tmp[algo][sta._FP] = RS.get_FP(cm = scm)
-        res_tmp[algo][sta._TP] = RS.get_TP(cm = scm)
-        res_tmp[algo][sta._FPR] = RS.FPR(cm = scm)
-        res_tmp[algo][sta._PREC] = RS.precision(cm = scm)
-        res_tmp[algo][sta._RECA] = RS.recall(cm = scm)
-        res_tmp[algo][sta._F1SCORE] = RS.f1_score(cm = scm)
-        res_tmp[algo][sta._SHD] = RS.shd(cm = scm)
-        res_tmp[algo][sta._SCM] = str(scm)
-        spurious_links = get_spurious_links(scm)
-        res_tmp[algo]["SpuriousLinks"] = str(spurious_links)
-        res_tmp[algo]["N_SpuriousLinks"] = len(spurious_links)
-        res_tmp[algo]["N_EquiDAG_2exp"] = 2**len(spurious_links)
-        print(algo + " statistics:")
-        print("\t|TP score = " + str(res_tmp[algo][sta._TP]))
-        print("\t|FP score = " + str(res_tmp[algo][sta._FP]))
-        print("\t|FN score = " + str(res_tmp[algo][sta._FN]))
-        print("\t|F1 score = " + str(res_tmp[algo][sta._F1SCORE]))
-        print("\t|SHD = " + str(res_tmp[algo][sta._SHD]))
-        print("\t|FPR = " + str(res_tmp[algo][sta._FPR]))
-        print("\t|TPR (Recall) = " + str(res_tmp[algo][sta._RECA]))
+    for a, r in d.items():
+        res_tmp[a.value][Metric.TIME.value] = r["time"]
+        res_tmp[a.value][Metric.FN.value] = RS.get_FN(r["scm"])
+        res_tmp[a.value][Metric.FP.value] = RS.get_FP(r["scm"])
+        res_tmp[a.value][Metric.TP.value] = RS.get_TP(r["scm"])
+        res_tmp[a.value][Metric.FPR.value] = RS.FPR(r["scm"])
+        res_tmp[a.value][Metric.PREC.value] = RS.precision(r["scm"])
+        res_tmp[a.value][Metric.RECA.value] = RS.recall(r["scm"])
+        res_tmp[a.value][Metric.F1SCORE.value] = RS.f1_score(r["scm"])
+        res_tmp[a.value][Metric.SHD.value] = RS.shd(r["scm"])
+        res_tmp[a.value][jWord.SCM.value] = str(r["scm"])
+        spurious_links = get_spurious_links(r["scm"])
+        res_tmp[a.value][jWord.SpuriousLinks.value] = str(spurious_links)
+        res_tmp[a.value][Metric.N_ESPU.value] = len(spurious_links)
+        res_tmp[a.value][Metric.N_EqDAG.value] = 2**len(spurious_links)
 
     
 if __name__ == '__main__':   
     nsample_obs = 1250
     nsample_int = 250
-    resdir = "rebuttal_nconfounded_nonlin_" + str(nsample_obs) + "_" + str(nsample_int)
+    resdir = "S2" + str(nsample_obs) + "_" + str(nsample_int)
     f_alpha = 0.05
-    pcmci_alpha = 0.05
+    alpha = 0.05
     min_lag = 1
     max_lag = 2
     min_c = 0.1
@@ -147,7 +119,6 @@ if __name__ == '__main__':
     nvars = 7
     nconfounded = range(0, 8)
     nrun = 25
-    noise = (NoiseType.Uniform, -0.1, 0.1)
     
     
     for n in nconfounded:
@@ -160,9 +131,12 @@ if __name__ == '__main__':
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
+                    noise_param = random.uniform(0.5, 2)
+                    noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
+                    noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
                     RS = RandomDAG(nvars = nvars, nsamples = nsample_obs+nsample_int, 
                                       max_terms = 2, coeff_range = (min_c, max_c), max_exp = 2, 
-                                      min_lag = min_lag, max_lag = max_lag, noise_config = noise,
+                                      min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                                       functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1, n_confounded=n)
                     RS.gen_equations()
 
@@ -181,17 +155,13 @@ if __name__ == '__main__':
                     
                     RS.ts_dag(withHidden = True, save_name = 'results/' + resfolder + '/gt_complete')
                     RS.ts_dag(withHidden = False, save_name = 'results/' + resfolder + '/gt')
-                    
-                    print("Confounders: " + str(RS.confounders))
-                    print("Hidden confounder: " + str(list(RS.confounders.keys())))
-                    print("Intervention variable: " + str(list(d_int.keys())))
             
             
                     #########################################################################################################################
                     # FPCMCI
                     fpcmci = FPCMCI(deepcopy(d_obs),
                                     f_alpha = f_alpha, 
-                                    alpha = pcmci_alpha, 
+                                    alpha = alpha, 
                                     min_lag = min_lag, 
                                     max_lag = max_lag, 
                                     sel_method = TE(TEestimator.Gaussian), 
@@ -221,7 +191,7 @@ if __name__ == '__main__':
                                     max_lag = max_lag, 
                                     val_condtest = GPDC(significance = 'analytic'),
                                     verbosity = CPLevel.INFO,
-                                    alpha = pcmci_alpha, 
+                                    alpha = alpha, 
                                     neglect_only_autodep = False,
                                     resfolder = resfolder + "/pcmci")
                     
@@ -231,6 +201,81 @@ if __name__ == '__main__':
                     pcmci_time = str(timedelta(seconds = elapsed_pcmci))
                     print(pcmci_time)
                     pcmci.timeseries_dag()
+                    gc.collect()
+                    
+                    
+                    #########################################################################################################################
+                    # DYNOTEARS
+                    dynotears = DYNOTEARS(deepcopy(d_obs),
+                                      min_lag = min_lag, 
+                                      max_lag = max_lag, 
+                                      verbosity = CPLevel.INFO,
+                                      alpha = alpha, 
+                                      neglect_only_autodep = False,
+                                      resfolder = resfolder + "/dynotears")
+                    
+                    new_start = time()
+                    dynotears_cm = dynotears.run()
+                    elapsed_dynotears = time() - new_start
+                    dynotears_time = str(timedelta(seconds = elapsed_dynotears))
+                    print(dynotears_time)
+                    dynotears.timeseries_dag()
+                    gc.collect()
+                    
+                    
+                    #########################################################################################################################
+                    # TCDF
+                    tcdf = TCDF(deepcopy(d_obs),
+                                      min_lag = min_lag, 
+                                      max_lag = max_lag, 
+                                      verbosity = CPLevel.INFO,
+                                      neglect_only_autodep = False,
+                                      resfolder = resfolder + "/tcdf")
+                    
+                    new_start = time()
+                    tcdf_cm = tcdf.run()
+                    elapsed_tcdf = time() - new_start
+                    tcdf_time = str(timedelta(seconds = elapsed_tcdf))
+                    print(tcdf_time)
+                    tcdf.timeseries_dag()
+                    gc.collect()
+                    
+                    
+                    #########################################################################################################################
+                    # tsFCI
+                    tsfci = tsFCI(deepcopy(d_obs),
+                                      min_lag = min_lag, 
+                                      max_lag = max_lag, 
+                                      verbosity = CPLevel.INFO,
+                                      alpha = alpha, 
+                                      neglect_only_autodep = False,
+                                      resfolder = resfolder + "/tsfci")
+                    
+                    new_start = time()
+                    tsfci_cm = tsfci.run()
+                    elapsed_tsfci = time() - new_start
+                    tsfci_time = str(timedelta(seconds = elapsed_tsfci))
+                    print(tsfci_time)
+                    tsfci.timeseries_dag()
+                    gc.collect()
+                    
+                    
+                    #########################################################################################################################
+                    # VarLiNGAM
+                    varlingan = VarLiNGAM(deepcopy(d_obs),
+                                      min_lag = min_lag, 
+                                      max_lag = max_lag, 
+                                      verbosity = CPLevel.INFO,
+                                      alpha = alpha, 
+                                      neglect_only_autodep = False,
+                                      resfolder = resfolder + "/varlingan")
+                    
+                    new_start = time()
+                    varlingan_cm = varlingan.run()
+                    elapsed_varlingan = time() - new_start
+                    varlingan_time = str(timedelta(seconds = elapsed_varlingan))
+                    print(varlingan_time)
+                    varlingan.timeseries_dag()
                     gc.collect()
                                     
             
@@ -242,7 +287,7 @@ if __name__ == '__main__':
                     candoit = CAnDOIT(new_d_obs, 
                                        deepcopy(d_int),
                                        f_alpha = f_alpha, 
-                                       alpha = pcmci_alpha, 
+                                       alpha = alpha, 
                                        min_lag = min_lag, 
                                        max_lag = max_lag, 
                                        sel_method = TE(TEestimator.Gaussian), 
@@ -271,9 +316,16 @@ if __name__ == '__main__':
 
             #########################################################################################################################
             # SAVE
-            save_result(pcmci_time, get_correct_SCM(GT, pcmci_cm.get_SCM()),
-                        fpcmci_time, get_correct_SCM(GT, fpcmci_cm.get_SCM()),
-                        candoit_time, get_correct_SCM(GT, candoit_cm.get_SCM()))
+            res = {
+                Algo.DYNOTEARS: {"time":dynotears_time, "scm":get_correct_SCM(GT, dynotears_cm.get_SCM())},
+                Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
+                Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
+                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
+                Algo.TCDF: {"time":tcdf_time, "scm":get_correct_SCM(GT, tcdf_cm.get_SCM())},
+                Algo.tsFCI: {"time":tsfci_time, "scm":get_correct_SCM(GT, tsfci_cm.get_SCM())},
+                Algo.VarLiNGAM: {"time":varlingan_time, "scm":get_correct_SCM(GT, varlingan_cm.get_SCM())},
+            }
+            save_result(res)
             
             Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
             filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"

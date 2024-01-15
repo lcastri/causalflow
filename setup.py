@@ -5,8 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 
-INSTALL_REQUIRES = ["tigramite>=5.1.0.3",
-                    "pandas>=1.5.2",
+INSTALL_REQUIRES = ["pandas>=1.5.2",
                     "netgraph>=4.10.2",
                     "networkx>=2.8.6",
                     "ruptures>=1.1.7",
@@ -14,7 +13,10 @@ INSTALL_REQUIRES = ["tigramite>=5.1.0.3",
                     "torch>=1.11.0", 
                     "gpytorch>=1.4",       
                     "dcor>=0.5.3",
-                    "h5py>=3.7.0"   
+                    "h5py>=3.7.0",
+                    "causalnex>=0.12.1",  
+                    "lingam>=1.8.2",
+                    "tigramite>=5.1.0.3",
                     ]
 
 setup(
@@ -23,7 +25,7 @@ setup(
     description = 'A Python library for Causal Inference in Time-Series domain',
     long_description = long_description,
     long_description_content_type = 'text/markdown',
-    url = 'https://github.com/lcastri/fpcmci',
+    url = 'https://github.com/lcastri/connectingdots',
     author = 'Luca Castri',
     author_email = 'lucacastri94@gmail.com',
     packages = ['connectingdots', "connectingdots.preprocessing", "connectingdots.preprocessing.subsampling_methods", "connectingdots.basics", "connectingdots.selection_methods", "connectingdots.graph", "connectingdots.random_system"],

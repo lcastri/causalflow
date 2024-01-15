@@ -116,13 +116,12 @@ if __name__ == '__main__':
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
-    nfeature = range(8, 15)
+    nfeature = range(7, 15)
     nrun = 25
     
     
     for n in nfeature:
         for nr in range(nrun):
-            if n == 7 and nr <=23: continue
             #########################################################################################################################
             # DATA
             while True:
@@ -131,7 +130,7 @@ if __name__ == '__main__':
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
-                    noise_param = random.choice([0.5, 2])
+                    noise_param = random.uniform(0.5, 2)
                     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
@@ -155,10 +154,6 @@ if __name__ == '__main__':
                     
                     RS.ts_dag(withHidden = True, save_name = 'results/' + resfolder + '/gt_complete')
                     RS.ts_dag(withHidden = False, save_name = 'results/' + resfolder + '/gt')
-                    
-                    print("Confounders: " + str(RS.confounders))
-                    print("Hidden confounder: " + str(list(RS.confounders.keys())))
-                    print("Intervention variable: " + str(list(d_int.keys())))
             
             
                     #########################################################################################################################
