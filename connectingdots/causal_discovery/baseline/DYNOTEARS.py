@@ -9,13 +9,14 @@ class DYNOTEARS(CausalDiscoveryMethod):
     """
     def __init__(self, 
                  data, 
+                 min_lag,
                  max_lag, 
                  verbosity, 
                  alpha = 0.05, 
                  resfolder = None,
                  neglect_only_autodep = False,):
         
-        super().__init__(data, 0, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
         
     def run(self) -> DAG:
         graph_dict = dict()
@@ -54,10 +55,12 @@ class DYNOTEARS(CausalDiscoveryMethod):
         Returns:
             (DAG): result re-elaborated
         """
-        vars = list(graph.keys())
-        tmp_dag = DAG(vars, 0, self.max_lag, self.neglect_only_autodep)
+        tmp_dag = DAG(self.data.features, 0, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()
         for t in graph.keys():
             for s in graph[t]:
-                tmp_dag.add_source(t, s[0], abs(s[1]), 0, s[2])
+                lag = abs(s[1])
+                if lag >= self.min_lag and lag <= self.max_lag:
+                    tmp_dag.add_source(t, s[0], abs(s[1]), 0, s[2])
+        # tmp_dag.remove_unneeded_features()
         return tmp_dag

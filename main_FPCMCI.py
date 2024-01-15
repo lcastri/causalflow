@@ -2,9 +2,13 @@ from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
+from connectingdots.causal_discovery.baseline.NBCB import NBCB
+from connectingdots.causal_discovery.baseline.TiMINo import TiMINo
 from connectingdots.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
 from connectingdots.causal_discovery.baseline.oCSE import oCSE
+from connectingdots.causal_discovery.baseline.TCDF import TCDF
+from connectingdots.causal_discovery.baseline.tsFCI import tsFCI
 from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.basics.constants import LabelType
@@ -18,7 +22,7 @@ if __name__ == '__main__':
     max_lag = 2
 
     np.random.seed(1)
-    nsample = 1000
+    nsample = 500
     nfeature = 5
     d = np.random.random(size = (nsample, nfeature))
     for t in range(max_lag, nsample):
@@ -41,8 +45,42 @@ if __name__ == '__main__':
     
     # cm = fpcmci.run()
     # fpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    # fpcmci.timeseries_dag()
+    # fpcmci.timeseries_dag()    
     
+    
+    # dynotears = DYNOTEARS(df,
+    #                       min_lag = min_lag,
+    #                       max_lag = max_lag,
+    #                       verbosity = CPLevel.DEBUG,
+    #                       alpha = pcmci_alpha,
+    #                       neglect_only_autodep = True)
+    # cm = dynotears.run()
+    # dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # dynotears.timeseries_dag()
+    
+    
+    # FIXME: not working
+    dynotears = NBCB(df,
+                     min_lag = min_lag,
+                     max_lag = max_lag,
+                     verbosity = CPLevel.DEBUG,
+                     alpha = pcmci_alpha,
+                     neglect_only_autodep = True)
+    cm = dynotears.run()
+    dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    dynotears.timeseries_dag()
+    
+    
+    # FIXME: not working
+    # ocse = oCSE(df,
+    #             min_lag = min_lag,
+    #             max_lag = max_lag,
+    #             verbosity = CPLevel.DEBUG,
+    #             alpha = pcmci_alpha,
+    #             neglect_only_autodep = True)
+    # cm = ocse.run()
+    # ocse.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # ocse.timeseries_dag()
     
     
     # pcmci = PCMCI(df,
@@ -57,18 +95,42 @@ if __name__ == '__main__':
     # pcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
     # pcmci.timeseries_dag()
     
+
+    # tcdf = TCDF(df,
+    #             min_lag = min_lag,
+    #             max_lag = max_lag,
+    #             verbosity = CPLevel.DEBUG,
+    #             neglect_only_autodep = True)
+    # cm = tcdf.run(cuda=True)
+    # tcdf.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # tcdf.timeseries_dag()
     
     
-    # dynotears = DYNOTEARS(df,
-    #                       max_lag = max_lag,
-    #                       verbosity = CPLevel.DEBUG,
-    #                       alpha = pcmci_alpha,
-    #                       neglect_only_autodep = True)
-    # cm = dynotears.run()
-    # dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    # dynotears.timeseries_dag()
+    # tcdf = tsFCI(df,
+    #             min_lag = min_lag,
+    #             max_lag = max_lag,
+    #             verbosity = CPLevel.DEBUG,
+    #             alpha = pcmci_alpha,
+    #             neglect_only_autodep = True)
+    # cm = tcdf.run()
+    # tcdf.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # tcdf.timeseries_dag()
     
+    
+    # # FIXME: not working
+    # tcdf = TiMINo(df,
+    #             min_lag = min_lag,
+    #             max_lag = 1,
+    #             verbosity = CPLevel.DEBUG,
+    #             alpha = pcmci_alpha,
+    #             neglect_only_autodep = True)
+    # cm = tcdf.run()
+    # tcdf.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # tcdf.timeseries_dag()
+
+
     # varlingam = VarLiNGAM(df,
+    #                       min_lag = min_lag,
     #                       max_lag = max_lag,
     #                       verbosity = CPLevel.DEBUG,
     #                       alpha = pcmci_alpha,
@@ -76,12 +138,3 @@ if __name__ == '__main__':
     # cm = varlingam.run()
     # varlingam.dag(label_type = LabelType.Lag, node_layout = 'dot')
     # varlingam.timeseries_dag()
-    
-    ocse = oCSE(df,
-                     max_lag = max_lag,
-                     verbosity = CPLevel.DEBUG,
-                     alpha = pcmci_alpha,
-                     neglect_only_autodep = True)
-    cm = ocse.run()
-    ocse.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    ocse.timeseries_dag()

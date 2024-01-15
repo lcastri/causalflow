@@ -97,7 +97,7 @@ class CausalDiscoveryMethod(ABC):
             img_ext (ImageExt, optional): dag image extention (.png, .pdf, ..). Default ImageExt.PNG.
         """
         
-        if self.CM:
+        if self.CM.g:
             if save_name is None: save_name = self.dag_path
             try:
                 self.CM.dag(node_layout, min_width, 
@@ -142,7 +142,7 @@ class CausalDiscoveryMethod(ABC):
             img_ext (ImageExt, optional): dag image extention (.png, .pdf, ..). Default ImageExt.PNG.
         """
         
-        if self.CM:
+        if self.CM.g:
             if save_name is None: save_name = self.ts_dag_path
             self.CM.ts_dag(self.max_lag, min_width,
                            max_width, min_score, max_score,

@@ -2,6 +2,7 @@ from lingam.var_lingam import VARLiNGAM
 import numpy as np
 from connectingdots.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod
 from connectingdots.graph.DAG import DAG
+from connectingdots.causal_discovery.baseline.pkgs import utils
 
 
 class VarLiNGAM(CausalDiscoveryMethod):
@@ -10,13 +11,14 @@ class VarLiNGAM(CausalDiscoveryMethod):
     """
     def __init__(self, 
                  data, 
+                 min_lag,
                  max_lag, 
                  verbosity, 
                  alpha = 0.05, 
                  resfolder = None,
                  neglect_only_autodep = False):
         
-        super().__init__(data, 0, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
 
 
     def run(self) -> DAG:
@@ -58,11 +60,12 @@ class VarLiNGAM(CausalDiscoveryMethod):
         Returns:
             (DAG): result re-elaborated
         """
-        vars = list(graph.keys())
-        tmp_dag = DAG(vars, 0, self.max_lag, self.neglect_only_autodep)
+        tmp_dag = DAG(self.data.features, 0, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()
         for t in graph.keys():
             for s in graph[t]:
-                # DUMMY SCORE and P-VAL
-                tmp_dag.add_source(t, s[0], 0.3, 0, s[1])
+                lag = abs(s[1])
+                if lag >= self.min_lag and lag <= self.max_lag:
+                    tmp_dag.add_source(t, s[0], utils.DSCORE, 0, s[1])
+        # tmp_dag.remove_unneeded_features()
         return tmp_dag

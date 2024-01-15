@@ -70,7 +70,7 @@ class RandomDAG:
         if noise_config is not None:
             if noise_config[0] is NoiseType.Uniform:
                 self.noise = np.random.uniform(noise_config[1], noise_config[2], (self.T, self.N))
-            elif noise_config[1] is NoiseType.Gaussian:
+            elif noise_config[0] is NoiseType.Gaussian:
                 self.noise = np.random.normal(noise_config[1], noise_config[2], (self.T, self.N))
     
     
@@ -371,7 +371,7 @@ class RandomDAG:
             if self.noise_config is not None:
                 if self.noise_config[0] is NoiseType.Uniform:
                     int_noise = np.random.uniform(self.noise_config[1], self.noise_config[2], (T, self.N))
-                elif self.noise_config[1] is NoiseType.Gaussian:
+                elif self.noise_config[0] is NoiseType.Gaussian:
                     int_noise = np.random.normal(self.noise_config[1], self.noise_config[2], (T, self.N))
             np_data = np.zeros((T, self.N))
             for t in range(self.max_lag, T):

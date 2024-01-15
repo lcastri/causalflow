@@ -43,7 +43,7 @@ titleLabel = {_TIME : 'Time',
               _SHD : 'SHD',
               _FPR: 'FPR',
               _N_ESPU : 'Spurious Links',
-              _N_EqDAG : 'Equivalent DAGs',}
+              _N_EqDAG : '# Equivalent DAGs',}
 
 
 class plotType(Enum):
