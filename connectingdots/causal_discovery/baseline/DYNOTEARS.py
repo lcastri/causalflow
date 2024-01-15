@@ -22,7 +22,7 @@ class DYNOTEARS(CausalDiscoveryMethod):
         graph_dict = dict()
         for name in self.data.features:
             graph_dict[name] = []
-        sm = from_pandas_dynamic(self.data.d, p=self.max_lag, w_threshold=0.01, lambda_w=0.05, lambda_a=0.05)
+        sm = from_pandas_dynamic(self.data.d, p=self.max_lag)
 
         tname_to_name_dict = dict()
         count_lag = 0
@@ -55,11 +55,11 @@ class DYNOTEARS(CausalDiscoveryMethod):
         Returns:
             (DAG): result re-elaborated
         """
-        tmp_dag = DAG(self.data.features, 0, self.max_lag, self.neglect_only_autodep)
+        tmp_dag = DAG(self.data.features, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()
         for t in graph.keys():
             for s in graph[t]:
-                lag = abs(s[1])
+                lag = abs(s[2])
                 if lag >= self.min_lag and lag <= self.max_lag:
                     tmp_dag.add_source(t, s[0], abs(s[1]), 0, s[2])
         # tmp_dag.remove_unneeded_features()

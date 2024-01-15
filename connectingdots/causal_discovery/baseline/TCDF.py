@@ -85,7 +85,7 @@ class TCDF(CausalDiscoveryMethod):
         Returns:
             (DAG): result re-elaborated
         """
-        tmp_dag = DAG(self.data.features, 0, self.max_lag, self.neglect_only_autodep)
+        tmp_dag = DAG(self.data.features, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()
         for t in graph.keys():
             for s in graph[t]:

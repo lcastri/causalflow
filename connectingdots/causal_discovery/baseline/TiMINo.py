@@ -44,7 +44,7 @@ class TiMINo(CausalDiscoveryMethod):
             (DAG): result re-elaborated
         """
         vars = list(graph.keys())
-        tmp_dag = DAG(vars, 0, self.max_lag, self.neglect_only_autodep)
+        tmp_dag = DAG(vars, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()
         for t in graph.keys():
             for s in graph[t]:
