@@ -97,6 +97,7 @@ def findcauses(target, cuda, epochs, kernel_size, layers,
             gaps.append(gap)
         sortgaps = sorted(gaps, reverse=True)
         
+        ind = -1 # FIXME: added by Luca
         for i in range(0, len(gaps)):
             largestgap = sortgaps[i]
             index = gaps.index(largestgap)

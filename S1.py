@@ -116,25 +116,28 @@ if __name__ == '__main__':
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
-    nfeature = range(7, 15)
+    nfeature = range(7, 8)
     nrun = 25
     
     
     for n in nfeature:
         for nr in range(nrun):
+            if n == 7 and nr not in [0,1,2,3,4,8,9,10,11,12,13,14,15]:continue
             #########################################################################################################################
             # DATA
             while True:
-                try:
+                # try:
                     resfolder = resdir + '/' + str(n) + '/' + str(nr)
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
+                    coeff_sign = random.choice([-1, 1])
                     noise_param = random.uniform(0.5, 2)
                     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
+                    # noise_weibull = (NoiseType.Weibull, 2.5, 2)
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
-                                   max_terms = 2, coeff_range = (min_c, max_c), max_exp = 2, 
+                                   max_terms = 2, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                                    functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
                     RS.gen_equations()
@@ -143,7 +146,7 @@ if __name__ == '__main__':
                     
                     d_int = dict()
                     for int_var in RS.confintvar.values():
-                        i = RS.intervene(int_var, nsample_int, random.uniform(2, 3))
+                        i = RS.intervene(int_var, nsample_int, random.uniform(5, 10))
                         d_int[int_var] = i[int_var]
                         d_int[int_var].plot_timeseries('results/' + resfolder + '/interv_' + int_var + '.png')
 
@@ -153,7 +156,7 @@ if __name__ == '__main__':
                     d_obs.plot_timeseries('results/' + resfolder + '/obs_data.png')
                     
                     RS.ts_dag(withHidden = True, save_name = 'results/' + resfolder + '/gt_complete')
-                    RS.ts_dag(withHidden = False, save_name = 'results/' + resfolder + '/gt')
+                    RS.ts_dag(withHidden = False, save_name = 'results/' + resfolder + '/gt')                  
             
             
                     #########################################################################################################################
@@ -238,7 +241,7 @@ if __name__ == '__main__':
                     print(tcdf_time)
                     tcdf.timeseries_dag()
                     gc.collect()
-                    
+                                       
                     
                     #########################################################################################################################
                     # tsFCI
@@ -306,11 +309,11 @@ if __name__ == '__main__':
                         
                     break
                     
-                except Exception as e:
-                    with open(os.getcwd() + "/results/" + resdir + '/error.txt', 'a') as f:
-                        f.write(str(e))
-                    remove_directory(os.getcwd() + "/results/" + resfolder)
-                    continue
+                # except Exception as e:
+                #     with open(os.getcwd() + "/results/" + resdir + '/error.txt', 'a') as f:
+                #         f.write(str(e))
+                #     remove_directory(os.getcwd() + "/results/" + resfolder)
+                #     continue
 
 
             #########################################################################################################################

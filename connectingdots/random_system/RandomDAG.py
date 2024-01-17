@@ -11,6 +11,7 @@ import networkx as nx
 class NoiseType(Enum):
     Uniform = 0
     Gaussian = 1
+    Weibull = 2
     
     
 class PriorityOp(Enum):
@@ -72,6 +73,8 @@ class RandomDAG:
                 self.noise = np.random.uniform(noise_config[1], noise_config[2], (self.T, self.N))
             elif noise_config[0] is NoiseType.Gaussian:
                 self.noise = np.random.normal(noise_config[1], noise_config[2], (self.T, self.N))
+            elif noise_config[0] is NoiseType.Weibull:
+                self.noise = np.random.weibull(noise_config[1], (self.T, self.N)) * noise_config[2]
     
     
     @property            
@@ -373,6 +376,8 @@ class RandomDAG:
                     int_noise = np.random.uniform(self.noise_config[1], self.noise_config[2], (T, self.N))
                 elif self.noise_config[0] is NoiseType.Gaussian:
                     int_noise = np.random.normal(self.noise_config[1], self.noise_config[2], (T, self.N))
+                elif self.noise_config[0] is NoiseType.Weibull:
+                    self.noise = np.random.weibull(self.noise_config[1], (self.T, self.N)) * self.noise_config[2]
             np_data = np.zeros((T, self.N))
             for t in range(self.max_lag, T):
                 for target, eq in self.equations.items():
