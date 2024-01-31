@@ -133,7 +133,7 @@ def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotTyp
     #     print(" | ".join(stri))
             
     if plot_type != plotType.BoxPlot:
-        fig, ax = plt.subplots(figsize=(9,6))
+        fig, ax = plt.subplots(figsize=(6,4))
 
         if plot_type == plotType.Line:
             for algo in algorithms:
@@ -156,9 +156,11 @@ def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotTyp
         plt.xticks(range(nvars[0], nvars[1]+1))
         plt.xlabel(xLabel)
         plt.ylabel(plotLabel[metric])
-        plt.legend([plotLabel[algo] for algo in algorithms], loc=9, bbox_to_anchor=(-0.1, 1.05, 1.2, .105), ncol=7, mode='expand',)
+        bbox_to_anchor = (0, 1.05, 1, .105)
+        # bbox_to_anchor = (-0.1, 1.05, 1.2, .105)
+        plt.legend([plotLabel[algo] for algo in algorithms], loc=9, bbox_to_anchor=bbox_to_anchor, ncol=7, mode='expand',)
         plt.grid()
-        plt.title(titleLabel[metric] + ' comparison')
+        # plt.title(titleLabel[metric] + ' comparison')
         
     else:
         fig, ax1 = plt.subplots(figsize=(9,6))
@@ -230,28 +232,33 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
 if __name__ == '__main__':   
 
     # To use to plot RS_comparison_variables
-    # resfolder = ['nvariable_1hconf_nonlin_1000_1000_0_0.5']
-    # vars = [7, 14]
+    resfolder = ['rebuttal/nvariable_nonlin_1250_250']
+    vars = [7, 14]
     
     
     # To use to plot RS_comparison_nconfounded
     # resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
     # vars = [0, 7]
-    resfolder = ['new/S2']
-    vars = [0, 2]
+    # resfolder = ['new/S1']
+    # vars = [7, 14]
     
     
     bootstrap = True
-    algorithms = [a for a in Algo]
+    algorithms = [Algo.PCMCI, Algo.FPCMCI, Algo.CAnDOIT]
     plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
                   Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
                   Algo.CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
-                  Algo.DYNOTEARS: {"marker": 's', "color": 'm', "linestyle": '-.'},
-                  Algo.TCDF: {"marker": 'd', "color": 'c', "linestyle": ':'},
-                  Algo.tsFCI: {"marker": 'v', "color": 'y', "linestyle": '--'},
-                  Algo.VarLiNGAM: {"marker": '>', "color": 'k', "linestyle": '-'},
                   }
+    # algorithms = [a for a in Algo]
+    # plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
+    #               Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
+    #               Algo.CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
+    #               Algo.DYNOTEARS: {"marker": 's', "color": 'm', "linestyle": '-.'},
+    #               Algo.TCDF: {"marker": 'd', "color": 'c', "linestyle": ':'},
+    #               Algo.tsFCI: {"marker": 'v', "color": 'y', "linestyle": '--'},
+    #               Algo.VarLiNGAM: {"marker": '>', "color": 'k', "linestyle": '-'},
+    #               }
     for r in resfolder:
         for metric in [Metric.TIME, Metric.F1SCORE, Metric.PREC, Metric.RECA, Metric.SHD, Metric.FPR, Metric.N_ESPU, Metric.N_EqDAG]:
-            compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
-            # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)
+            # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
+            compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)

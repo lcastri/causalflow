@@ -81,7 +81,9 @@ def get_spurious_links(scm):
     return spurious
 
     
-def save_result(d):  
+def save_result(d):
+    res_tmp["coeff_range"] = str(RS.coeff_range)
+    res_tmp["noise_config"] = str(RS.noise_config)
     res_tmp[jWord.GT.value] = str(RS.get_SCM())
     res_tmp[jWord.Confounders.value] = str(RS.confounders)
     res_tmp[jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
@@ -116,17 +118,16 @@ if __name__ == '__main__':
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
-    nfeature = range(7, 8)
+    nfeature = range(10, 11)
     nrun = 25
     
     
     for n in nfeature:
         for nr in range(nrun):
-            if n == 7 and nr not in [0,1,2,3,4,8,9,10,11,12,13,14,15]:continue
             #########################################################################################################################
             # DATA
             while True:
-                # try:
+                try:
                     resfolder = resdir + '/' + str(n) + '/' + str(nr)
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
@@ -137,7 +138,7 @@ if __name__ == '__main__':
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
                     # noise_weibull = (NoiseType.Weibull, 2.5, 2)
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
-                                   max_terms = 2, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
+                                   max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                                    functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
                     RS.gen_equations()
@@ -309,11 +310,11 @@ if __name__ == '__main__':
                         
                     break
                     
-                # except Exception as e:
-                #     with open(os.getcwd() + "/results/" + resdir + '/error.txt', 'a') as f:
-                #         f.write(str(e))
-                #     remove_directory(os.getcwd() + "/results/" + resfolder)
-                #     continue
+                except Exception as e:
+                    with open(os.getcwd() + "/results/" + resdir + '/error.txt', 'a') as f:
+                        f.write(str(e))
+                    remove_directory(os.getcwd() + "/results/" + resfolder)
+                    continue
 
 
             #########################################################################################################################
