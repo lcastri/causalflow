@@ -76,7 +76,7 @@ if __name__ == '__main__':
                         verbosity = CPLevel.DEBUG,
                         neglect_only_autodep = True,
                         plot_data = True,
-                        exclude_context = False)
+                        exclude_context = True)
     
     new_start = time()
     cm = dofpcmci.run()

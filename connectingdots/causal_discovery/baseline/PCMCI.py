@@ -64,7 +64,6 @@ class PCMCI(CausalDiscoveryMethod):
         CP.info('\n')
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
-
         self.result = self.pcmci.run_pcmci(tau_max = self.max_lag,
                                            tau_min = self.min_lag,
                                            alpha_level = self.alpha,

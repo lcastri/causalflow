@@ -106,26 +106,59 @@ class CAnDOIT(CausalDiscoveryMethod):
             DAG: causal model with context
         """
         # Run PC algorithm on selected links
-        tmp_dag = self.validator.run_pc(self.validator_data, link_assumptions)
-        tmp_dag.sys_context = self.CM.sys_context
+        causal_model = self.validator.run_plus(self.validator_data, link_assumptions)
+        # tmp_dag.sys_context = self.CM.sys_context
         
-        if tmp_dag.autodep_nodes:
+        # if tmp_dag.autodep_nodes:
         
-            # Remove context from parents
-            tmp_dag.remove_context()
+        #     # Remove context from parents
+        #     tmp_dag.remove_context()
             
-            tmp_link_assumptions = tmp_dag.get_link_assumptions()
+        #     tmp_link_assumptions = tmp_dag.get_link_assumptions()
             
-            # Auto-dependency Check
-            tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)
+        #     # Auto-dependency Check
+        #     tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)
             
-            # Add again context for final MCI test on obs and inter data
-            tmp_dag.add_context()
+        #     # Add again context for final MCI test on obs and inter data
+        #     tmp_dag.add_context()
         
-        # Causal Model
-        causal_model = self.validator.run_mci(self.validator_data, tmp_dag)
-        causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
+        # # Causal Model
+        # causal_model = self.validator.run_mci(self.validator_data, tmp_dag)
+        # causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
         return causal_model
+    
+    # FIXME: uncomment me
+    # def run_validator(self, link_assumptions = None):
+    #     """
+    #     Runs Validator (PCMCI)
+
+    #     Args:
+    #         link_assumptions (dict, optional): link assumption with context. Defaults to None.
+
+    #     Returns:
+    #         DAG: causal model with context
+    #     """
+    #     # Run PC algorithm on selected links
+    #     tmp_dag = self.validator.run_pc(self.validator_data, link_assumptions)
+    #     tmp_dag.sys_context = self.CM.sys_context
+        
+    #     if tmp_dag.autodep_nodes:
+        
+    #         # Remove context from parents
+    #         tmp_dag.remove_context()
+            
+    #         tmp_link_assumptions = tmp_dag.get_link_assumptions()
+            
+    #         # Auto-dependency Check
+    #         tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)
+            
+    #         # Add again context for final MCI test on obs and inter data
+    #         tmp_dag.add_context()
+        
+    #     # Causal Model
+    #     causal_model = self.validator.run_mci(self.validator_data, tmp_dag)
+    #     causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
+    #     return causal_model
     
     
     def _change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
@@ -296,7 +329,8 @@ class CAnDOIT(CausalDiscoveryMethod):
             
             # Create context variable data
             context_data = int_data.d[int_var]
-            context_start = len(validator_data) - 1
+            # FIXME: context_start = len(validator_data) - 1
+            context_start = len(validator_data)
             context_end = context_start + len(context_data)
             context_vars[context_varname] = {'data': context_data, 'start': context_start, 'end': context_end}
             

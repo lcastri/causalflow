@@ -77,6 +77,45 @@ class myPCMCI():
         return self.CM
     
     
+    def run_plus(self, data: Data, link_assumptions = None):
+        """
+        Run causal discovery algorithm
+
+        Args:
+            data (Data): Data obj to analyse
+            link_assumptions (dict, optional): prior assumptions on causal model links. Defaults to None.
+
+        Returns:
+            (DAG): estimated causal model
+        """
+        
+        CP.info('\n')
+        CP.info(DASH)
+        CP.info("Running Causal Discovery Algorithm")
+
+        # build tigramite dataset
+        vector = np.vectorize(float)
+        d = vector(data.d)
+        dataframe = pp.DataFrame(data = d, var_names = data.features)
+        
+        # init and run pcmci
+        self.val_method = VAL(dataframe = dataframe,
+                              cond_ind_test = self.val_condtest,
+                              verbosity = self.verbosity)
+
+        self.result = self.val_method.run_pcmciplus(link_assumptions = link_assumptions,
+                                                    tau_max = self.max_lag,
+                                                    tau_min = 0,
+                                                    pc_alpha = self.alpha,
+                                                    )
+        
+        self.result['var_names'] = data.features
+        self.result['pretty_var_names'] = data.pretty_features
+        
+        self.CM = self._to_DAG()
+        return self.CM
+    
+    
     def run_pc(self, data: Data, link_assumptions = None):
         """
         Run PC causal discovery algorithm
@@ -105,7 +144,8 @@ class myPCMCI():
         
         parents = self.val_method.run_pc_stable(link_assumptions = link_assumptions,
                                                 tau_max = self.max_lag,
-                                                tau_min = self.min_lag,
+                                                tau_min = 0,
+                                                # tau_min = self.min_lag,
                                                 # pc_alpha = self.alpha,
                                                 )
     

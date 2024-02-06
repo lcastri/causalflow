@@ -117,7 +117,7 @@ class DAG():
         tmp = copy.deepcopy(self.g)
         for t in self.g.keys():
             if self.g[t].is_isolated: 
-                if self.g[t].intervention_node: del tmp[self.g[t].associated_context] # FIXME: last edit to be tested
+                if self.g[t].intervention_node: del tmp[self.g[t].associated_context]
                 del tmp[t]
         self.g = tmp
             
@@ -135,7 +135,8 @@ class DAG():
                 # Adding context var to sys var
                 self.g[sys_var].intervention_node = True
                 self.g[sys_var].associated_context = context_var
-                self.add_source(sys_var, context_var, 1, 0, 1)
+                # FIXME: self.add_source(sys_var, context_var, 1, 0, 1)
+                self.add_source(sys_var, context_var, 1, 0, 0)
                 
         # NOTE: bi-directed link contemporanous link between context vars
         for context_var in self.sys_context.values():
@@ -154,7 +155,8 @@ class DAG():
                 # Removing context var from sys var
                 # self.g[sys_var].intervention_node = False
                 self.g[sys_var].associated_context = None
-                self.del_source(sys_var, context_var, 1)
+                # FIXME: self.del_source(sys_var, context_var, 1)
+                self.del_source(sys_var, context_var, 0)
                 
                 # Removing context var from dag
                 del self.g[context_var]
@@ -180,7 +182,9 @@ class DAG():
                     link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-?>'
                     
                 elif t in self.sys_context.keys() and s[0] == self.sys_context[t]:
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
+                    # FIXME: link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
+                    link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = '-->'
+                    link_assump[self.features.index(s[0])][(self.features.index(t), 0)] = '<--'
                     
                 elif t in self.sys_context.values() and s[0] in self.sys_context.values():
                     link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
