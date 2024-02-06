@@ -13,11 +13,11 @@ class DAG():
         DAG constructor
 
         Args:
-            var_names (list): _description_
-            min_lag (int): _description_
-            max_lag (int): _description_
-            neglect_autodep (bool, optional): _description_. Defaults to False.
-            scm (dict, optional): _description_. Defaults to None.
+            var_names (list): variable list
+            min_lag (int): minimum lag time
+            max_lag (int): maximum time lag
+            neglect_autodep (bool, optional): bit to neglect nodes when they are only autodependent. Defaults to False.
+            scm (dict, optional): Build the DAG for SCM. Defaults to None.
         """
         self.g = {var: Node(var, neglect_autodep) for var in var_names}
         self.neglect_autodep = neglect_autodep
@@ -82,7 +82,7 @@ class DAG():
                 for l in range(1, self.max_lag + 1): self.add_source(t, s, 1, 0, l)
     
     
-    def add_source(self, t, s, score, pval, lag):
+    def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):
         """
         Adds source node to a target node
 
@@ -93,7 +93,7 @@ class DAG():
             pval (float): dependency p-value
             lag (int): dependency lag
         """
-        self.g[t].sources[(s, abs(lag))] = {SCORE: score, PVAL: pval}
+        self.g[t].sources[(s, abs(lag))] = {SCORE: score, PVAL: pval, TYPE: mode}
         self.g[s].children.append(t)
        
         
@@ -137,6 +137,12 @@ class DAG():
                 self.g[sys_var].associated_context = context_var
                 self.add_source(sys_var, context_var, 1, 0, 1)
                 
+        # NOTE: bi-directed link contemporanous link between context vars
+        for context_var in self.sys_context.values():
+            other_context = [value for value in self.sys_context.values() if value != context_var]
+            for other in other_context:
+                self.add_source(context_var, other, 1, 0, 0)
+                
     
     def remove_context(self):
         """
@@ -176,6 +182,9 @@ class DAG():
                 elif t in self.sys_context.keys() and s[0] == self.sys_context[t]:
                     link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
                     
+                elif t in self.sys_context.values() and s[0] in self.sys_context.values():
+                    link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
+                    
         return link_assump
 
 
@@ -207,22 +216,6 @@ class DAG():
         return scm
     
     
-    def get_causal_matrix(self):
-        """
-        Returns a dictionary with keys the lags and values the causal matrix containing the causal weights between targets (rows) and sources (columns)
-
-        Returns:
-            dict/np.ndarray: causal matrix per 
-        """
-        cm_per_lag = {lag : np.zeros((len(self.features), len(self.features))) for lag in range(self.min_lag, self.max_lag + 1)}
-        for lag in cm_per_lag:
-            for t in self.g:
-                for s in self.g[t].sources:
-                    if s[1] == lag: cm_per_lag[lag][self.features.index(t)][self.features.index(s[0])] = self.g[t].sources[s][SCORE]
-        if len(cm_per_lag) == 1: return list(cm_per_lag.values())[0]
-        return cm_per_lag
-    
-    
     def make_pretty(self) -> dict:
         """
         Makes variables' names pretty, i.e. $ varname $
@@ -239,7 +232,7 @@ class DAG():
             for s in self.g[t].sources:
                 del pretty[p_t].sources[s]
                 p_s = '$' + s[0] + '$'
-                pretty[p_t].sources[(p_s, s[1])] = {SCORE: self.g[t].sources[s][SCORE], PVAL: self.g[t].sources[s][PVAL]}
+                pretty[p_t].sources[(p_s, s[1])] = {SCORE: self.g[t].sources[s][SCORE], PVAL: self.g[t].sources[s][PVAL], TYPE: self.g[t].sources[s][TYPE]}
         return pretty
         
     
@@ -249,6 +242,7 @@ class DAG():
             min_score = 0, max_score = 1,
             node_size = 8, node_color = 'orange',
             edge_color = 'grey',
+            bundle_parallel_edges = True,
             font_size = 12,
             label_type = LabelType.Lag,
             save_name = None,
@@ -265,6 +259,7 @@ class DAG():
             node_size (int, optional): node size. Defaults to 8.
             node_color (str, optional): node color. Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
+            bundle_parallel_edges (str, optional): bundle parallel edge bit. Defaults to True.
             font_size (int, optional): font size. Defaults to 12.
             label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
@@ -291,17 +286,17 @@ class DAG():
             node_label = {t: [] for t in r.g.keys()}
             for t in r.g:
                 if r.g[t].is_autodependent:
-                    for s in r.g[t].sources:
-                        if s[0] == t:
-                            if label_type == LabelType.Lag:
-                                node_label[t].append(s[1])
-                            elif label_type == LabelType.Score:
-                                node_label[t].append(round(r.g[t].sources[s][SCORE], 2))
+                    autodep = r.g[t].get_max_autodependent
+                    if label_type == LabelType.Lag:
+                        node_label[t].append(autodep[1])
+                    elif label_type == LabelType.Score:
+                        node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
                 node_label[t] = ",".join(str(s) for s in node_label[t])
 
 
         # EDGE DEFINITION
         edges = [(s[0], t) for t in r.g for s in r.g[t].sources if t != s[0]]
+        arrows = {(s[0], t):True for t in r.g for s in r.g[t].sources if t != s[0]}
         G.add_edges_from(edges)
         
         # EDGE LINE
@@ -321,7 +316,7 @@ class DAG():
                         if label_type == LabelType.Lag:
                             edge_label[(s[0], t)].append(s[1])
                         elif label_type == LabelType.Score:
-                            edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 2))
+                            edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
             for k in edge_label.keys():
                 edge_label[k] = ",".join(str(s) for s in edge_label[k])
 
@@ -339,7 +334,7 @@ class DAG():
                     node_label_offset = 0.1,
                     node_alpha = 1,
                     
-                    arrows = True,
+                    arrows = arrows,
                     edge_layout = 'curved',
                     edge_label = label_type != LabelType.NoLabels,
                     edge_labels = edge_label,
@@ -349,7 +344,7 @@ class DAG():
                     edge_alpha = 1,
                     edge_zorder = 1,
                     edge_label_position = 0.35,
-                    edge_layout_kwargs = dict(bundle_parallel_edges = False, k = 0.05))
+                    edge_layout_kwargs = dict(bundle_parallel_edges = bundle_parallel_edges, k = 0.05))
             
             nx.draw_networkx_labels(G, 
                                     pos = a.node_positions,
@@ -362,11 +357,13 @@ class DAG():
             plt.show()
                 
             
+    
     def ts_dag(self,
                tau,
                min_width = 1, max_width = 5,
                min_score = 0, max_score = 1,
                node_size = 8,
+               node_proximity = 2,
                node_color = 'orange',
                edge_color = 'grey',
                font_size = 12,
@@ -382,6 +379,7 @@ class DAG():
             min_score (int, optional): minimum score range. Defaults to 0.
             max_score (int, optional): maximum score range. Defaults to 1.
             node_size (int, optional): node size. Defaults to 8.
+            node_proximity (int, optional): node proximity. Defaults to 2.
             node_color (str, optional): node color. Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
             font_size (int, optional): font size. Defaults to 12.
@@ -398,7 +396,7 @@ class DAG():
             for j in range(tau + 1):
                 G.add_node((j, i))
                 
-        pos = {n : (n[0], n[1]/2) for n in G.nodes()}
+        pos = {n : (n[0], n[1]/node_proximity) for n in G.nodes()}
         scale = max(pos.values())
         
         # Nodes color definition
@@ -412,6 +410,7 @@ class DAG():
         # edges definition
         edges = list()
         edge_width = dict()
+        arrows = dict()
         for t in r.g:
             for s in r.g[t].sources:
                 s_index = len(r.g.keys())-1 - list(r.g.keys()).index(s[0])
@@ -422,9 +421,10 @@ class DAG():
                     for i in range(tau + 1):
                         s_node = (i, s_index)
                         t_node = (i, t_index)
-                        edges.append((s_node, t_node))
-                        edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-                        
+                        if (t_node, s_node) not in edges: # this is to avoit double edge for undirected contemporaneous link
+                            edges.append((s_node, t_node))
+                            edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+                            arrows[(s_node, t_node)] = r.g[t].sources[s][TYPE] == LinkType.Directed.value
                 # Lagged dependecies
                 else:
                     s_lag = tau - s[1]
@@ -434,6 +434,7 @@ class DAG():
                         t_node = (t_lag, t_index)
                         edges.append((s_node, t_node))
                         edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+                        arrows[(s_node, t_node)] = True
                         s_lag -= s[1]
                         t_lag -= s[1]
                     
@@ -466,7 +467,7 @@ class DAG():
             node_label_fontdict = dict(size=font_size),
             node_alpha = 1,
             
-            arrows = True,
+            arrows = arrows,
             edge_layout = 'curved',
             edge_label = False,
             edge_color = edge_color, 
@@ -496,3 +497,53 @@ class DAG():
             (float): scaled score
         """
         return ((score - min_score) / (max_score - min_score)) * (max_width - min_width) + min_width
+
+
+    def get_skeleton(self) -> np.array:
+        """
+        Returns skeleton matrix.
+        Skeleton matrix is composed by 0 and 1.
+        1 <- if there is a link from source to target 
+        0 <- if there is not a link from source to target 
+
+        Returns:
+            np.array: skeleton matrix
+        """
+        r = [np.zeros(shape=(len(self.features), len(self.features)), dtype = np.int32) for _ in range(self.min_lag, self.max_lag + 1)]
+        for l in range(self.min_lag, self.max_lag + 1):
+            for t in self.g.keys():
+                for s in self.g[t].sources:
+                    if s[1] == l: r[l - self.min_lag][self.features.index(t), self.features.index(s[0])] = 1
+        return np.array(r)
+
+
+    def get_val_matrix(self) -> np.array:
+        """
+        Returns val matrix.
+        val matrix contains information about the strength of the links componing the causal model.
+
+        Returns:
+            np.array: val matrix
+        """
+        r = [np.zeros(shape=(len(self.features), len(self.features))) for _ in range(self.min_lag, self.max_lag + 1)]
+        for l in range(self.min_lag, self.max_lag + 1):
+            for t in self.g.keys():
+                for s, info in self.g[t].sources.items():
+                    if s[1] == l: r[l - self.min_lag][self.features.index(t), self.features.index(s[0])] = info['score']
+        return np.array(r)
+
+
+    def get_pval_matrix(self) -> np.array:
+        """
+        Returns pval matrix.
+        pval matrix contains information about the pval of the links componing the causal model.=
+        
+        Returns:
+            np.array: pval matrix
+        """
+        r = [np.zeros(shape=(len(self.features), len(self.features))) for _ in range(self.min_lag, self.max_lag + 1)]
+        for l in range(self.min_lag, self.max_lag + 1):
+            for t in self.g.keys():
+                for s, info in self.g[t].sources.items():
+                    if s[1] == l: r[l - self.min_lag][self.features.index(t), self.features.index(s[0])] = info['pval']
+        return np.array(r)

@@ -16,7 +16,7 @@ import numpy as np
 if __name__ == '__main__':   
     f_alpha = 0.1
     pcmci_alpha = 0.05
-    min_lag = 1
+    min_lag = 0
     max_lag = 2
 
     np.random.seed(1)
@@ -46,28 +46,28 @@ if __name__ == '__main__':
     # fpcmci.timeseries_dag()    
     
     
-    dynotears = DYNOTEARS(df,
-                          min_lag = min_lag,
-                          max_lag = max_lag,
-                          verbosity = CPLevel.DEBUG,
-                          alpha = pcmci_alpha,
-                          neglect_only_autodep = True)
-    cm = dynotears.run()
-    dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    dynotears.timeseries_dag()
+    # dynotears = DYNOTEARS(df,
+    #                       min_lag = min_lag,
+    #                       max_lag = max_lag,
+    #                       verbosity = CPLevel.DEBUG,
+    #                       alpha = pcmci_alpha,
+    #                       neglect_only_autodep = True)
+    # cm = dynotears.run()
+    # dynotears.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    # dynotears.timeseries_dag()
     
        
-    # pcmci = PCMCI(df,
-    #               min_lag = min_lag, 
-    #               max_lag = max_lag, 
-    #               val_condtest = GPDC(significance = 'analytic', gp_params = None),
-    #               verbosity = CPLevel.DEBUG,
-    #               alpha = pcmci_alpha, 
-    #               neglect_only_autodep = True)
+    pcmci = PCMCI(df,
+                  min_lag = min_lag, 
+                  max_lag = max_lag, 
+                  val_condtest = GPDC(significance = 'analytic', gp_params = None),
+                  verbosity = CPLevel.DEBUG,
+                  alpha = pcmci_alpha, 
+                  neglect_only_autodep = True)
     
-    # cm = pcmci.run()
-    # pcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    # pcmci.timeseries_dag()
+    cm = pcmci.run()
+    pcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    pcmci.timeseries_dag()
     
 
     # tcdf = TCDF(df,

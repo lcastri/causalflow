@@ -124,7 +124,7 @@ class myPCMCI():
             (dict): MCI result
         """
         _int_link_assumptions = self.val_method._set_link_assumptions(autodep_dag.get_link_assumptions(autodep_ok = True), 
-                                                                      self.min_lag, self.max_lag)
+                                                                      0, self.max_lag)
 
         # Set the maximum condition dimension for Y and X
         max_conds_py = self.val_method._set_max_condition_dim(None, self.min_lag, self.max_lag)
@@ -336,13 +336,29 @@ class myPCMCI():
         for s in range(len(self.result['graph'])):
             for t in range(N):
                 for lag in range(lags):
-                    if self.result['graph'][s][t,lag] == '-->':
-                        if vars[t] in self.sys_context.keys() and vars[s] == self.sys_context[vars[t]]:
-                            tmp_dag.g[vars[t]].intervention_node = True
-                            tmp_dag.g[vars[t]].associated_context = vars[s]
+                    # if self.result['graph'][s][t,lag] == '-->':
+                    #     if vars[t] in self.sys_context.keys() and vars[s] == self.sys_context[vars[t]]:
+                    #         tmp_dag.g[vars[t]].intervention_node = True
+                    #         tmp_dag.g[vars[t]].associated_context = vars[s]
+                    #     tmp_dag.add_source(vars[t], 
+                    #                        vars[s],
+                    #                        self.result['val_matrix'][s][t,lag],
+                    #                        self.result['p_matrix'][s][t,lag],
+                    #                        lag)
+                        
+                        
+                    #         for lag in range(lags):
+                    if self.result['graph'][s][t,lag] == LinkType.Directed.value:
                         tmp_dag.add_source(vars[t], 
                                            vars[s],
                                            self.result['val_matrix'][s][t,lag],
                                            self.result['p_matrix'][s][t,lag],
                                            lag)
+                    elif self.result['graph'][s][t,lag] == LinkType.Undirected.value:
+                        tmp_dag.add_source(vars[t], 
+                                           vars[s],
+                                           self.result['val_matrix'][s][t,lag],
+                                           self.result['p_matrix'][s][t,lag],
+                                           lag,
+                                           LinkType.Undirected.value)
         return tmp_dag

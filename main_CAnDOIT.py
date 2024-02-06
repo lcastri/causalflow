@@ -52,6 +52,17 @@ if __name__ == '__main__':
         
     df_int = Data(d_int1, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
     int_data['X_1'] =  df_int
+
+    # X_4
+    d_int2 = np.random.random(size = (int(nsample/2), nfeature))
+    d_int2[:, 4] = 0.5 * np.ones(shape = (int(nsample/2),)) 
+    for t in range(max_lag, int(nsample/2)):
+        d_int2[t, 1] += 0.5 * d_int2[t-1, 0]**2
+        d_int2[t, 2] += 0.3 * d_int2[t-1, 0] * 0.75 * d_int2[t-2, 1] 
+        d_int2[t, 3] += 0.7 * d_int2[t-1, 3] * d_int2[t-2, 4]
+        
+    df_int = Data(d_int2, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
+    int_data['X_4'] =  df_int
         
     
     dofpcmci = CAnDOIT(df, 
@@ -65,7 +76,7 @@ if __name__ == '__main__':
                         verbosity = CPLevel.DEBUG,
                         neglect_only_autodep = True,
                         plot_data = True,
-                        exclude_context = True)
+                        exclude_context = False)
     
     new_start = time()
     cm = dofpcmci.run()

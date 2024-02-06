@@ -88,10 +88,17 @@ class PCMCI(CausalDiscoveryMethod):
         for s in range(len(self.result['graph'])):
             for t in range(N):
                 for lag in range(lags):
-                    if self.result['graph'][s][t,lag] == '-->':
+                    if self.result['graph'][s][t,lag] == LinkType.Directed.value:
                         tmp_dag.add_source(vars[t], 
                                            vars[s],
                                            self.result['val_matrix'][s][t,lag],
                                            self.result['p_matrix'][s][t,lag],
                                            lag)
+                    elif self.result['graph'][s][t,lag] == LinkType.Undirected.value:
+                        tmp_dag.add_source(vars[t], 
+                                           vars[s],
+                                           self.result['val_matrix'][s][t,lag],
+                                           self.result['p_matrix'][s][t,lag],
+                                           lag,
+                                           LinkType.Undirected.value)
         return tmp_dag

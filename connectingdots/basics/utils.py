@@ -20,12 +20,12 @@ def get_selectorpath(resfolder):
     Returns:
         (str): log file path
     """
-    Path(SEP.join([RESULTS_FILENAME, resfolder])).mkdir(parents=True, exist_ok=True)
-    return SEP.join([RESULTS_FILENAME, resfolder, LOG_FILENAME]), SEP.join([RESULTS_FILENAME, resfolder, RES_FILENAME]), SEP.join([RESULTS_FILENAME, resfolder, DAG_FILENAME]), SEP.join([RESULTS_FILENAME, resfolder, TSDAG_FILENAME])
+    Path(resfolder).mkdir(parents=True, exist_ok=True)
+    return SEP.join([resfolder, LOG_FILENAME]), SEP.join([resfolder, RES_FILENAME]), SEP.join([resfolder, DAG_FILENAME]), SEP.join([resfolder, TSDAG_FILENAME])
 
 
-def create_results_folder():
+def create_results_folder(resfolder):
     """
     Creates results folder if doesn't exist
     """
-    Path(RESULTS_FILENAME).mkdir(parents=True, exist_ok=True)
+    Path(resfolder).mkdir(parents=True, exist_ok=True)
