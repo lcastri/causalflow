@@ -138,7 +138,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             DAG: causal model with context
         """
         # Run PC algorithm on selected links
-        tmp_dag = self.validator.run(self.validator_data, link_assumptions)
+        tmp_dag = self.validator.run_pc(self.validator_data, link_assumptions)
         tmp_dag.sys_context = self.CM.sys_context
         
         if tmp_dag.autodep_nodes:
@@ -146,7 +146,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             # Remove context from parents
             tmp_dag.remove_context_lagged()
             
-            tmp_link_assumptions = tmp_dag.get_link_assumptions()
+            tmp_link_assumptions = tmp_dag.get_link_assumptions_lagged()
             
             # Auto-dependency Check
             tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)

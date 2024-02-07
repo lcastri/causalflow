@@ -17,6 +17,7 @@ class jWord(Enum):
     
 class Algo(Enum):
     CAnDOIT = 'candoit'
+    CAnDOITLagged = 'candoit_lagged'
     DYNOTEARS = 'dynotears'
     FPCMCI = 'fpcmci'
     PCMCI = 'pcmci'

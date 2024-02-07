@@ -163,7 +163,7 @@ class myPCMCI():
         Returns:
             (dict): MCI result
         """
-        _int_link_assumptions = self.val_method._set_link_assumptions(autodep_dag.get_link_assumptions(autodep_ok = True), 
+        _int_link_assumptions = self.val_method._set_link_assumptions(autodep_dag.get_link_assumptions_lagged(autodep_ok = True), 
                                                                       0, self.max_lag)
 
         # Set the maximum condition dimension for Y and X
@@ -302,7 +302,7 @@ class myPCMCI():
         return dag
  
     
-    def run_mci(self, data: Data, autodep_dag:DAG):#, link_assumptions, parents):
+    def run_mci(self, data: Data, autodep_dag:DAG):
         """
         Run MCI test on observational data using the causal structure computed by the validator 
 
@@ -329,8 +329,6 @@ class myPCMCI():
                               cond_ind_test = self.val_condtest,
                               verbosity = self.verbosity)
 
-        # self.result = self.__my_mci(link_assumptions = autodep_dag.get_link_assumptions(autodep_ok = True),
-        #                             parents = autodep_dag.get_parents())
         self.result = self.__my_mci(autodep_dag)
         
         self.result['var_names'] = data.features

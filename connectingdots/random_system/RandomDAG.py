@@ -220,6 +220,7 @@ class RandomDAG:
         """
         Prints the generated equations
         """
+        toprint = list()
         for target, eq in self.equations.items():
             equation_str = target + '(t) = '
             for i, term in enumerate(eq):
@@ -243,7 +244,9 @@ class RandomDAG:
                             term_str = f"{coefficient} * {variable}(t-{lag}) "
                         
                 equation_str += term_str
+            toprint.append(equation_str)
             print(equation_str)
+        return "\n".join(toprint)
             
             
     def __evaluate_term(self, term, t, data):

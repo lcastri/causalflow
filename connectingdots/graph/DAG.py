@@ -139,11 +139,15 @@ class DAG():
                 self.add_source(sys_var, context_var, 1, 0, 0)
                 
         # NOTE: bi-directed link contemporanous link between context vars
-        for context_var in self.sys_context.values():
-            other_context = [value for value in self.sys_context.values() if value != context_var]
-            for other in other_context:
-                self.add_source(context_var, other, 1, 0, 0)
-                
+        for sys_var, context_var in self.sys_context.items():
+            if sys_var in self.features:
+                other_context = [value for value in self.sys_context.values() if value != context_var and value in self.features]
+                for other in other_context:
+                    try:
+                        self.add_source(context_var, other, 1, 0, 0)
+                    except:
+                        print("ciao")
+                    
     def add_context_lagged(self):
         """
         Adds context variables
@@ -160,11 +164,14 @@ class DAG():
                 self.add_source(sys_var, context_var, 1, 0, 1)
                 
         # NOTE: bi-directed link contemporanous link between context vars
-        for context_var in self.sys_context.values():
-            other_context = [value for value in self.sys_context.values() if value != context_var]
-            for other in other_context:
-                self.add_source(context_var, other, 1, 0, 0)
-                
+        for sys_var, context_var in self.sys_context.items():
+            if sys_var in self.features:
+                other_context = [value for value in self.sys_context.values() if value != context_var and value in self.features]
+                for other in other_context:
+                    try:
+                        self.add_source(context_var, other, 1, 0, 0)
+                    except:
+                        print("ciao")
     
     def remove_context(self):
         """
@@ -172,15 +179,17 @@ class DAG():
         """
         for sys_var, context_var in self.sys_context.items():
             if sys_var in self.g:
-                
-                # Removing context var from sys var
-                # self.g[sys_var].intervention_node = False
-                self.g[sys_var].associated_context = None
-                # FIXME: self.del_source(sys_var, context_var, 1)
-                self.del_source(sys_var, context_var, 0)
-                
-                # Removing context var from dag
-                del self.g[context_var]
+                try:
+                    # Removing context var from sys var
+                    # self.g[sys_var].intervention_node = False
+                    self.g[sys_var].associated_context = None
+                    # FIXME: self.del_source(sys_var, context_var, 1)
+                    self.del_source(sys_var, context_var, 0)
+                    
+                    # Removing context var from dag
+                    del self.g[context_var]
+                except:
+                    print("ciao")
                 
     def remove_context_lagged(self):
         """

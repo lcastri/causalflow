@@ -45,7 +45,7 @@ EMPTY_RES = {jWord.GT.value : None,
              jWord.InterventionVariables.value : None,
              jWord.ExpectedSpuriousLinks.value : None,
              jWord.N_GSPU.value : None,
-             "CAnDOITLagged" : deepcopy(ALGO_RES),   
+             Algo.CAnDOITLagged.value : deepcopy(ALGO_RES),   
              Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
              Algo.FPCMCI.value : deepcopy(ALGO_RES),   
              Algo.PCMCI.value : deepcopy(ALGO_RES),
@@ -110,7 +110,8 @@ def save_result(d):
 if __name__ == '__main__':   
     nsample_obs = 1200
     nsample_int = 300
-    resdir = "S1_" + str(nsample_obs) + "_" + str(nsample_int)
+    # resdir = "S1_" + str(nsample_obs) + "_" + str(nsample_int)
+    resdir = "ATTEMPT_1"
     f_alpha = 0.05
     alpha = 0.05
     min_lag = 1
@@ -135,7 +136,7 @@ if __name__ == '__main__':
                     noise_param = random.uniform(0.5, 2)
                     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-                    hidden_conf = random.randint(1,3)
+                    hidden_conf = random.randint(2,3)
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
                                    max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
@@ -273,7 +274,7 @@ if __name__ == '__main__':
             #########################################################################################################################
             # SAVE
             res = {
-                "CAnDOITLagged": {"time":candoit_lagged_time, "scm":get_correct_SCM(GT, candoit_lagged_cm.get_SCM())},
+                Algo.CAnDOITLagged: {"time":candoit_lagged_time, "scm":get_correct_SCM(GT, candoit_lagged_cm.get_SCM())},
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
                 Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
                 Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
