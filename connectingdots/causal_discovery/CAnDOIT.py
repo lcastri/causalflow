@@ -127,6 +127,38 @@ class CAnDOIT(CausalDiscoveryMethod):
         # causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
         return causal_model
     
+    def run_validator_lagged(self, link_assumptions = None):
+        """
+        Runs Validator (PCMCI)
+
+        Args:
+            link_assumptions (dict, optional): link assumption with context. Defaults to None.
+
+        Returns:
+            DAG: causal model with context
+        """
+        # Run PC algorithm on selected links
+        tmp_dag = self.validator.run(self.validator_data, link_assumptions)
+        tmp_dag.sys_context = self.CM.sys_context
+        
+        if tmp_dag.autodep_nodes:
+        
+            # Remove context from parents
+            tmp_dag.remove_context_lagged()
+            
+            tmp_link_assumptions = tmp_dag.get_link_assumptions()
+            
+            # Auto-dependency Check
+            tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions)
+            
+            # Add again context for final MCI test on obs and inter data
+            tmp_dag.add_context_lagged()
+        
+        # Causal Model
+        causal_model = self.validator.run_mci(self.validator_data, tmp_dag)
+        causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
+        return causal_model
+    
     # FIXME: uncomment me
     # def run_validator(self, link_assumptions = None):
     #     """
@@ -224,6 +256,68 @@ class CAnDOIT(CausalDiscoveryMethod):
             # list of selected features based on validator dependencies
             if remove_unneeded: self.CM.remove_unneeded_features()
             if self.exclude_context: self.CM.remove_context()
+            
+            # Print and save final causal model
+            if not nofilter: self.__print_differences(f_dag, self.CM)
+            self.save()
+            
+        return self.CM
+    
+    
+    def run_lagged(self, remove_unneeded = True, nofilter = False) -> DAG:
+        """
+        Run CAnDOIT
+        
+        Returns:
+            DAG: causal model
+        """
+        
+        if not self.isThereInterv:
+            
+            fpcmci = FPCMCI(self.obs_data,
+                            self.min_lag,
+                            self.max_lag,
+                            self.sel_method,
+                            self.val_condtest,
+                            CP.verbosity,
+                            self.f_alpha,
+                            self.alpha,
+                            self.resfolder,
+                            self.neglect_only_autodep)
+            self.CM = fpcmci.run()
+            
+        else:
+        
+            link_assumptions = None
+            
+            if not nofilter:
+                ## 1. FILTER
+                self.run_filter()
+            
+                # list of selected features based on filter dependencies
+                self.CM.remove_unneeded_features()
+                if not self.CM.features: return None, None
+                
+                self.obs_data.shrink(self.CM.features)
+                f_dag = copy.deepcopy(self.CM)
+            
+                ## 2. VALIDATOR
+                # Add dependencies corresponding to the context variables 
+                # ONLY if the the related system variable is still present
+                self.CM.add_context_lagged() 
+
+                # shrink dataframe d by using the filter result
+                self.validator_data.shrink(self.CM.features)
+                
+                # selected links to check by the validator
+                link_assumptions = self.CM.get_link_assumptions_lagged()
+            
+            # calculate dependencies on selected links
+            self.CM = self.run_validator_lagged(link_assumptions)
+                   
+            # list of selected features based on validator dependencies
+            if remove_unneeded: self.CM.remove_unneeded_features()
+            if self.exclude_context: self.CM.remove_context_lagged()
             
             # Print and save final causal model
             if not nofilter: self.__print_differences(f_dag, self.CM)

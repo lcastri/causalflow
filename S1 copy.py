@@ -15,6 +15,7 @@ from connectingdots.causal_discovery.baseline.tsFCI import tsFCI
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
+import traceback
 
 from time import time
 from datetime import timedelta
@@ -44,6 +45,7 @@ EMPTY_RES = {jWord.GT.value : None,
              jWord.InterventionVariables.value : None,
              jWord.ExpectedSpuriousLinks.value : None,
              jWord.N_GSPU.value : None,
+             "CAnDOITLagged" : deepcopy(ALGO_RES),   
              Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
              Algo.FPCMCI.value : deepcopy(ALGO_RES),   
              Algo.PCMCI.value : deepcopy(ALGO_RES),
@@ -78,6 +80,7 @@ def get_spurious_links(scm):
 
     
 def save_result(d):
+    res_tmp["equations"] = str(RS.print_equations())
     res_tmp["coeff_range"] = str(RS.coeff_range)
     res_tmp["noise_config"] = str(RS.noise_config)
     res_tmp[jWord.GT.value] = str(RS.get_SCM())
@@ -105,8 +108,8 @@ def save_result(d):
     
     
 if __name__ == '__main__':   
-    nsample_obs = 1250
-    nsample_int = 250
+    nsample_obs = 1200
+    nsample_int = 300
     resdir = "S1_" + str(nsample_obs) + "_" + str(nsample_int)
     f_alpha = 0.05
     alpha = 0.05
@@ -114,7 +117,7 @@ if __name__ == '__main__':
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
-    nfeature = range(7, 14)
+    nfeature = range(8, 11)
     nrun = 25
     
     
@@ -132,17 +135,18 @@ if __name__ == '__main__':
                     noise_param = random.uniform(0.5, 2)
                     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
+                    hidden_conf = random.randint(1,3)
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
                                    max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
-                                   functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = random.randint(1, 2))
+                                   functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = hidden_conf)
                     RS.gen_equations()
 
                     d_obs = RS.gen_obs_ts()
                     
                     d_int = dict()
                     for int_var in RS.confintvar.values():
-                        i = RS.intervene(int_var, nsample_int, random.uniform(5, 10))
+                        i = RS.intervene(int_var, nsample_int/hidden_conf, random.uniform(5, 10))
                         d_int[int_var] = i[int_var]
                         d_int[int_var].plot_timeseries(resfolder + '/interv_' + int_var + '.png')
 
@@ -227,12 +231,41 @@ if __name__ == '__main__':
                     print(candoit_time)
                     candoit.timeseries_dag()
                     gc.collect()
+                    
+                    
+                    #########################################################################################################################
+                    # CAnDOIT
+                    new_d_obs = deepcopy(d_obs)
+                    new_d_obs.d = new_d_obs.d[:-nsample_int]
+                    candoit_lagged = CAnDOIT(new_d_obs, 
+                                      deepcopy(d_int),
+                                      f_alpha = f_alpha, 
+                                      alpha = alpha, 
+                                      min_lag = min_lag, 
+                                      max_lag = max_lag, 
+                                      sel_method = TE(TEestimator.Gaussian), 
+                                      val_condtest = GPDC(significance = 'analytic'),
+                                      verbosity = CPLevel.INFO,
+                                      neglect_only_autodep = False,
+                                      resfolder = resfolder + "/candoit_lagged",
+                                      plot_data = False,
+                                      exclude_context = True)
+                    
+                    new_start = time()
+                    candoit_lagged_cm = candoit_lagged.run_lagged()
+                    elapsed_candoit_lagged = time() - new_start
+                    candoit_lagged_time = str(timedelta(seconds = elapsed_candoit_lagged))
+                    print(candoit_lagged_time)
+                    candoit_lagged.timeseries_dag()
+                    gc.collect()
                         
                     break
                     
                 except Exception as e:
+                    traceback_info = traceback.format_exc()
                     with open(os.getcwd() + "/" + 'results/' + resdir + '/error.txt', 'a') as f:
-                        f.write(str(e))
+                        f.write("Exception occurred: " + str(e) + "\n")
+                        f.write("Traceback:\n" + traceback_info + "\n")
                     remove_directory(os.getcwd() + "/" + resfolder)
                     continue
 
@@ -240,6 +273,7 @@ if __name__ == '__main__':
             #########################################################################################################################
             # SAVE
             res = {
+                "CAnDOITLagged": {"time":candoit_lagged_time, "scm":get_correct_SCM(GT, candoit_lagged_cm.get_SCM())},
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
                 Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
                 Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
