@@ -139,7 +139,10 @@ class CausalDiscoveryMethod(ABC):
             max_score (int, optional): maximum score range. Defaults to 1.
             node_size (int, optional): node size. Defaults to 8.
             node_proximity (int, optional): node proximity. Defaults to 2.
-            node_color (str, optional): node color. Defaults to 'orange'.
+            node_color (str/list, optional): node color. 
+                                             If a string, all the nodes will have the same colour. 
+                                             If a list (same dimension of features), each colour will have the specified colour.
+                                             Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
             font_size (int, optional): font size. Defaults to 12.
             img_ext (ImageExt, optional): dag image extention (.png, .pdf, ..). Default ImageExt.PNG.

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from time import time
 from datetime import timedelta
-from res_statistics_new import *
+from res_statistics import *
 import gc
 import shutil
 

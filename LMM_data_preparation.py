@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import json
-from res_statistics_new import *
+from res_statistics import *
 
 
 def create_csv(nvars, resfolder):
