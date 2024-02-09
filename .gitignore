@@ -357,3 +357,5 @@ results/
 .vscode
 
 *.csv
+*.txt
+*.Rhistory

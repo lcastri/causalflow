@@ -1,14 +1,14 @@
-from tigramite.independence_tests import GPDC
-from fpcmci.CPrinter import CPLevel
-from fpcmci.FPCMCI import FPCMCI
-from fpcmci.preprocessing.data import Data
-from fpcmci.preprocessing.subsampling_methods.Static import Static
-from fpcmci.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod
-from fpcmci.preprocessing.subsampling_methods.WSDynamic import WSDynamic
-from fpcmci.preprocessing.subsampling_methods.WSFFTStatic import WSFFTStatic
-from fpcmci.preprocessing.subsampling_methods.WSStatic import WSStatic
-from fpcmci.selection_methods.TE import TE, TEestimator
-from fpcmci.basics.constants import LabelType
+from tigramite.independence_tests.gpdc import GPDC
+from connectingdots.CPrinter import CPLevel
+from connectingdots.causal_discovery.FPCMCI import FPCMCI
+from connectingdots.preprocessing.data import Data
+from connectingdots.preprocessing.subsampling_methods.Static import Static
+from connectingdots.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod
+from connectingdots.preprocessing.subsampling_methods.WSDynamic import WSDynamic
+from connectingdots.preprocessing.subsampling_methods.WSFFTStatic import WSFFTStatic
+from connectingdots.preprocessing.subsampling_methods.WSStatic import WSStatic
+from connectingdots.selection_methods.TE import TE, TEestimator
+from connectingdots.basics.constants import LabelType
 import numpy as np
 
 from time import time
@@ -33,14 +33,15 @@ if __name__ == '__main__':
     df = Data(d)
     start = time()
     FS = FPCMCI(df, 
-                   alpha = alpha, 
-                   min_lag = min_lag, 
-                   max_lag = max_lag, 
-                   sel_method = TE(TEestimator.Gaussian), 
-                   val_condtest = GPDC(significance = 'analytic', gp_params = None),
-                   verbosity = CPLevel.DEBUG,
-                   neglect_only_autodep = False,
-                   resfolder = 'ex_PCMCI')
+                f_alpha = alpha, 
+                pcmci_alpha = alpha, 
+                min_lag = min_lag, 
+                max_lag = max_lag, 
+                sel_method = TE(TEestimator.Gaussian), 
+                val_condtest = GPDC(significance = 'analytic', gp_params = None),
+                verbosity = CPLevel.DEBUG,
+                neglect_only_autodep = False,
+                resfolder = 'ex_PCMCI')
     
     selector_res = FS.run_pcmci()
     print(FS.f_deps)

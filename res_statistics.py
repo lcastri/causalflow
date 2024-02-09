@@ -10,188 +10,229 @@ _PREC = 'precision'
 _RECA = 'recall'
 _F1SCORE = 'f1_score'
 _SHD = "shd"
+_FN = "fn"
+_FP = "fp"
+_TP = "tp"
+_FPR = "fpr"
+_PCMCI = 'pcmci'
 _FPCMCI = 'fpcmci'
-_doFPCMCI = 'dofpcmci'
+_CAnDOIT = 'candoit'
 _SCM = 'scm'
-_GT = 'gt'
+_N_ESPU = 'N_SpuriousLinks'
+_N_EqDAG= 'N_EquiDAG_2exp'
+_N_GSPU = 'N_ExpectedSpuriousLinks'
 
-dlabel = {_TIME : 'time [s]',
-          _PREC : 'precision',
-          _RECA : 'recall',
-          _F1SCORE : 'f1_score',
+
+yLabel = {_TIME : 'Time [s]',
+          _PREC : 'Precision',
+          _RECA : 'Recall',
+          _F1SCORE : 'F1-score',
           _SHD : 'SHD',
+          _PCMCI : 'PCMCI',
           _FPCMCI : 'FPCMCI',
-          _doFPCMCI : 'doFPCMCI'}
+          _CAnDOIT : 'CAnDOIT',
+          _FPR: 'False Positive Rate',
+          _N_ESPU : '# Sp. links estimated / # Sp. links',
+          _N_EqDAG : "# Equ. DAGs"}
+
+
+titleLabel = {_TIME : 'Time',
+              _PREC : 'Precision',
+              _RECA : 'Recall',
+              _F1SCORE : 'F1-score',
+              _SHD : 'SHD',
+              _FPR: 'FPR',
+              _N_ESPU : 'Spurious Links',
+              _N_EqDAG : '# Equivalent DAGs',}
 
 
 class plotType(Enum):
-    Normal = 0
-    ErrorBar = 1
-    ErrorBand = 2
+    Line = 0
+    LinewErrorBar = 1
+    LinewErrorBand = 2
+    BoxPlot = 3
     
     
-def save_result(r, startTime, stopTime, scm, alg, gt):
-    r[alg][_GT] = str(gt)
-    r[alg][_SCM] = str(scm)
-    r[alg][_TIME] = str(stopTime - startTime)
-    r[alg][_PREC] = precision(gt, cm = scm)
-    r[alg][_RECA] = recall(gt, cm = scm)
-    r[alg][_F1SCORE] = f1_score(r[alg][_PREC], r[alg][_RECA])
-    r[alg][_SHD] = shd(gt, cm = scm)
-    print(alg + " statistics -- |time = " + str(r[alg][_TIME]) + " -- |F1 score = " + str(r[alg][_F1SCORE]) + " -- |SHD = " + str(r[alg][_SHD]))
-    return r
-
-
-
-def get_TP(gt, cm):
-    """
-    True positive rate:
-    edge present in the causal model 
-    and present in the groundtruth
-
-    Args:
-        gt (dict): groundtruth
-        cm (dict): causal model
-
-    Returns:
-        int: true positive
-    """
-    counter = 0
-    for node in cm.keys():
-        for edge in cm[node]:
-            if edge in gt[node]: counter += 1
-    return counter
-
-
-def get_FP(gt, cm):
-    """
-    False positive rate:
-    edge present in the causal model 
-    but absent in the groundtruth
-
-    Args:
-        gt (dict): groundtruth
-        cm (dict): causal model
-
-    Returns:
-        int: false positive
-    """
-    counter = 0
-    for node in cm.keys():
-        for edge in cm[node]:
-            if edge not in gt[node]: counter += 1
-    return counter
-
-
-def get_FN(gt, cm):
-    """
-    False negative rate:
-    edge present in the groundtruth 
-    but absent in the causal model
-    
-    Args:
-        gt (dict): groundtruth
-        cm (dict): causal model
-
-    Returns:
-        int: false negative
-    """
-    counter = 0
-    for node in gt.keys():
-        for edge in gt[node]:
-            if edge not in cm[node]: counter += 1
-    return counter
-
-
-def shd(gt, cm):
-    fn = get_FN(gt, cm)
-    fp = get_FP(gt, cm)
-    return fn + fp
-
-
-def precision(gt, cm):
-    tp = get_TP(gt, cm)
-    fp = get_FP(gt, cm)
-    if tp + fp == 0: return 0
-    return tp/(tp + fp)
-
-    
-def recall(gt, cm):
-    tp = get_TP(gt, cm)
-    fn = get_FN(gt, cm)
-    if tp + fn == 0: return 0
-    return tp/(tp + fn)
-
-
-def f1_score(p, r):
-    if p + r == 0: return 0
-    return (2 * p * r) / (p + r)
+class ExtractDataMode(Enum):
+    MeandStd = 0
+    BootStrap = 1
     
     
-def collect_data(file_path, data):
+def extract_data(file_path, algorithms, data, mode = ExtractDataMode.MeandStd):
+    ext_data = {algo: {"samples" : list(), "mean" : float, "confidence" : float} for algo in algorithms}
+
     since = datetime.datetime(1900, 1, 1, 0, 0, 0, 0)
     with open(file_path) as json_file:
         r = json.load(json_file)
-        data_fpcmci = list()
-        data_dofpcmci = list()
+        
         for i in r.keys():
             if data == _TIME:
-                time_tepcmci = datetime.datetime.strptime(r[i][_FPCMCI][data], '%H:%M:%S.%f')
-                time_pcmci = datetime.datetime.strptime(r[i][_doFPCMCI][data], '%H:%M:%S.%f')
-                data_fpcmci.append((time_tepcmci - since).total_seconds())
-                data_dofpcmci.append((time_pcmci - since).total_seconds())
+                for algo in algorithms:
+                    t = datetime.datetime.strptime(r[i][algo][data], '%H:%M:%S.%f')
+                    ext_data[algo]["samples"].append((t - since).total_seconds())
+                
+            elif data == _N_ESPU:
+                for algo in algorithms:
+                    if r[i][_N_GSPU] != 0:
+                        ext_data[algo]["samples"].append((r[i][algo][data])/r[i][_N_GSPU])
+                    else:
+                        ext_data[algo]["samples"].append(0)
+                
             else:
-                data_fpcmci.append(r[i][_FPCMCI][data])
-                data_dofpcmci.append(r[i][_doFPCMCI][data])
-
-    return sum(data_fpcmci)/len(r.keys()), np.std(data_fpcmci), sum(data_dofpcmci)/len(r.keys()), np.std(data_dofpcmci)
-        
-        
+                for algo in algorithms:
+                    ext_data[algo]["samples"].append((r[i][algo][data]))
+                
+    if mode == ExtractDataMode.MeandStd:
+        for algo in algorithms:
+            ext_data[algo]["mean"] = np.mean(ext_data[algo]["samples"])
+            ext_data[algo]["confidence"] = np.std(ext_data[algo]["samples"])
     
-def plot_statistics(resfolder, data, nvars, plot_type = plotType.ErrorBar):
-    fpcmci_means = list()
-    fpcmci_stds = list()
-    dofpcmci_means = list()
-    dofpcmci_stds = list()
+    elif mode == ExtractDataMode.BootStrap: 
+        for algo in algorithms:
+            ext_data[algo]["mean"] = np.mean(ext_data[algo]["samples"])
+            lower_bound, upper_bound = confidence_interval(ext_data[algo]["samples"])
+            ext_data[algo]["confidence"] = (upper_bound - lower_bound) / 2
+        
+    return ext_data
+           
+    
+def compare(resfolder, algorithms, data, nvars, plotStyle, plot_type = plotType.LinewErrorBar, bootStrap = False, show = False, xLabel = '# vars'):
+   
+    toPlot = {algo: {"samples" : list(), "means" : list(), "confidences" : list()} for algo in algorithms}
     
     for n in range(nvars[0],nvars[1]+1):
         res_path = os.getcwd() + "/results/" + resfolder + "/" + str(n) + ".json"
-        fpcmci_mean, fpcmci_std, dofpcmci_mean, dofpcmci_std = collect_data(res_path, data)
-        fpcmci_means.append(fpcmci_mean)
-        fpcmci_stds.append(fpcmci_std)
-        dofpcmci_means.append(dofpcmci_mean)
-        dofpcmci_stds.append(dofpcmci_std)
         
-    fig, ax = plt.subplots(figsize=(6,4))
+        ext_data = extract_data(res_path, algorithms, data, mode = ExtractDataMode.MeandStd if not bootStrap else ExtractDataMode.BootStrap)
+        for algo in algorithms:
+            toPlot[algo]["samples"].append(ext_data[algo]["samples"])
+            toPlot[algo]["means"].append(ext_data[algo]["mean"])
+            toPlot[algo]["confidences"].append(ext_data[algo]["confidence"])
+
+    # print("Score: " + str(data))
+    # for algo in algorithms:
+    #     stri = list()
+    #     print("Algorithm: " + str(algo))
+    #     for m, c in zip(toPlot[algo]["means"], toPlot[algo]["confidences"]):
+    #         stri.append(str(round(m,3)) + "\u00B1" + str(round(c,3)))
+    #         # print("| " + str(round(m,3)) + "\u00B1" + str(round(c,3)) + " |")
+    #     print(" | ".join(stri))
+            
+    if plot_type != plotType.BoxPlot:
+        fig, ax = plt.subplots(figsize=(6,4))
+
+        if plot_type == plotType.Line:
+            for algo in algorithms:
+                plt.plot(range(nvars[0], nvars[1]+1), toPlot[algo]["means"], 
+                        marker=plotStyle[algo]['marker'], color = plotStyle[algo]['color'], linestyle = plotStyle[algo]['linestyle'])
+            
+        elif plot_type == plotType.LinewErrorBar:
+            for algo in algorithms:
+                plt.errorbar(range(nvars[0], nvars[1]+1), toPlot[algo]["means"], toPlot[algo]["confidences"], 
+                            marker=plotStyle[algo]['marker'], capsize = 5, color = plotStyle[algo]['color'], linestyle = plotStyle[algo]['linestyle'])
+            
+        elif plot_type == plotType.LinewErrorBand:
+            plt.plot(range(nvars[0], nvars[1]+1), toPlot[algo]["means"],
+                    marker=plotStyle[algo]['marker'], color = plotStyle[algo]['color'], linestyle = plotStyle[algo]['linestyle'])
+            plt.fill_between(range(nvars[0], nvars[1]+1), 
+                            np.array(toPlot[algo]["means"]) - np.array(toPlot[algo]["confidences"]), 
+                            np.array(toPlot[algo]["means"]) + np.array(toPlot[algo]["confidences"]), 
+                            alpha=0.3, color = plotStyle[algo]['color'])
+        
+        plt.xticks(range(nvars[0], nvars[1]+1))
+        plt.xlabel(xLabel)
+        plt.ylabel(yLabel[data])
+        plt.legend([yLabel[algo] for algo in algorithms], loc='best')
+        plt.grid()
+        plt.title(titleLabel[data] + ' comparison')
+        
+    else:
+        fig, ax1 = plt.subplots(figsize=(9,6))
+        box_width = 0.2
+        space = 0.15
+        N = len(algorithms)
+        total_width = N * (box_width + space)
+        positions = np.arange(nvars[1] - nvars[0] + 1) * total_width
+
+        # positions = np.arange(len(np.arange(nvars[0], nvars[1]+1))) * (N * (box_width + space)) + (N - 1) * (box_width + space) / 2
+
+        boxplots = list()
+        box_param = dict(whis=(5, 95), widths=box_width, patch_artist=True, medianprops=dict(color='black'))
+        
+        
+        for i in range(nvars[1] - nvars[0] + 1):
+            for j, algo in enumerate(algorithms):
+                position = positions[i] + j * (box_width + space) + box_width/2
+                boxplots.append(ax1.boxplot(toPlot[algo]["samples"][i], positions=[position],
+                                            boxprops=dict(facecolor=plotStyle[algo]['color'], edgecolor=plotStyle[algo]['color'], linewidth=1),
+                                            flierprops=dict(marker='.', markeredgecolor=plotStyle[algo]['color'], fillstyle=None), **box_param))
+            
+        # ax1.set_xticks(np.arange(nvars[0],nvars[1]+1))
+        ax1.set_xticks(positions + (total_width - space) / 2)
+        ax1.set_xticklabels(np.arange(nvars[0],nvars[1]+1))
+
+        ax1.set_xlabel(xLabel)
+        ax1.set_ylabel(yLabel[data])
+
+        ax1.grid()
+        ax1.legend([bp['boxes'][0] for bp in boxplots], [yLabel[algo] for algo in algorithms], loc='best')
+         
+    # if show:
+    #     plt.show()
+    # else:
+    #     plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.pdf')
+    #     plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.png')
+
+
+def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
+    """
+    Calculate confidence intervals for a given dataset.
     
-    if plot_type == plotType.Normal:
-        plt.plot(range(nvars[0], nvars[1]+1), dofpcmci_means)
-        plt.plot(range(nvars[0], nvars[1]+1), fpcmci_means)
-    elif plot_type == plotType.ErrorBar:
-        plt.errorbar(range(nvars[0], nvars[1]+1), dofpcmci_means, dofpcmci_stds, marker='o', capsize = 5, color = 'b')
-        plt.errorbar(range(nvars[0], nvars[1]+1), fpcmci_means, fpcmci_stds, marker='^', capsize = 5, color = 'r', linestyle = '--')
-    elif plot_type == plotType.ErrorBand:
-        plt.plot(range(nvars[0], nvars[1]+1), dofpcmci_means, marker='o', color = 'b')
-        plt.plot(range(nvars[0], nvars[1]+1), fpcmci_means, marker='^', color = 'r', linestyle = '--')
-        plt.fill_between(range(nvars[0], nvars[1]+1), np.array(dofpcmci_means) - np.array(dofpcmci_stds), np.array(dofpcmci_means) + np.array(dofpcmci_stds), alpha=0.3, color = 'b')
-        plt.fill_between(range(nvars[0], nvars[1]+1), np.array(fpcmci_means) - np.array(fpcmci_stds), np.array(fpcmci_means) + np.array(fpcmci_stds), alpha=0.3, color = 'r')
+    Parameters:
+        data (array-like): Array of data for which confidence intervals are calculated.
+        confidence_level (float, optional): Confidence level for the intervals (default: 0.95).
     
-    plt.xticks(range(nvars[0],nvars[1]+1))
-    if data is _PREC or data is _RECA or data is _F1SCORE: plt.ylim(0, 1.1)
-    plt.xlabel("# vars")
-    plt.ylabel(dlabel[data])
-    plt.legend([dlabel[_doFPCMCI], dlabel[_FPCMCI]])
-    plt.grid()
-    plt.title(data + ' comparison')
-    plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.pdf')
-    plt.savefig(os.getcwd() + "/results/" + resfolder + "/" + data + '.png')
+    Returns:
+        tuple: Lower and upper bounds of the confidence interval.
+    """
+    # Number of data points
+    n = len(data)
+    
+    # Initialize array to store bootstrap resampled statistics
+    resample_stats = np.zeros(n_resamples)
+    
+    # Perform bootstrap resampling
+    for i in range(n_resamples):
+        resample = np.random.choice(data, size=n, replace=True)
+        resample_stats[i] = np.mean(resample)  # Calculate the statistic of interest
+    
+    # Calculate confidence interval
+    lower = np.percentile(resample_stats, (1 - confidence_level) / 2 * 100)
+    upper = np.percentile(resample_stats, (1 + confidence_level) / 2 * 100)
+    
+    return lower, upper
 
     
 if __name__ == '__main__':   
-    resfolder = 'My_RS_FPCMCI_vs_doFPCMCI_lin'
 
-    plot_statistics(resfolder, _TIME, [4, 10], plotType.ErrorBar)
-    plot_statistics(resfolder, _F1SCORE, [4, 10], plotType.ErrorBar)
-    plot_statistics(resfolder, _PREC, [4, 10], plotType.ErrorBar)
-    plot_statistics(resfolder, _RECA, [4, 10], plotType.ErrorBar)
-    plot_statistics(resfolder, _SHD, [4, 10], plotType.ErrorBar)
+    # To use to plot RS_comparison_variables
+    # resfolder = ['nvariable_1hconf_nonlin_1000_1000_0_0.5']
+    # vars = [7, 14]
+    
+    
+    # To use to plot RS_comparison_nconfounded
+    resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
+    vars = [0, 7]
+    # resfolder = ['rebuttal/nvariable_1hconf_nonlin_1250_250']
+    # vars = [7, 14]
+    
+    
+    bootstrap = True
+    algorithms = [_PCMCI, _FPCMCI, _CAnDOIT]
+    plot_style = {_PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
+                  _FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
+                  _CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}}
+    for r in resfolder:
+        for metric in [_TIME,_F1SCORE, _PREC, _RECA, _SHD, _FPR, _N_ESPU, _N_EqDAG]:
+            compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
+            # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)
