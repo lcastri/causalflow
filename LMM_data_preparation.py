@@ -3,47 +3,20 @@ import os
 import numpy as np
 import pandas as pd
 import json
+from res_statistics_new import *
 
 
-class Algo(Enum):
-    PCMCI = 2
-    FPCMCI = 1
-    doFPCMCI = 0
-    
-    
-class Score(Enum):
-    precision = 'precision'
-    recall = 'recall'
-    f1 = 'f1_score'
-    shd = 'shd'
-    fpr = 'fpr'
-    nSpurious = 'nSpurious'
-    
-    
-_PCMCI = 'pcmci'
-_FPCMCI = 'fpcmci'
-_doFPCMCI = 'dofpcmci'
-
-
-def get_nvars_map(nvars):
-
-    # Calculate the mean of the original list
-    mean_value = np.mean(nvars)
-
-    # Create the centered list
-    return [x - mean_value for x in nvars]
-
-    
 def create_csv(nvars, resfolder):
+    since = datetime.datetime(1900, 1, 1, 0, 0, 0, 0)
     nvars = list(np.arange(nvars[0], nvars[1] + 1))
     res_path = os.getcwd() + "/results/" + resfolder + "/"
-    nvars_map = get_nvars_map(nvars)
+    # nvars_map = get_nvars_map(nvars)
     
-    for score in Score.__members__.values():
+    for score in Metric.__members__.values():
         
         # Dataframe initialisation
-        # column_names = ['algo', 'nvars', score.value]
-        column_names = ['algo', 'nconfounded', score.value]
+        column_names = ['algo', 'nvars', score.value]
+        # column_names = ['algo', 'nconfounded', score.value]
         df = pd.DataFrame(columns = column_names)
         
         for idx, nv in enumerate(nvars):
@@ -51,14 +24,26 @@ def create_csv(nvars, resfolder):
                 r = json.load(json_file)
                 
                 for i in r.keys():
-                    if score == Score.nSpurious:
-                        df.loc[len(df)] = [Algo.PCMCI.value, nv, r[i][_PCMCI]["N_SpuriousLinks"] / r[i]["N_ExpectedSpuriousLinks"]]
-                        df.loc[len(df)] = [Algo.FPCMCI.value, nv, r[i][_FPCMCI]["N_SpuriousLinks"] / r[i]["N_ExpectedSpuriousLinks"]]
-                        df.loc[len(df)] = [Algo.doFPCMCI.value, nv, r[i][_doFPCMCI]["N_SpuriousLinks"] / r[i]["N_ExpectedSpuriousLinks"]]
+                    if score == Metric.TIME:
+                        t = datetime.datetime.strptime(r[i][Algo.PCMCI.value][Metric.TIME.value], '%H:%M:%S.%f')
+                        df.loc[len(df)] = [Algo.PCMCI.value, nv, (t - since).total_seconds()]
+                        t = datetime.datetime.strptime(r[i][Algo.FPCMCI.value][Metric.TIME.value], '%H:%M:%S.%f')
+                        df.loc[len(df)] = [Algo.FPCMCI.value, nv, (t - since).total_seconds()]
+                        t = datetime.datetime.strptime(r[i][Algo.CAnDOIT.value][Metric.TIME.value], '%H:%M:%S.%f')
+                        df.loc[len(df)] = [Algo.CAnDOIT.value, nv, (t - since).total_seconds()]
+                    elif score == Metric.N_ESPU:
+                        if r[i][jWord.N_GSPU.value] != 0:
+                            df.loc[len(df)] = [Algo.PCMCI.value, nv, r[i][Algo.PCMCI.value][Metric.N_ESPU.value] / r[i][jWord.N_GSPU.value]]
+                            df.loc[len(df)] = [Algo.FPCMCI.value, nv, r[i][Algo.FPCMCI.value][Metric.N_ESPU.value] / r[i][jWord.N_GSPU.value]]
+                            df.loc[len(df)] = [Algo.CAnDOIT.value, nv, r[i][Algo.CAnDOIT.value][Metric.N_ESPU.value] / r[i][jWord.N_GSPU.value]]
+                        else:
+                            df.loc[len(df)] = [Algo.PCMCI.value, nv, 0]
+                            df.loc[len(df)] = [Algo.FPCMCI.value, nv, 0]
+                            df.loc[len(df)] = [Algo.CAnDOIT.value, nv, 0]
                     else:
-                        df.loc[len(df)] = [Algo.PCMCI.value, nv, r[i][_PCMCI][score.value]]
-                        df.loc[len(df)] = [Algo.FPCMCI.value, nv, r[i][_FPCMCI][score.value]]
-                        df.loc[len(df)] = [Algo.doFPCMCI.value, nv, r[i][_doFPCMCI][score.value]]
+                        df.loc[len(df)] = [Algo.PCMCI.value, nv, r[i][Algo.PCMCI.value][score.value]]
+                        df.loc[len(df)] = [Algo.FPCMCI.value, nv, r[i][Algo.FPCMCI.value][score.value]]
+                        df.loc[len(df)] = [Algo.CAnDOIT.value, nv, r[i][Algo.CAnDOIT.value][score.value]]
                         
         # Data standardisation
         df.to_csv(res_path + score.value + '.csv', index=False)
@@ -68,11 +53,11 @@ def create_csv(nvars, resfolder):
 
 if __name__ == '__main__':   
 
-    # resfolder = ['nvariable_1hconf_nonlin_1000_1000_0_0.5']
-    resfolder = ['nconfounded_nonlin_1000_1000_0_0.5']
+    resfolder = ['rebuttal/nvariable_nonlin_1250_250']
+    # resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
     
     for r in resfolder:
         
-        # create_csv([7, 14], r)
-        create_csv([2, 7], r)
+        create_csv([7, 14], r)
+        # create_csv([0, 7], r)
                 
