@@ -1,6 +1,6 @@
 from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
-from connectingdots.causal_discovery.FPCMCI import FPCMCI
+from connectingdots.causal_discovery.baseline import PCMCI
 from connectingdots.preprocessing.data import Data
 from connectingdots.preprocessing.subsampling_methods.Static import Static
 from connectingdots.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod
@@ -32,22 +32,20 @@ if __name__ == '__main__':
 
     df = Data(d)
     start = time()
-    FS = FPCMCI(df, 
-                f_alpha = alpha, 
-                pcmci_alpha = alpha, 
-                min_lag = min_lag, 
-                max_lag = max_lag, 
-                sel_method = TE(TEestimator.Gaussian), 
-                val_condtest = GPDC(significance = 'analytic', gp_params = None),
-                verbosity = CPLevel.DEBUG,
-                neglect_only_autodep = False,
-                resfolder = 'ex_PCMCI')
+    pcmci = PCMCI(df, 
+               alpha = alpha, 
+               pc_alpha = alpha, 
+               min_lag = min_lag, 
+               max_lag = max_lag,  
+               val_condtest = GPDC(significance = 'analytic', gp_params = None),
+               verbosity = CPLevel.DEBUG,
+               neglect_only_autodep = False,
+               resfolder = 'ex_PCMCI')
     
-    selector_res = FS.run_pcmci()
-    print(FS.f_deps)
+    selector_res = pcmci.run()
     elapsed_PCMCI = time() - start
     print(str(timedelta(seconds = elapsed_PCMCI)))
-    FS.dag(label_type = LabelType.NoLabels, node_layout = 'circular')
+    pcmci.dag(label_type = LabelType.NoLabels, node_layout = 'circular')
 
 
     

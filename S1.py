@@ -3,15 +3,10 @@ import json
 import os
 import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
-# from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
 from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
-from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
-from connectingdots.causal_discovery.baseline.TCDF import TCDF
-from connectingdots.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
-from connectingdots.causal_discovery.baseline.tsFCI import tsFCI
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
@@ -45,12 +40,8 @@ EMPTY_RES = {jWord.GT.value : None,
              jWord.ExpectedSpuriousLinks.value : None,
              jWord.N_GSPU.value : None,
              Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
-             Algo.DYNOTEARS.value : deepcopy(ALGO_RES),   
              Algo.FPCMCI.value : deepcopy(ALGO_RES),   
              Algo.PCMCI.value : deepcopy(ALGO_RES),
-             Algo.TCDF.value : deepcopy(ALGO_RES),   
-             Algo.tsFCI.value : deepcopy(ALGO_RES),   
-             Algo.VarLiNGAM.value : deepcopy(ALGO_RES),   
              }
 
 
@@ -118,7 +109,7 @@ if __name__ == '__main__':
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
-    nfeature = range(10, 11)
+    nfeature = range(7, 15)
     nrun = 25
     
     
@@ -136,7 +127,6 @@ if __name__ == '__main__':
                     noise_param = random.uniform(0.5, 2)
                     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-                    # noise_weibull = (NoiseType.Weibull, 2.5, 2)
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
                                    max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
@@ -206,82 +196,7 @@ if __name__ == '__main__':
                     pcmci.timeseries_dag()
                     gc.collect()
                     
-                    
-                    #########################################################################################################################
-                    # DYNOTEARS
-                    dynotears = DYNOTEARS(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      alpha = alpha, 
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/dynotears")
-                    
-                    new_start = time()
-                    dynotears_cm = dynotears.run()
-                    elapsed_dynotears = time() - new_start
-                    dynotears_time = str(timedelta(seconds = elapsed_dynotears))
-                    print(dynotears_time)
-                    dynotears.timeseries_dag()
-                    gc.collect()
-                    
-                    
-                    #########################################################################################################################
-                    # TCDF
-                    tcdf = TCDF(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/tcdf")
-                    
-                    new_start = time()
-                    tcdf_cm = tcdf.run()
-                    elapsed_tcdf = time() - new_start
-                    tcdf_time = str(timedelta(seconds = elapsed_tcdf))
-                    print(tcdf_time)
-                    tcdf.timeseries_dag()
-                    gc.collect()
-                                       
-                    
-                    #########################################################################################################################
-                    # tsFCI
-                    tsfci = tsFCI(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      alpha = alpha, 
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/tsfci")
-                    
-                    new_start = time()
-                    tsfci_cm = tsfci.run()
-                    elapsed_tsfci = time() - new_start
-                    tsfci_time = str(timedelta(seconds = elapsed_tsfci))
-                    print(tsfci_time)
-                    tsfci.timeseries_dag()
-                    gc.collect()
-                    
-                    
-                    #########################################################################################################################
-                    # VarLiNGAM
-                    varlingan = VarLiNGAM(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      alpha = alpha, 
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/varlingan")
-                    
-                    new_start = time()
-                    varlingan_cm = varlingan.run()
-                    elapsed_varlingan = time() - new_start
-                    varlingan_time = str(timedelta(seconds = elapsed_varlingan))
-                    print(varlingan_time)
-                    varlingan.timeseries_dag()
-                    gc.collect()
-                                    
-            
+                                
                     #########################################################################################################################
                     # CAnDOIT
                     new_d_obs = deepcopy(d_obs)
@@ -320,13 +235,9 @@ if __name__ == '__main__':
             #########################################################################################################################
             # SAVE
             res = {
-                Algo.DYNOTEARS: {"time":dynotears_time, "scm":get_correct_SCM(GT, dynotears_cm.get_SCM())},
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
                 Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
-                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
-                Algo.TCDF: {"time":tcdf_time, "scm":get_correct_SCM(GT, tcdf_cm.get_SCM())},
-                Algo.tsFCI: {"time":tsfci_time, "scm":get_correct_SCM(GT, tsfci_cm.get_SCM())},
-                Algo.VarLiNGAM: {"time":varlingan_time, "scm":get_correct_SCM(GT, varlingan_cm.get_SCM())},
+                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())}
             }
             save_result(res)
             

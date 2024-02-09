@@ -46,12 +46,8 @@ EMPTY_RES = {jWord.GT.value : None,
              jWord.ExpectedSpuriousLinks.value : None,
              jWord.N_GSPU.value : None,
              Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
-             Algo.DYNOTEARS.value : deepcopy(ALGO_RES),   
              Algo.FPCMCI.value : deepcopy(ALGO_RES),   
              Algo.PCMCI.value : deepcopy(ALGO_RES),
-             Algo.TCDF.value : deepcopy(ALGO_RES),   
-             Algo.tsFCI.value : deepcopy(ALGO_RES),   
-             Algo.VarLiNGAM.value : deepcopy(ALGO_RES),   
              }
 
 def remove_directory(directory_path):
@@ -117,13 +113,12 @@ if __name__ == '__main__':
     min_c = 0.1
     max_c = 0.5
     nvars = 7
-    nconfounded = range(4, 8)
+    nconfounded = range(0, 8)
     nrun = 25
     
     
     for n in nconfounded:
         for nr in range(nrun):
-            if n == 4 and nr <= 10: continue
             #########################################################################################################################
             # DATA
             while True:
@@ -203,82 +198,7 @@ if __name__ == '__main__':
                     print(pcmci_time)
                     pcmci.timeseries_dag()
                     gc.collect()
-                    
-                    
-                    #########################################################################################################################
-                    # DYNOTEARS
-                    dynotears = DYNOTEARS(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      alpha = alpha, 
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/dynotears")
-                    
-                    new_start = time()
-                    dynotears_cm = dynotears.run()
-                    elapsed_dynotears = time() - new_start
-                    dynotears_time = str(timedelta(seconds = elapsed_dynotears))
-                    print(dynotears_time)
-                    dynotears.timeseries_dag()
-                    gc.collect()
-                    
-                    
-                    #########################################################################################################################
-                    # TCDF
-                    tcdf = TCDF(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/tcdf")
-                    
-                    new_start = time()
-                    tcdf_cm = tcdf.run()
-                    elapsed_tcdf = time() - new_start
-                    tcdf_time = str(timedelta(seconds = elapsed_tcdf))
-                    print(tcdf_time)
-                    tcdf.timeseries_dag()
-                    gc.collect()
-                    
-                    
-                    #########################################################################################################################
-                    # tsFCI
-                    tsfci = tsFCI(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      alpha = alpha, 
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/tsfci")
-                    
-                    new_start = time()
-                    tsfci_cm = tsfci.run()
-                    elapsed_tsfci = time() - new_start
-                    tsfci_time = str(timedelta(seconds = elapsed_tsfci))
-                    print(tsfci_time)
-                    tsfci.timeseries_dag()
-                    gc.collect()
-                    
-                    
-                    #########################################################################################################################
-                    # VarLiNGAM
-                    varlingan = VarLiNGAM(deepcopy(d_obs),
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      verbosity = CPLevel.INFO,
-                                      alpha = alpha, 
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/varlingan")
-                    
-                    new_start = time()
-                    varlingan_cm = varlingan.run()
-                    elapsed_varlingan = time() - new_start
-                    varlingan_time = str(timedelta(seconds = elapsed_varlingan))
-                    print(varlingan_time)
-                    varlingan.timeseries_dag()
-                    gc.collect()
-                                    
+                                                      
             
                     #########################################################################################################################
                     # CAnDOIT
@@ -318,13 +238,9 @@ if __name__ == '__main__':
             #########################################################################################################################
             # SAVE
             res = {
-                Algo.DYNOTEARS: {"time":dynotears_time, "scm":get_correct_SCM(GT, dynotears_cm.get_SCM())},
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
                 Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
-                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
-                Algo.TCDF: {"time":tcdf_time, "scm":get_correct_SCM(GT, tcdf_cm.get_SCM())},
-                Algo.tsFCI: {"time":tsfci_time, "scm":get_correct_SCM(GT, tsfci_cm.get_SCM())},
-                Algo.VarLiNGAM: {"time":varlingan_time, "scm":get_correct_SCM(GT, varlingan_cm.get_SCM())},
+                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())}
             }
             save_result(res)
             

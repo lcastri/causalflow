@@ -4,8 +4,8 @@ import os
 from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
 from connectingdots.basics.constants import ImageExt
-from connectingdots.CAnDOIT import CAnDOIT
-from connectingdots.FPCMCI import FPCMCI
+from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
+from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
 
