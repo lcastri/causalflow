@@ -137,11 +137,11 @@ class DAG():
                 self.g[sys_var].associated_context = context_var
                 self.add_source(sys_var, context_var, 1, 0, 1)
                 
-        # NOTE: bi-directed link contemporanous link between context vars
-        for context_var in self.sys_context.values():
-            other_context = [value for value in self.sys_context.values() if value != context_var]
-            for other in other_context:
-                self.add_source(context_var, other, 1, 0, 0)
+        # # NOTE: bi-directed link contemporanous link between context vars
+        # for context_var in self.sys_context.values():
+        #     other_context = [value for value in self.sys_context.values() if value != context_var]
+        #     for other in other_context:
+        #         self.add_source(context_var, other, 1, 0, 0)
                 
     
     def remove_context(self):
@@ -182,8 +182,8 @@ class DAG():
                 elif t in self.sys_context.keys() and s[0] == self.sys_context[t]:
                     link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
                     
-                elif t in self.sys_context.values() and s[0] in self.sys_context.values():
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
+                # elif t in self.sys_context.values() and s[0] in self.sys_context.values():
+                #     link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
                     
         return link_assump
 
