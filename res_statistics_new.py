@@ -236,8 +236,8 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
 if __name__ == '__main__':   
 
     # To use to plot RS_comparison_variables
-    # resfolder = ['rebuttal/nvariable_nonlin_1250_250']
-    # vars = [7, 14]
+    resfolder = ['rebuttal/nvariable_nonlin_1250_250']
+    vars = [7, 14]
     
     
     # To use to plot RS_comparison_nconfounded
@@ -248,11 +248,10 @@ if __name__ == '__main__':
     
     
     bootstrap = True
-    algorithms = [Algo.CAnDOIT, Algo.CAnDOITCont, Algo.CAnDOITLagged]
-    # algorithms = [Algo.PCMCI, Algo.FPCMCI, Algo.CAnDOIT]
-    plot_style = {Algo.CAnDOIT: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
-                  Algo.CAnDOITCont: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
-                  Algo.CAnDOITLagged: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
+    algorithms = [Algo.PCMCI, Algo.FPCMCI, Algo.CAnDOIT]
+    plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
+                  Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
+                  Algo.CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
                   }
     # plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
     #               Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
