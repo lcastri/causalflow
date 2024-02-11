@@ -1,6 +1,6 @@
 from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
-from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
+from connectingdots.causal_discovery.CAnDOIT_lagged import CAnDOIT
 from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.basics.constants import LabelType
@@ -75,7 +75,7 @@ if __name__ == '__main__':
                         val_condtest = GPDC(significance = 'analytic', gp_params = None),
                         verbosity = CPLevel.DEBUG,
                         neglect_only_autodep = True,
-                        plot_data = True,
+                        plot_data = False,
                         exclude_context = True)
     
     new_start = time()

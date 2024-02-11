@@ -106,25 +106,24 @@ class CAnDOIT(CausalDiscoveryMethod):
             DAG: causal model with context
         """
         # Run PC algorithm on selected links
-        tmp_dag = self.validator.run_pc(self.validator_data, self.min_lag, link_assumptions)
-        tmp_dag.sys_context = self.CM.sys_context
+        causal_model = self.validator.run_plus(self.validator_data, link_assumptions)
         
-        if tmp_dag.autodep_nodes:
+        # Auto-dependency Check
+        if causal_model.autodep_nodes:
         
             # Remove context from parents
-            tmp_dag.remove_context()
+            causal_model.remove_context_cont()
             
-            tmp_link_assumptions = tmp_dag.get_link_assumptions()
+            tmp_link_assumptions = causal_model.get_link_assumptions_cont()
             
             # Auto-dependency Check
-            tmp_dag, wrong_autodep = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions, self.min_lag)
+            tmp_dag, wrong_autodep = self.validator.check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
             
             # Add again context for final MCI test on obs and inter data
-            tmp_dag.add_context()
-        
-        # Causal Model
-        causal_model = self.validator.run_mci(self.validator_data, tmp_dag, self.min_lag)
-        causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
+            tmp_dag.add_context_cont()
+            
+            for wa in wrong_autodep:
+                causal_model.del_source(wa[0], wa[1], abs(wa[2]))            
         return causal_model
     
     
@@ -177,27 +176,26 @@ class CAnDOIT(CausalDiscoveryMethod):
                 ## 2. VALIDATOR
                 # Add dependencies corresponding to the context variables 
                 # ONLY if the the related system variable is still present
-                self.CM.add_context() 
+                self.CM.add_context_cont() 
 
                 # shrink dataframe d by using the filter result
                 self.validator_data.shrink(self.CM.features)
                 
                 # selected links to check by the validator
-                link_assumptions = self.CM.get_link_assumptions()
+                link_assumptions = self.CM.get_link_assumptions_cont()
             
             # calculate dependencies on selected links
             self.CM = self.run_validator(link_assumptions)
                    
             # list of selected features based on validator dependencies
             if remove_unneeded: self.CM.remove_unneeded_features()
-            if self.exclude_context: self.CM.remove_context()
+            if self.exclude_context: self.CM.remove_context_cont()
             
             # Print and save final causal model
             if not nofilter: self.__print_differences(f_dag, self.CM)
             self.save()
             
         return self.CM
-    
             
     
     def load(self, res_path):

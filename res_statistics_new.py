@@ -18,6 +18,7 @@ class jWord(Enum):
 class Algo(Enum):
     CAnDOIT = 'candoit'
     CAnDOITLagged = 'candoit_lagged'
+    CAnDOITCont = 'candoit_cont'
     DYNOTEARS = 'dynotears'
     FPCMCI = 'fpcmci'
     PCMCI = 'pcmci'
@@ -44,6 +45,8 @@ plotLabel = {Metric.TIME : 'Time [s]',
              Metric.F1SCORE : '$F_1$ Score',
              Metric.SHD : 'SHD',
              Algo.CAnDOIT : 'CAnDOIT',
+             Algo.CAnDOITCont : 'CAnDOITCont',
+             Algo.CAnDOITLagged : 'CAnDOITLagged',
              Algo.DYNOTEARS : 'DYNOTEARS',
              Algo.FPCMCI : 'F-PCMCI',
              Algo.PCMCI : 'PCMCI',
@@ -238,18 +241,23 @@ if __name__ == '__main__':
     
     
     # To use to plot RS_comparison_nconfounded
-    resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
-    vars = [0, 7]
+    resfolder = ['CAnDOIT_eval2']
+    vars = [1, 3]
     # resfolder = ['new/S1']
     # vars = [7, 14]
     
     
     bootstrap = True
-    algorithms = [Algo.PCMCI, Algo.FPCMCI, Algo.CAnDOIT]
-    plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
-                  Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
-                  Algo.CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
+    algorithms = [Algo.CAnDOIT, Algo.CAnDOITCont, Algo.CAnDOITLagged]
+    # algorithms = [Algo.PCMCI, Algo.FPCMCI, Algo.CAnDOIT]
+    plot_style = {Algo.CAnDOIT: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
+                  Algo.CAnDOITCont: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
+                  Algo.CAnDOITLagged: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
                   }
+    # plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
+    #               Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
+    #               Algo.CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
+    #               }
     # algorithms = [a for a in Algo]
     # plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
     #               Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
