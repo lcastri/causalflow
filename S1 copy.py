@@ -124,14 +124,6 @@ if __name__ == '__main__':
     
     for n in nfeature:
         for nr in range(nrun):
-            if n == 7: continue
-            if n == 8: continue
-            if n == 9: continue
-            if n == 10: continue
-            if n == 11: continue
-            if n == 12: continue
-            if n == 13: continue
-            if n == 14 and nr<=21: continue
             #########################################################################################################################
             # DATA
             while True:
