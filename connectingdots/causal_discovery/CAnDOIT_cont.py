@@ -117,13 +117,11 @@ class CAnDOIT(CausalDiscoveryMethod):
             tmp_link_assumptions = causal_model.get_link_assumptions_cont()
             
             # Auto-dependency Check
-            tmp_dag, wrong_autodep = self.validator.check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
+            causal_model = self.validator.check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
             
             # Add again context for final MCI test on obs and inter data
-            tmp_dag.add_context_cont()
-            
-            for wa in wrong_autodep:
-                causal_model.del_source(wa[0], wa[1], abs(wa[2]))            
+            causal_model.add_context_cont()
+ 
         return causal_model
     
     

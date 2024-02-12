@@ -117,7 +117,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             tmp_link_assumptions = tmp_dag.get_link_assumptions_lagged()
             
             # Auto-dependency Check
-            tmp_dag, wrong_autodep = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions, 0)
+            tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions, 0)
             
             # Add again context for final MCI test on obs and inter data
             tmp_dag.add_context_lagged()

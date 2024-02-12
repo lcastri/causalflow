@@ -242,7 +242,7 @@ class myPCMCI():
         return results
     
     
-    def check_autodependency(self, data: Data, dag: DAG, link_assumptions, min_lag):
+    def check_autodependency(self, data: Data, dag: DAG, link_assumptions, min_lag) -> DAG:
         """
         Run MCI test on observational data using the causal structure computed by the validator 
 
@@ -258,7 +258,6 @@ class myPCMCI():
         CP.info("\n##")
         CP.info("## Auto-dependency check on observational data")
         CP.info("##")
-        wrong_autodep = list()
         
         # build tigramite dataset
         vector = np.vectorize(float)
@@ -294,13 +293,12 @@ class myPCMCI():
                 if pval > self.alpha:
                     dag.del_source(data.features[j], data.features[j], abs(tau))
                     CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- removed")
-                    wrong_autodep.append((data.features[j], data.features[i], tau))
                 else:
                     dag.g[data.features[j]].sources[(data.features[i], abs(tau))][SCORE] = val
                     dag.g[data.features[j]].sources[(data.features[i], abs(tau))][PVAL] = pval
                     CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- ok")
                 
-        return dag, wrong_autodep
+        return dag
  
     
     def run_mci(self, data: Data, autodep_dag:DAG, min_lag):

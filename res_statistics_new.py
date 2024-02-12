@@ -241,17 +241,18 @@ if __name__ == '__main__':
     
     
     # To use to plot RS_comparison_nconfounded
-    resfolder = ['CAnDOIT_eval2']
+    resfolder = ['CAnDOIT_eval4']
     vars = [1, 3]
     # resfolder = ['new/S1']
     # vars = [7, 14]
     
     
     bootstrap = True
-    algorithms = [Algo.PCMCI, Algo.FPCMCI, Algo.CAnDOIT]
-    plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
-                  Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
-                  Algo.CAnDOIT: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
+    algorithms = [Algo.CAnDOIT, Algo.CAnDOITCont, Algo.CAnDOITLagged, Algo.FPCMCI]
+    plot_style = {Algo.CAnDOIT: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
+                  Algo.CAnDOITCont: {"marker" : '^', "color" : 'r', "linestyle" : '--'},
+                  Algo.CAnDOITLagged: {"marker" : 'o', "color" : 'b', "linestyle" : '-'}, 
+                  Algo.FPCMCI: {"marker": 's', "color": 'm', "linestyle": '-.'}
                   }
     # plot_style = {Algo.PCMCI: {"marker" : 'x', "color" : 'g', "linestyle" : ':'},
     #               Algo.FPCMCI: {"marker" : '^', "color" : 'r', "linestyle" : '--'},

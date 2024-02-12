@@ -5,6 +5,7 @@ import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
+from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
 from connectingdots.causal_discovery.CAnDOIT_lagged import CAnDOIT as CAnDOIT_lagged
 from connectingdots.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOIT_cont
@@ -44,6 +45,7 @@ EMPTY_RES = {jWord.GT.value : None,
              Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
              Algo.CAnDOITLagged.value : deepcopy(ALGO_RES),   
              Algo.CAnDOITCont.value : deepcopy(ALGO_RES),
+             Algo.FPCMCI.value : deepcopy(ALGO_RES),
              }
 
 
@@ -106,7 +108,7 @@ if __name__ == '__main__':
     nsample_obs = 1200
     nsample_int = 100
     # resdir = "S1_" + str(nsample_obs) + "_" + str(nsample_int)
-    resdir = "CAnDOIT_eval3"
+    resdir = "CAnDOIT_eval4"
     f_alpha = 0.05
     alpha = 0.05
     min_lag = 1
@@ -119,6 +121,9 @@ if __name__ == '__main__':
     
     for n in nconfounder:
         for nr in range(nrun):
+            if n == 1:continue
+            if n == 2:continue
+            if n == 3 and nr <= 14:continue
             #########################################################################################################################
             # DATA
             while True:
@@ -232,7 +237,29 @@ if __name__ == '__main__':
                     print(candoit_cont_time)
                     candoit_cont.timeseries_dag()
                     gc.collect()
-                        
+                    
+                                
+                    #########################################################################################################################
+                    # FPCMCI
+                    fpcmci = FPCMCI(deepcopy(d_obs),
+                                    f_alpha = f_alpha, 
+                                    alpha = alpha, 
+                                    min_lag = min_lag, 
+                                    max_lag = max_lag, 
+                                    sel_method = TE(TEestimator.Gaussian), 
+                                    val_condtest = GPDC(significance = 'analytic'),
+                                    verbosity = CPLevel.INFO,
+                                    neglect_only_autodep = False,
+                                    resfolder = resfolder + "/fpcmci")
+
+                    new_start = time()
+                    fpcmci_cm = fpcmci.run()
+                    elapsed_fpcmci = time() - new_start
+                    fpcmci_time = str(timedelta(seconds = elapsed_fpcmci))
+                    print(fpcmci_time)
+                    fpcmci.timeseries_dag()
+                    gc.collect()
+                    
                     break
                     
                 except Exception as e:
@@ -250,6 +277,7 @@ if __name__ == '__main__':
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
                 Algo.CAnDOITLagged: {"time":candoit_lagged_time, "scm":get_correct_SCM(GT, candoit_lagged_cm.get_SCM())},
                 Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_SCM())},
+                Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
             }
             save_result(res)
             
