@@ -105,15 +105,15 @@ def save_result(d):
 if __name__ == '__main__':   
     nsample_obs = 1250
     nsample_int = 250
-    resdir = "S2_" + str(nsample_obs) + "_" + str(nsample_int)
-    f_alpha = 0.05
+    resdir = "rebuttal/new_S2_" + str(nsample_obs) + "_" + str(nsample_int)
+    f_alpha = 0.1
     alpha = 0.05
     min_lag = 1
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
     nvars = 7
-    nconfounded = range(0, 8)
+    nconfounded = range(0, 3)
     nrun = 25
     
     

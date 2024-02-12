@@ -42,8 +42,10 @@ plotLabel = {Metric.TIME : 'Time [s]',
              Algo.FPCMCI : 'F-PCMCI',
              Algo.PCMCI : 'PCMCI',
              Metric.FPR: 'False Positive Rate',
-             Metric.N_ESPU : '# Sp. links estimated / # Sp. links',
-             Metric.N_EqDAG : "# Equ. DAGs"}
+             Metric.N_ESPU : 'NS',
+            #  Metric.N_ESPU : '# Sp. links estimated / # Sp. links',
+             Metric.N_EqDAG : "Equ. DAGs"}
+            #  Metric.N_EqDAG : "# Equ. DAGs"}
 
 titleLabel = {Metric.TIME : 'Time',
               Metric.PREC : 'Precision',
@@ -215,13 +217,13 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
 if __name__ == '__main__':   
 
     # To use to plot S1
-    resfolder = ['rebuttal/nvariable_nonlin_1250_250']
-    vars = [7, 14]
+    # resfolder = ['rebuttal/nvariable_nonlin_1250_250']
+    # vars = [7, 14]
     
     
     # To use to plot S2
-    # resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
-    # vars = [0, 7]
+    resfolder = ['rebuttal/nconfounded_nonlin_1250_250']
+    vars = [0, 7]
     
     
     bootstrap = True
@@ -233,5 +235,5 @@ if __name__ == '__main__':
 
     for r in resfolder:
         for metric in [Metric.TIME, Metric.F1SCORE, Metric.PREC, Metric.RECA, Metric.SHD, Metric.FPR, Metric.N_ESPU, Metric.N_EqDAG]:
-            # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
-            compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)
+            compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
+            # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)
