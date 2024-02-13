@@ -77,7 +77,10 @@ def get_spurious_links(scm):
     return spurious
 
     
-def save_result(d):  
+def save_result(d):
+    res_tmp["equations"] = str(RS.print_equations())
+    res_tmp["coeff_range"] = str(RS.coeff_range)
+    res_tmp["noise_config"] = str(RS.noise_config)
     res_tmp[jWord.GT.value] = str(RS.get_SCM())
     res_tmp[jWord.Confounders.value] = str(RS.confounders)
     res_tmp[jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
@@ -105,15 +108,15 @@ def save_result(d):
 if __name__ == '__main__':   
     nsample_obs = 1250
     nsample_int = 250
-    resdir = "rebuttal/new_S2_" + str(nsample_obs) + "_" + str(nsample_int)
-    f_alpha = 0.1
+    resdir = "new_S2_" + str(nsample_obs) + "_" + str(nsample_int)
+    f_alpha = 0.5
     alpha = 0.05
     min_lag = 1
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
     nvars = 7
-    nconfounded = range(0, 3)
+    nconfounded = range(0, 2)
     nrun = 25
     
     
@@ -123,7 +126,7 @@ if __name__ == '__main__':
             # DATA
             while True:
                 try:
-                    resfolder = resdir + '/' + str(n) + '/' + str(nr)
+                    resfolder = 'rebuttal/' + resdir + '/' + str(n) + '/' + str(nr)
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
@@ -164,7 +167,7 @@ if __name__ == '__main__':
                                     val_condtest = GPDC(significance = 'analytic'),
                                     verbosity = CPLevel.INFO,
                                     neglect_only_autodep = False,
-                                    resfolder = resfolder + "/fpcmci")
+                                    resfolder = 'results/' + resfolder + "/fpcmci")
 
                     new_start = time()
                     fpcmci_cm = fpcmci.run()
@@ -179,7 +182,6 @@ if __name__ == '__main__':
                         remove_directory(os.getcwd() + "/results/" + resfolder)
                         continue
                     
-                    
                     #########################################################################################################################
                     # PCMCI
                     pcmci = PCMCI(deepcopy(d_obs),
@@ -189,7 +191,7 @@ if __name__ == '__main__':
                                     verbosity = CPLevel.INFO,
                                     alpha = alpha, 
                                     neglect_only_autodep = False,
-                                    resfolder = resfolder + "/pcmci")
+                                    resfolder = 'results/' + resfolder + "/pcmci")
                     
                     new_start = time()
                     pcmci_cm = pcmci.run()
@@ -199,7 +201,6 @@ if __name__ == '__main__':
                     pcmci.timeseries_dag()
                     gc.collect()
                                                       
-            
                     #########################################################################################################################
                     # CAnDOIT
                     new_d_obs = deepcopy(d_obs)
@@ -215,7 +216,7 @@ if __name__ == '__main__':
                                        val_condtest = GPDC(significance = 'analytic'),
                                        verbosity = CPLevel.INFO,
                                        neglect_only_autodep = False,
-                                       resfolder = resfolder + "/candoit",
+                                       resfolder = 'results/' + resfolder + "/candoit",
                                        plot_data = False,
                                        exclude_context = True)
                     
@@ -226,6 +227,7 @@ if __name__ == '__main__':
                     print(candoit_time)
                     candoit.timeseries_dag()
                     gc.collect()
+                    
                         
                     break
                     
@@ -244,8 +246,8 @@ if __name__ == '__main__':
             }
             save_result(res)
             
-            Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
-            filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
+            Path(os.getcwd() + "/results/rebuttal/" + resdir).mkdir(parents=True, exist_ok=True)
+            filename = os.getcwd() + "/results/rebuttal/" + resdir + "/" + str(n) + ".json"
             
             # Check if the file exists
             if os.path.exists(filename):

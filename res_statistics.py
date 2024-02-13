@@ -68,6 +68,7 @@ class ExtractDataMode(Enum):
     
     
 def extract_data(file_path, algorithms, metric, mode = ExtractDataMode.MeandStd):
+    # n = int(file_path.split("/")[-1][:-len(".json")])
     ext_data = {algo.value: {"samples" : list(), "mean" : float, "confidence" : float} for algo in algorithms}
 
     since = datetime.datetime(1900, 1, 1, 0, 0, 0, 0)
@@ -88,6 +89,9 @@ def extract_data(file_path, algorithms, metric, mode = ExtractDataMode.MeandStd)
                         ext_data[algo.value]["samples"].append(0)
             else:
                 for algo in algorithms:
+                    # if n == 0 and algo == Algo.CAnDOIT:
+                    #     ext_data[algo.value]["samples"].append((r[i][Algo.FPCMCI.value][metric.value]))
+                    # else:
                     ext_data[algo.value]["samples"].append((r[i][algo.value][metric.value]))
                 
     if mode == ExtractDataMode.MeandStd:
