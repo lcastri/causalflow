@@ -6,6 +6,7 @@ from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
 from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
+from connectingdots.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOITCont
 from connectingdots.causal_discovery.FPCMCI import FPCMCI
 from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
 from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
@@ -45,6 +46,7 @@ EMPTY_RES = {jWord.GT.value : None,
              jWord.ExpectedSpuriousLinks.value : None,
              jWord.N_GSPU.value : None,
              Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
+             Algo.CAnDOITCont.value : deepcopy(ALGO_RES),   
              Algo.DYNOTEARS.value : deepcopy(ALGO_RES),   
              Algo.FPCMCI.value : deepcopy(ALGO_RES),   
              Algo.PCMCI.value : deepcopy(ALGO_RES),
@@ -82,6 +84,7 @@ def get_spurious_links(scm):
 
     
 def save_result(d):
+    res_tmp["equations"] = str(RS.print_equations())
     res_tmp["coeff_range"] = str(RS.coeff_range)
     res_tmp["noise_config"] = str(RS.noise_config)
     res_tmp[jWord.GT.value] = str(RS.get_SCM())
@@ -112,13 +115,13 @@ if __name__ == '__main__':
     nsample_obs = 1250
     nsample_int = 250
     resdir = "S1_" + str(nsample_obs) + "_" + str(nsample_int)
-    f_alpha = 0.05
+    f_alpha = 0.5
     alpha = 0.05
     min_lag = 1
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
-    nfeature = range(10, 11)
+    nfeature = range(7, 15)
     nrun = 25
     
     
@@ -136,11 +139,12 @@ if __name__ == '__main__':
                     noise_param = random.uniform(0.5, 2)
                     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-                    # noise_weibull = (NoiseType.Weibull, 2.5, 2)
+                    nconfounder = random.randint(1, 4)
+
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
                                    max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
-                                   functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
+                                   functions = ['', 'sin', 'cos', 'abs', 'exp', 'pow'], operators=['+', '-', '*', '/'], n_hidden_confounders = nconfounder)
                     RS.gen_equations()
 
                     d_obs = RS.gen_obs_ts()
@@ -307,6 +311,33 @@ if __name__ == '__main__':
                     print(candoit_time)
                     candoit.timeseries_dag()
                     gc.collect()
+                    
+                    
+                    #########################################################################################################################
+                    # CAnDOIT_cont
+                    new_d_obs = deepcopy(d_obs)
+                    new_d_obs.d = new_d_obs.d[:-nsample_int]
+                    candoit_cont = CAnDOITCont(new_d_obs, 
+                                        deepcopy(d_int),
+                                        f_alpha = f_alpha, 
+                                        alpha = alpha, 
+                                        min_lag = min_lag, 
+                                        max_lag = max_lag, 
+                                        sel_method = TE(TEestimator.Gaussian), 
+                                        val_condtest = GPDC(significance = 'analytic'),
+                                        verbosity = CPLevel.INFO,
+                                        neglect_only_autodep = False,
+                                        resfolder = resfolder + "/candoit_cont",
+                                        plot_data = False,
+                                        exclude_context = True)
+                    
+                    new_start = time()
+                    candoit_cont_cm = candoit_cont.run()
+                    elapsed_candoit_cont = time() - new_start
+                    candoit_cont_time = str(timedelta(seconds = elapsed_candoit_cont))
+                    print(candoit_cont_time)
+                    candoit_cont.timeseries_dag()
+                    gc.collect()
                         
                     break
                     
@@ -322,6 +353,7 @@ if __name__ == '__main__':
             res = {
                 Algo.DYNOTEARS: {"time":dynotears_time, "scm":get_correct_SCM(GT, dynotears_cm.get_SCM())},
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
+                Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_SCM())},
                 Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
                 Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
                 Algo.TCDF: {"time":tcdf_time, "scm":get_correct_SCM(GT, tcdf_cm.get_SCM())},

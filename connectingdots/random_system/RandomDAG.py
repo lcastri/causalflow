@@ -226,12 +226,14 @@ class RandomDAG:
             for i, term in enumerate(eq):
                 if len(term) == 6:
                     operator, coefficient, function, variable, lag, exponent = term
+                    coefficient = round(coefficient, 3)
                     if i != 0: 
                         term_str = f"{operator} {coefficient} * {function}({variable}, {exponent})(t-{lag}) "
                     else:
                         term_str = f"{coefficient} * {function}({variable}, {exponent})(t-{lag}) "
                 else:
                     operator, coefficient, function, variable, lag = term
+                    coefficient = round(coefficient, 3)
                     if function != '':
                         if i != 0: 
                             term_str = f"{operator} {coefficient} * {function}({variable})(t-{lag}) "
@@ -245,8 +247,9 @@ class RandomDAG:
                         
                 equation_str += term_str
             toprint.append(equation_str)
-            print(equation_str)
-        return "\n".join(toprint)
+        eq = "\n".join(toprint)
+        print(eq)
+        return eq
             
             
     def __evaluate_term(self, term, t, data):
@@ -266,7 +269,7 @@ class RandomDAG:
             lag = args[0]
             term_value = coefficient * (data[t - lag, self.variables.index(variable)])
         elif function == 'pow':
-            exponent, lag = args
+            lag, exponent = args
             term_value = coefficient * data[t - lag, self.variables.index(variable)] ** exponent
         elif function == 'abs':
             lag = args[0]
@@ -407,7 +410,7 @@ class RandomDAG:
         for target, eq in eqs.items():
             for term in eq:
                 if len(term) == 6:
-                    _, _, _, variable, _, lag = term
+                    _, _, _, variable, lag, _ = term
                 else:
                     _, _, _, variable, lag = term
                 if variable not in scm.keys(): continue # NOTE: this is needed to avoid adding hidden vars

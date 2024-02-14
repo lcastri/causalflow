@@ -66,6 +66,16 @@ class CAnDOIT(CausalDiscoveryMethod):
         self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
         
         self.validator = myPCMCI(self.alpha, self.min_lag, self.max_lag, self.val_condtest, verbosity, self.CM.sys_context)
+        
+        CP.info("\n")
+        CP.info(DASH)
+        CP.info("Observational data length: " + str(observation_data.T))
+        CP.info("Interventional data length: " + str(sum([d.T for d in intervention_data.values()])))
+        CP.info("Min lag time: " + str(min_lag))
+        CP.info("Max lag time: " + str(max_lag))
+        CP.info("Filter significance level: " + str(f_alpha))
+        CP.info("PCMCI significance level: " + str(alpha))
+        CP.info("Selection method: " + sel_method.name)
     
     @property    
     def isThereInterv(self):
@@ -82,14 +92,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         """
         Run filter method
         """
-        CP.info("\n")
-        CP.info(DASH)
         CP.info("Selecting relevant features among: " + str(self.filter_data.features))
-        CP.info("Selection method: " + self.sel_method.name)
-        CP.info("Significance level: " + str(self.f_alpha))
-        CP.info("Max lag time: " + str(self.max_lag))
-        CP.info("Min lag time: " + str(self.min_lag))
-        CP.info("Data length: " + str(self.filter_data.T))
        
         self.sel_method.initialise(self.obs_data, self.f_alpha, self.min_lag, self.max_lag, self.CM)
         self.CM = self.sel_method.compute_dependencies()
