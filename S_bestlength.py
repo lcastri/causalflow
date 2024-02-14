@@ -3,12 +3,9 @@ import json
 import os
 import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
-# from tigramite.independence_tests.gpdc import GPDC
 from connectingdots.CPrinter import CPLevel
-from connectingdots.causal_discovery.FPCMCI import FPCMCI
-from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
-from connectingdots.causal_discovery.CAnDOIT_lagged import CAnDOIT as CAnDOIT_lagged
 from connectingdots.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOIT_cont
+from connectingdots.preprocessing.data import Data
 from connectingdots.selection_methods.TE import TE, TEestimator
 from connectingdots.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
@@ -111,83 +108,87 @@ if __name__ == '__main__':
     min_c = 0.1
     max_c = 0.5
     nrun = 25
-    delta_length = 0.05
-    length = 1.0
+    delta_perc = 0.05
+    obs_perc = 1.0
     
+    for nr in range(nrun):
+        
+        resfolder = 'results/' + resdir + '/' + str(nr)
+        os.makedirs(resfolder, exist_ok = True)
+        
+        coeff_sign = random.choice([-1, 1])
+        noise_param = random.uniform(0.5, 2)
+        noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
+        noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
+        RS = RandomDAG(nvars = 10, nsamples = nsample, 
+                       max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
+                       min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
+                       functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
     
-    while length - delta_length > 0:
-        length -= delta_length
-        obs_length = int(nsample * length)
-        int_length = int(nsample * (1 - length))
-        for nr in range(nrun):
-            #########################################################################################################################
-            # DATA
-            while True:
-                try:
-                    resfolder = 'results/' + resdir + '/' + str(length) + "_" + str(round(1 - length,2)) + '/' + str(nr)
-                    os.makedirs(resfolder, exist_ok = True)
-                    res_tmp = deepcopy(EMPTY_RES)
-                    
-                    coeff_sign = random.choice([-1, 1])
-                    noise_param = random.uniform(0.5, 2)
-                    noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
-                    noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-                    RS = RandomDAG(nvars = 10, nsamples = obs_length, 
-                                   max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
-                                   min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
-                                   n_hidden_confounders = 1)
-                    RS.gen_equations()
-
-                    d_obs = RS.gen_obs_ts()
-                    
-                    d_int = dict()
-                    for int_var in RS.confintvar.values():
-                        i = RS.intervene(int_var, int_length, random.uniform(5, 10))
-                        d_int[int_var] = i[int_var]
-                        d_int[int_var].plot_timeseries(resfolder + '/interv_' + int_var + '.png')
-
+        RS.gen_equations()
+        d_obs = RS.gen_obs_ts()
+    
+        d_int = dict()
+        for int_var in RS.confintvar.values():
+            i = RS.intervene(int_var, nsample, random.uniform(5, 10))
+            d_int[int_var] = i[int_var]
+            d_int[int_var].plot_timeseries(resfolder + '/interv_' + int_var + '.png')
                 
-                    GT = RS.get_SCM()
+        GT = RS.get_SCM()
                     
-                    d_obs.plot_timeseries(resfolder + '/obs_data.png')
+        d_obs.plot_timeseries(resfolder + '/obs_data.png')
                     
-                    RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
-                    RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')                  
+        RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
+        RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')                  
+    
+    
+        while obs_perc - delta_perc > 0:
+            res_tmp = deepcopy(EMPTY_RES)
+            obs_perc = round(obs_perc - delta_perc, 2)
+            int_perc = round(1 - obs_perc, 2)
+            obs_length = int(nsample * obs_perc)
+            int_length = int(nsample * int_perc)     
                     
+            tmp_df_obs = deepcopy(d_obs.d)
+            tmp_d_obs = Data(tmp_df_obs[:obs_length])
+            
+            tmp_d_int = dict()
+            for int_var, int_d in d_int.items():
+                tmp_df_int = deepcopy(int_d.d)
+                tmp_d_int[int_var] = Data(tmp_df_int[:int_length])
+            
+            #########################################################################################################################
+            # CAnDOIT
+            candoit_cont = CAnDOIT_cont(tmp_d_obs, 
+                                        tmp_d_int,
+                                        f_alpha = f_alpha, 
+                                        alpha = alpha, 
+                                        min_lag = min_lag, 
+                                        max_lag = max_lag, 
+                                        sel_method = TE(TEestimator.Gaussian), 
+                                        val_condtest = GPDC(significance = 'analytic'),
+                                        verbosity = CPLevel.INFO,
+                                        neglect_only_autodep = False,
+                                        resfolder = resfolder + "/" + str(obs_perc) + "_" + str(int_perc),
+                                        plot_data = False,
+                                        exclude_context = True)
                     
-                    #########################################################################################################################
-                    # CAnDOIT
-                    candoit_cont = CAnDOIT_cont(deepcopy(d_obs), 
-                                                deepcopy(d_int),
-                                                f_alpha = f_alpha, 
-                                                alpha = alpha, 
-                                                min_lag = min_lag, 
-                                                max_lag = max_lag, 
-                                                sel_method = TE(TEestimator.Gaussian), 
-                                                val_condtest = GPDC(significance = 'analytic'),
-                                                verbosity = CPLevel.INFO,
-                                                neglect_only_autodep = False,
-                                                resfolder = resfolder + "/candoit_cont",
-                                                plot_data = False,
-                                                exclude_context = True)
+            new_start = time()
+            candoit_cont_cm = candoit_cont.run()
+            elapsed_candoit_cont = time() - new_start
+            candoit_cont_time = str(timedelta(seconds = elapsed_candoit_cont))
+            print(candoit_cont_time)
+            candoit_cont.timeseries_dag()
+            gc.collect()
+            
                     
-                    new_start = time()
-                    candoit_cont_cm = candoit_cont.run()
-                    elapsed_candoit_cont = time() - new_start
-                    candoit_cont_time = str(timedelta(seconds = elapsed_candoit_cont))
-                    print(candoit_cont_time)
-                    candoit_cont.timeseries_dag()
-                    gc.collect()
-                    
-                    break
-                    
-                except Exception as e:
-                    traceback_info = traceback.format_exc()
-                    with open(os.getcwd() + "/" + 'results/' + resdir + '/error.txt', 'a') as f:
-                        f.write("Exception occurred: " + str(e) + "\n")
-                        f.write("Traceback:\n" + traceback_info + "\n")
-                    remove_directory(os.getcwd() + "/" + resfolder)
-                    continue
+                # except Exception as e:
+                #     traceback_info = traceback.format_exc()
+                #     with open(os.getcwd() + "/" + 'results/' + resdir + '/error.txt', 'a') as f:
+                #         f.write("Exception occurred: " + str(e) + "\n")
+                #         f.write("Traceback:\n" + traceback_info + "\n")
+                #     remove_directory(os.getcwd() + "/" + resfolder)
+                #     continue
 
 
             #########################################################################################################################
@@ -196,10 +197,10 @@ if __name__ == '__main__':
                 Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_SCM())},
             }
             save_result(res)
-            
+                
             Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
-            filename = os.getcwd() + "/results/" + resdir + "/" + str(length) + "_" + str(round(1 - length,2)) + ".json"
-            
+            filename = os.getcwd() + "/results/" + resdir + '/' + str(nr) + ".json"
+                
             # Check if the file exists
             if os.path.exists(filename):
                 # File exists, load its contents into a dictionary
@@ -210,7 +211,7 @@ if __name__ == '__main__':
                 data = {}
 
             # Modify the dictionary
-            data[nr] = res_tmp
+            data[str(obs_perc) + "_" + str(int_perc)] = res_tmp
 
             # Save the dictionary back to a JSON file
             with open(filename, 'w') as file:
