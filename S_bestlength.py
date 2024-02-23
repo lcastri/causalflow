@@ -109,7 +109,6 @@ if __name__ == '__main__':
     max_c = 0.5
     nrun = 25
     delta_perc = 0.05
-    obs_perc = 1.0
     
     for nr in range(nrun):
         
@@ -123,7 +122,7 @@ if __name__ == '__main__':
         RS = RandomDAG(nvars = 10, nsamples = nsample, 
                        max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                        min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
-                       functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
+                       functions = [''], operators=['+', '-', '*'], n_hidden_confounders = 1)
     
         RS.gen_equations()
         d_obs = RS.gen_obs_ts()
@@ -142,6 +141,7 @@ if __name__ == '__main__':
         RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')                  
     
     
+        obs_perc = 1.0
         while obs_perc - delta_perc > 0:
             res_tmp = deepcopy(EMPTY_RES)
             obs_perc = round(obs_perc - delta_perc, 2)

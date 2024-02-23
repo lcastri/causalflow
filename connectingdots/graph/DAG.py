@@ -14,7 +14,7 @@ class DAG():
 
         Args:
             var_names (list): variable list
-            min_lag (int): minimum lag time
+            min_lag (int): minimum time lag
             max_lag (int): maximum time lag
             neglect_autodep (bool, optional): bit to neglect nodes when they are only autodependent. Defaults to False.
             scm (dict, optional): Build the DAG for SCM. Defaults to None.
