@@ -1,1 +1,1 @@
-# CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-series
+# CausalFlow: Causal Discovery Methods for Time-Series Data
