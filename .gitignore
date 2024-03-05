@@ -355,6 +355,7 @@ dist/
 # results
 results/
 .vscode
+old_scripts/
 
 *.csv
 *.txt

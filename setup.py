@@ -20,15 +20,15 @@ INSTALL_REQUIRES = ["pandas>=1.5.2",
                     ]
 
 setup(
-    name = 'connectingdots',
+    name = 'causalflow',
     version = VERSION,    
     description = 'A Python library for Causal Inference in Time-Series domain',
     long_description = long_description,
     long_description_content_type = 'text/markdown',
-    url = 'https://github.com/lcastri/connectingdots',
+    url = 'https://github.com/lcastri/causalflow',
     author = 'Luca Castri',
     author_email = 'lucacastri94@gmail.com',
-    packages = ['connectingdots', "connectingdots.preprocessing", "connectingdots.preprocessing.subsampling_methods", "connectingdots.basics", "connectingdots.selection_methods", "connectingdots.graph", "connectingdots.random_system"],
+    packages = ['causalflow', "causalflow.preprocessing", "causalflow.preprocessing.subsampling_methods", "causalflow.basics", "causalflow.selection_methods", "causalflow.graph", "causalflow.random_system"],
     python_requires='>=3',
     install_requires = INSTALL_REQUIRES,
 

@@ -1,9 +1,9 @@
 from tigramite.independence_tests.gpdc import GPDC
-from connectingdots.CPrinter import CPLevel
-from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
-from connectingdots.preprocessing.data import Data
-from connectingdots.selection_methods.TE import TE, TEestimator
-from connectingdots.basics.constants import LabelType
+from causalflow.CPrinter import CPLevel
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
+from causalflow.preprocessing.data import Data
+from causalflow.selection_methods.TE import TE, TEestimator
+from causalflow.basics.constants import LabelType
 import numpy as np
 
 from time import time
@@ -43,29 +43,29 @@ if __name__ == '__main__':
     df_int = Data(d_int0, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
     int_data['X_0'] =  df_int
     
-    # X_1
-    d_int1 = np.random.random(size = (int(nsample/2), nfeature))
-    d_int1[:, 1] = 5 * np.ones(shape = (int(nsample/2),)) 
-    for t in range(max_lag, int(nsample/2)):
-        d_int1[t, 2] += 0.3 * d_int1[t-1, 0] * 0.75 * d_int1[t-2, 1] 
-        d_int1[t, 3] += 0.7 * d_int1[t-1, 3] * d_int1[t-2, 4]
+    # # X_1
+    # d_int1 = np.random.random(size = (int(nsample/2), nfeature))
+    # d_int1[:, 1] = 5 * np.ones(shape = (int(nsample/2),)) 
+    # for t in range(max_lag, int(nsample/2)):
+    #     d_int1[t, 2] += 0.3 * d_int1[t-1, 0] * 0.75 * d_int1[t-2, 1] 
+    #     d_int1[t, 3] += 0.7 * d_int1[t-1, 3] * d_int1[t-2, 4]
         
-    df_int = Data(d_int1, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
-    int_data['X_1'] =  df_int
+    # df_int = Data(d_int1, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
+    # int_data['X_1'] =  df_int
 
-    # X_4
-    d_int2 = np.random.random(size = (int(nsample/2), nfeature))
-    d_int2[:, 4] = 0.5 * np.ones(shape = (int(nsample/2),)) 
-    for t in range(max_lag, int(nsample/2)):
-        d_int2[t, 1] += 0.5 * d_int2[t-1, 0]**2
-        d_int2[t, 2] += 0.3 * d_int2[t-1, 0] * 0.75 * d_int2[t-2, 1] 
-        d_int2[t, 3] += 0.7 * d_int2[t-1, 3] * d_int2[t-2, 4]
+    # # X_4
+    # d_int2 = np.random.random(size = (int(nsample/2), nfeature))
+    # d_int2[:, 4] = 0.5 * np.ones(shape = (int(nsample/2),)) 
+    # for t in range(max_lag, int(nsample/2)):
+    #     d_int2[t, 1] += 0.5 * d_int2[t-1, 0]**2
+    #     d_int2[t, 2] += 0.3 * d_int2[t-1, 0] * 0.75 * d_int2[t-2, 1] 
+    #     d_int2[t, 3] += 0.7 * d_int2[t-1, 3] * d_int2[t-2, 4]
         
-    df_int = Data(d_int2, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
-    int_data['X_4'] =  df_int
+    # df_int = Data(d_int2, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
+    # int_data['X_4'] =  df_int
         
     
-    dofpcmci = CAnDOIT(df, 
+    candoit = CAnDOIT(df, 
                         int_data,
                         f_alpha = f_alpha, 
                         alpha = pcmci_alpha, 
@@ -75,12 +75,12 @@ if __name__ == '__main__':
                         val_condtest = GPDC(significance = 'analytic', gp_params = None),
                         verbosity = CPLevel.DEBUG,
                         neglect_only_autodep = True,
-                        plot_data = True,
-                        exclude_context = False)
+                        plot_data = False,
+                        exclude_context = True)
     
     new_start = time()
-    cm = dofpcmci.run()
-    elapsed_newFPCMCI = time() - new_start
-    print(str(timedelta(seconds = elapsed_newFPCMCI)))
-    dofpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    dofpcmci.timeseries_dag()
+    cm = candoit.run(nofilter=True)
+    elapsed_candoit = time() - new_start
+    print(str(timedelta(seconds = elapsed_candoit)))
+    candoit.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    candoit.timeseries_dag()

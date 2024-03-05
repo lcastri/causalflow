@@ -3,12 +3,12 @@ import os
 import pandas as pd
 # from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from tigramite.independence_tests.gpdc import GPDC
-from connectingdots.CPrinter import CPLevel
-from connectingdots.basics.constants import ImageExt
-from connectingdots.causal_discovery.CAnDOIT import CAnDOIT
-from connectingdots.causal_discovery.FPCMCI import FPCMCI
-from connectingdots.preprocessing.data import Data
-from connectingdots.selection_methods.TE import TE, TEestimator
+from causalflow.CPrinter import CPLevel
+from causalflow.basics.constants import ImageExt
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
+from causalflow.causal_discovery.FPCMCI import FPCMCI
+from causalflow.preprocessing.data import Data
+from causalflow.selection_methods.TE import TE, TEestimator
 
 if __name__ == '__main__':   
     resfolder = "CW_result"
