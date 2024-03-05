@@ -472,8 +472,7 @@ class DAG():
         if save_name is not None:
             plt.savefig(save_name + img_extention.value, dpi = 300)
         else:
-            plt.show()
-                
+            plt.show()         
             
     
     def ts_dag(self,
@@ -498,7 +497,10 @@ class DAG():
             max_score (int, optional): maximum score range. Defaults to 1.
             node_size (int, optional): node size. Defaults to 8.
             node_proximity (int, optional): node proximity. Defaults to 2.
-            node_color (str, optional): node color. Defaults to 'orange'.
+            node_color (str/list, optional): node color. 
+                                             If a string, all the nodes will have the same colour. 
+                                             If a list (same dimension of features), each colour will have the specified colour.
+                                             Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
             font_size (int, optional): font size. Defaults to 12.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
@@ -510,9 +512,14 @@ class DAG():
         G = nx.DiGraph()
 
         # Add nodes to the graph
+        if isinstance(node_color, list):
+            node_c = dict()
+        else:
+            node_c = node_color
         for i in range(len(self.features)):
             for j in range(tau + 1):
                 G.add_node((j, i))
+                if isinstance(node_color, list): node_c[(j, i)] = node_color[abs(i - (len(r.g.keys()) - 1))]
                 
         pos = {n : (n[0], n[1]/node_proximity) for n in G.nodes()}
         scale = max(pos.values())
@@ -520,10 +527,8 @@ class DAG():
         # Nodes color definition
         # node_c = ['tab:blue', 'tab:orange','tab:red', 'tab:purple']
         # node_c = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
-        # node_color = dict()
-        # tmpG = nx.grid_2d_graph(self.max_lag + 1, len(r.g.keys()))
-        # for n in tmpG.nodes():
-        #     node_color[n] = node_c[abs(n[1] - (len(r.g.keys()) - 1))]
+        # # tmpG = nx.grid_2d_graph(self.max_lag + 1, len(r.g.keys()))
+        # for n in G.nodes():
 
         # edges definition
         edges = list()
@@ -578,7 +583,7 @@ class DAG():
         Graph(G,
             node_layout = {p : np.array(pos[p]) for p in pos},
             node_size = node_size,
-            node_color = node_color,
+            node_color = node_c,
             node_labels = labeldict,
             node_label_offset = 0,
             node_edge_width = 0,
