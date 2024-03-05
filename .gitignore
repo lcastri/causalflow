@@ -353,6 +353,7 @@ build/
 dist/
 
 # results
+old_scripts/
 results/
 .vscode
 
