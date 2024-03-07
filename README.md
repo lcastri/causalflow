@@ -1,17 +1,17 @@
 # CausalFlow: Causal Discovery Methods for Time-Series Data
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises two causal discovery methods recently released in the literature:
-* <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/icon.png" width="25"> [F-PCMCI](https://github.com/lcastri/fpcmci) – Filtered-PCMCI
-* <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/icon.png" width="25"> CAnDOIT – CAusal Discovery with Observational and Interventional data from Time-series
+* <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/fpcmci_icon.png" width="25"> [F-PCMCI](https://github.com/lcastri/fpcmci) – Filtered-PCMCI
+* <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/candoit_icon.png" width="25"> CAnDOIT – CAusal Discovery with Observational and Interventional data from Time-series
 
 ## Useful links
 
 * [Documentation](https://lcastri.github.io/fpcmci/)
 * [Tutorials](https://github.com/lcastri/fpcmci/tree/main/tutorials)
 
-## <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/icon.png" width="25"> F-PCMCI
+## <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/fpcmci_icon.png" width="25"> F-PCMCI
 
-## <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/icon.png" width="25"> CAnDOIT
+## <img src="https://github.com/lcastri/fpcmci/raw/developer/docs/assets/candoit_icon.png" width="25"> CAnDOIT
 
 ## Other Causal Discovery Algorithms
 To facilitate the use of
