@@ -31,22 +31,22 @@ if __name__ == '__main__':
     df = Data(d, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
     
     df.shrink(['X_1', 'X_2', 'X_3', 'X_4'])
-    # fpcmci = FPCMCI(copy.deepcopy(df),
-    #                 f_alpha = f_alpha, 
-    #                 alpha = pcmci_alpha, 
-    #                 min_lag = min_lag, 
-    #                 max_lag = max_lag, 
-    #                 sel_method = TE(TEestimator.Gaussian), 
-    #                 val_condtest = GPDC(significance = 'analytic', gp_params = None),
-    #                 verbosity = CPLevel.DEBUG,
-    #                 neglect_only_autodep = True)
+    fpcmci = FPCMCI(copy.deepcopy(df),
+                    f_alpha = f_alpha, 
+                    alpha = pcmci_alpha, 
+                    min_lag = min_lag, 
+                    max_lag = max_lag, 
+                    sel_method = TE(TEestimator.Gaussian), 
+                    val_condtest = GPDC(significance = 'analytic', gp_params = None),
+                    verbosity = CPLevel.DEBUG,
+                    neglect_only_autodep = True)
     
-    # new_start = time()
-    # cm = fpcmci.run()
-    # elapsed_fpcmci = time() - new_start
-    # print(str(timedelta(seconds = elapsed_fpcmci)))
-    # fpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
-    # fpcmci.timeseries_dag()  
+    new_start = time()
+    cm = fpcmci.run()
+    elapsed_fpcmci = time() - new_start
+    print(str(timedelta(seconds = elapsed_fpcmci)))
+    fpcmci.dag(label_type = LabelType.Lag, node_layout = 'dot')
+    fpcmci.timeseries_dag()  
        
     
     ######################################################## INTERVENTION ########################################################
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     
     # X_1
     d_int1 = np.random.random(size = (nsample_int, nfeature))
-    d_int1[:, 1] = 5 * np.ones(shape = (nsample_int,)) 
+    d_int1[:, 1] = 10 * np.ones(shape = (nsample_int,)) 
     for t in range(max_lag, nsample_int):
         d_int1[t, 2] += 0.5 * d_int1[t-2, 0] * 0.75 * d_int1[t-2, 3] 
         d_int1[t, 3] += 0.7 * d_int1[t-1, 3] * d_int1[t-2, 4]
