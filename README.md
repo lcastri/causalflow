@@ -1,15 +1,7 @@
 # CausalFlow: Causal Discovery Methods for Time-Series Data
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises two causal discovery methods recently released in the literature:
-<!-- <div style="display: flex; align-items: center;">
-    <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15" style="margin-right: 10px; margin-left: 10px;">
-    [F-PCMCI](https://github.com/lcastri/fpcmci) – Filtered-PCMCI
-</div>
-<br>
-<div style="display: flex; align-items: center;">
-    <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15" style="margin-right: 10px; margin-left: 10px;">
-    CAnDOIT – CAusal Discovery with Observational and Interventional data from Time-series
-</div> -->
+
 |   |  Acronym        |       Full-name             |
 |:-:|-----------------|-----------------------------|
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | [F-PCMCI](https://github.com/lcastri/fpcmci) | Filtered-PCMCI |
@@ -23,7 +15,7 @@ Coming soon..
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="18"> F-PCMCI
 Extension of the state-of-the-art causal discovery method [PCMCI](https://github.com/jakobrunge/tigramite) augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and a hypothetical causal model between them. Then, from the selected features and the hypothetical causal model, the causal discovery is executed. Running the latter with this refined set of variables, and with a list of potential causal links between them, contributes to achieve **faster** and **more accurate** causal discovery.
 
-In the following it is presented an example showing the main functionality of F-PCMCI and a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms on the same data. The latter have been created by defining a 7-variables system defined as follows:
+In the following it is presented an example showing the main functionality of F-PCMCI and a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms on the same data. The latter have been created by defining a 7-variables system as follows:
 
 $$
 \begin{cases}
@@ -57,7 +49,7 @@ Causal Model by PCMCI       |  Causal Model by F-PCMCI
 ![](https://github.com/lcastri/causalflow/raw/main/images/PCMCI_example_2.png "Causal model by PCMCI")  |  ![](https://github.com/lcastri/causalflow/raw/main/images/FPCMCI_example_2.png "Causal model by F-PCMCI")
 Execution time ~ 8min 40sec | Execution time ~ 3min 00sec
 
-In this case the F-PCMCI removes the $X_6$ variable from the causal graph leading to generate exactly the same causal model as in the previous example, with comparable executional time. Instead, the PCMCI suffers the presence of $X_6$ in terms of time and accuracy of the causal structure.
+F-PCMCI removes the $X_6$ variable from the causal graph leading to generate the correct causal model, while PCMCI suffers the presence of $X_6$ in terms of time and accuracy of the causal structure.
 Indeed, a spurious link $X_6$ &rarr; $X_5$ appears in the causal graph derived by the PCMCI.
 
 
