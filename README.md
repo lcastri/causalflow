@@ -1,4 +1,4 @@
-# CausalFlow: Causal Discovery Methods for Time-Series Data
+# CausalFlow: Causal Discovery Methods with Observational and Interventional Data from Time-series
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises two causal discovery methods recently released in the literature:
 
@@ -13,9 +13,9 @@ Coming soon..
 <!-- * [Tutorials](https://github.com/lcastri/fpcmci/tree/main/tutorials) -->
 
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="18"> F-PCMCI
-Extension of the state-of-the-art causal discovery method [PCMCI](https://github.com/jakobrunge/tigramite) augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and a hypothetical causal model between them. Then, from the selected features and the hypothetical causal model, the causal discovery is executed. Running the latter with this refined set of variables, and with a list of potential causal links between them, contributes to achieve **faster** and **more accurate** causal discovery.
+Extension of the state-of-the-art causal discovery method [PCMCI](https://github.com/jakobrunge/tigramite), augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and a hypothetical causal model between them. Then, using the selected features and the hypothetical causal model, the causal discovery is executed. This refined set of variables and the list of potential causal links between them contribute to achieving **faster** and **more accurate** causal discovery.
 
-In the following it is presented an example showing the main functionality of F-PCMCI and a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms on the same data. The latter have been created by defining a 7-variables system as follows:
+In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
 
 $$
 \begin{cases}
@@ -49,13 +49,12 @@ Causal Model by PCMCI       |  Causal Model by F-PCMCI
 ![](https://github.com/lcastri/causalflow/raw/main/images/PCMCI_example_2.png "Causal model by PCMCI")  |  ![](https://github.com/lcastri/causalflow/raw/main/images/FPCMCI_example_2.png "Causal model by F-PCMCI")
 Execution time ~ 8min 40sec | Execution time ~ 3min 00sec
 
-F-PCMCI removes the $X_6$ variable from the causal graph leading to generate the correct causal model, while PCMCI suffers the presence of $X_6$ in terms of time and accuracy of the causal structure.
-Indeed, a spurious link $X_6$ &rarr; $X_5$ appears in the causal graph derived by the PCMCI.
-
+F-PCMCI removes the variable $X_6$ from the causal graph, resulting in the generation of the correct causal model. In contrast, PCMCI retains $X_6$ leading to challenges in the temporal accuracy of the causal structure. Specifically, a spurious link $X_6$ &rarr; $X_5$ appears in the causal graph derived by PCMCI.
 
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="18"> CAnDOIT
-Coming soon..
+CAnDOIT extends F-PCMCI, allowing the possibility of incorporating interventional data in the causal discovery process alongside the observational data.
 
+In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
 ## Other Causal Discovery Algorithms
 Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmark purposes. As a consequence, CausalFLow provides a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series DAGs (DAGs which comprises the lag specification for each link). They are listed as follows:
 
@@ -66,6 +65,16 @@ Although the main contribution of this repository is to present the CAnDOIT and 
 * [VarLiNGAM](https://www.jmlr.org/papers/volume11/hyvarinen10a/hyvarinen10a.pdf) - from the [lingam](https://github.com/cdt15/lingam?tab=readme-ov-file) package;
 
 Some algorithms are imported from other languages such as R and Java and are then wrapped in Python. Having the majority of causal discovery methods integrated into a single framework, which handles various types of inputs and outputs causal models, can facilitate the use of these algorithms. 
+
+|   |  Acronym        | Feature Selection | Observations | Interventions |
+|:-:|:-----------------|:-----------------:|:------------:|:-------------:|
+| | DYNOTEARS | &cross; | &check; | &cross; |
+| | PCMCI | &cross; | &check; | &cross; |
+| | TCDF | &cross; | &check; | &cross; |
+| | tsFCI | &cross; | &check; | &cross; |
+| | VarLiNGAM | &cross; | &check; | &cross; |
+| <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | F-PCMCI | &check; | &check; | &cross; |
+| <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> | CAnDOIT | &check; | &check; | &check; |
 
 ## Citation
 Please consider citing the following papers depending on which method you use:
