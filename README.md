@@ -1,18 +1,18 @@
 # CausalFlow: Causal Discovery Methods for Time-Series Data
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises two causal discovery methods recently released in the literature:
-* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="25"> [F-PCMCI](https://github.com/lcastri/fpcmci) – Filtered-PCMCI
-* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="25"> CAnDOIT – CAusal Discovery with Observational and Interventional data from Time-series
+* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="10"> [F-PCMCI](https://github.com/lcastri/fpcmci) – Filtered-PCMCI
+* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="10"> CAnDOIT – CAusal Discovery with Observational and Interventional data from Time-series
 
 ## Useful links
 Coming soon..
 <!-- * [Documentation](https://lcastri.github.io/fpcmci/) -->
 <!-- * [Tutorials](https://github.com/lcastri/fpcmci/tree/main/tutorials) -->
 
-## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="25"> F-PCMCI
+## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI
 Coming soon..
 
-## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="25"> CAnDOIT
+## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT
 Coming soon..
 
 ## Other Causal Discovery Algorithms
@@ -22,8 +22,7 @@ Coming soon..
 ## Citation
 Please consider citing the following papers depending on which method you use:
 * F-PCMCI:<br>
-    L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023).<br>
-    Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios,<br>
+    L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023). [Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios](https://arxiv.org/abs/2302.10135),<br>
     Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
     ```
     @inproceedings{castri2023fpcmci,
@@ -60,8 +59,7 @@ Please consider citing the following papers depending on which method you use:
 
 Before installing the CausalFlow package, you need to install Java and the [IDTxl package](https://github.com/pwollstadt/IDTxl) used for the feature-selection process, following the guide described [here](https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements). Once complete, you can install the current release of `CausalFlow` with:
 ``` shell
-# pip install causalflow
-coming soon
+# Coming soon: pip install causalflow
 ```
 
 For a complete installation Java - IDTxl - CausalFlow, follow the following procedure.
@@ -95,8 +93,7 @@ pip install -e .
 
 ### 3 - F-PCMCI installation
 ```shell
-# pip install causalflow
-coming soon
+# Coming soon: pip install causalflow
 ```
 
 

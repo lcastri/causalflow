@@ -358,5 +358,4 @@ results/
 old_scripts/
 
 *.csv
-*.txt
 *.Rhistory
