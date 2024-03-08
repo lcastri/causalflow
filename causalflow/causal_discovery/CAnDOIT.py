@@ -212,8 +212,8 @@ class CAnDOIT(CausalDiscoveryMethod):
             self.CM = self.run_validator(link_assumptions)
                    
             # list of selected features based on validator dependencies
-            if remove_unneeded: self.CM.remove_unneeded_features()
             if self.exclude_context: self.CM.remove_context()
+            if remove_unneeded: self.CM.remove_unneeded_features()
             
             # Print and save final causal model
             if not nofilter: self.__print_differences(f_dag, self.CM)
