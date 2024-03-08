@@ -27,11 +27,28 @@ class tsFCI(CausalDiscoveryMethod):
                  alpha = 0.05, 
                  resfolder = None,
                  neglect_only_autodep = False,):
-        
+        """
+        tsFCI class constructor
+
+        Args:
+            data (Data): data to analyse
+            min_lag (int): minimum time lag
+            max_lag (int): maximum time lag
+            verbosity (CPLevel): verbosity level
+            alpha (float, optional): PCMCI significance level. Defaults to 0.05.
+            resfolder (string, optional): result folder to create. Defaults to None.
+            neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+        """
         super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
                 
     
     def run(self) -> DAG:
+        """
+        Run causal discovery algorithm
+
+        Returns:
+            (DAG): estimated causal model
+        """
         # Remove all arguments from directory
         dir_path = os.path.dirname(os.path.realpath(__file__))
         Path(dir_path + "/args").mkdir(exist_ok=True)
@@ -56,7 +73,7 @@ class tsFCI(CausalDiscoveryMethod):
         print(output.decode('utf-8'))
         if p.returncode == 0:
             g_df = pd.read_csv(dir_path + "/results/result.csv", header=0, index_col=0)
-            g_dict = self.ts_fci_dataframe_to_dict(g_df, self.data.features, self.max_lag)
+            g_dict = self._ts_fci_dataframe_to_dict(g_df, self.data.features, self.max_lag)
             self.CM = self._to_DAG(g_dict)
             utils.clean(dir_path)
             return self.CM
@@ -87,7 +104,18 @@ class tsFCI(CausalDiscoveryMethod):
 
 
 
-    def ts_fci_dataframe_to_dict(self, df, names, nlags):
+    def _ts_fci_dataframe_to_dict(self, df, names, nlags):
+        """
+        _summary_
+
+        Args:
+            df (DataFrame): dataframe describing graph 
+            names (list(str)): variables list
+            nlags (int): max time delay
+
+        Returns:
+            dict: Dictionary describing the causal model
+        """
         # todo: check if its correct
         for i in range(df.shape[1]):
             for j in range(i+1, df.shape[1]):

@@ -15,6 +15,12 @@ class SubsamplingMethod(ABC):
     SubsamplingMethod abstract class
     """
     def __init__(self, ssmode: SSMode):
+        """
+        SubsamplingMethod Abstract class constructor
+
+        Args:
+            ssmode (SSMode): subsampling method
+        """
         self.ssmode = ssmode
         self.df = None
 
@@ -24,7 +30,7 @@ class SubsamplingMethod(ABC):
         Initialise class by setting the dataframe to subsample
 
         Args:
-            dataframe (pd.DataFrame): _description_
+            dataframe (pd.DataFrame): dataframe to subsample
         """
         self.df = dataframe
 

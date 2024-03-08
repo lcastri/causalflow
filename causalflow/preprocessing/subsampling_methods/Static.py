@@ -21,4 +21,10 @@ class Static(SubsamplingMethod):
         self.step = step
 
     def run(self):
+        """
+        subsampler run method 
+
+        Returns:
+            (list[int]): indexes of the remaining samples
+        """
         return range(0, len(self.df.values), self.step)

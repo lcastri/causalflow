@@ -41,11 +41,11 @@ class RandomDAG:
             operators (list, optional): list of possible operators between variables. Defaults to ['+', '-', '*'].
             functions (list, optional): list of possible functions. Defaults to ['','sin', 'cos', 'exp', 'abs', 'pow'].
             n_hidden_confounders (int, optional): Number of hidden confounders. Defaults to 0.
+            n_confounded (int, optional): Number of confounded variables by each hidden confounder. Defaults to None.
 
         Raises:
             ValueError: max_exp cannot be None if functions list contains pow
         """
-        
         if 'pow' in functions and max_exp is None:
             raise ValueError('max_exp cannot be None if functions list contains pow')
                
@@ -83,7 +83,7 @@ class RandomDAG:
         Complete set of variables (observed and hidden)
 
         Returns:
-            list: complete set of variables
+            list(str): complete set of variables
         """
         return self.obsVar + self.hiddenVar 
     
@@ -282,7 +282,7 @@ class RandomDAG:
     
     def __handle_priority_operator(self, eq):
         """
-        Evaluates all the terms with operato * ans /
+        Evaluates all the terms with operator * and /
 
         Args:
             eq (list): equation (list of term)
@@ -320,6 +320,7 @@ class RandomDAG:
         Args:
             equation (list): equation (list of term)
             t (int): time step
+            data (numpy.ndarray): time-series data needed for past dependecies
 
         Returns:
             float: equation value
@@ -402,6 +403,9 @@ class RandomDAG:
         """
         Outputs the Structural Causal Model
 
+        Args:
+            withHidden (bool, optional): bit to decide whether to output the SCM including the hidden variables or not. Defaults to False.
+
         Returns:
             dict: scm
         """
@@ -442,6 +446,13 @@ class RandomDAG:
     
     
     def ts_dag(self, withHidden = False, save_name = None):
+        """
+        Draws a Time-seris DAG
+
+        Args:
+            withHidden (bool, optional): bit to decide whether to output the SCM including the hidden variables or not. Defaults to False.
+            save_name (str, optional): figure path. Defaults to None.
+        """
         gt = self.get_SCM(withHidden)
         var = self.variables if withHidden else self.obsVar
         g = DAG(var, self.min_lag, self.max_lag, False, gt)

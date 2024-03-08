@@ -19,7 +19,7 @@ class CAnDOIT(CausalDiscoveryMethod):
 
     CAnDOIT is a causal discovery method that uses observational and interventional data to reconstruct 
     causal models from large-scale time series datasets.
-    Starting from a Data object and it selects the main features responsible for the
+    Starting from a Data object, it selects the main features responsible for the
     evolution of the analysed system. Based on the selected features, the framework outputs a causal model.
     It extends F-PCMCI by introducing the possibility to perform the causal analysis using 
     observational and interventional data.
@@ -53,6 +53,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             exclude_context (bool, optional): Bit for neglecting context variables. Defaults to False.
+            plot_data (bool, optional): Bit for plotting obs and int data. Defaults to False.
         """
         if min_lag == 0: min_lag = 1
         self.obs_data = observation_data
@@ -132,6 +133,16 @@ class CAnDOIT(CausalDiscoveryMethod):
     
     
     def _change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
+        """
+        Copies the score and pval values from a DAG to another
+
+        Args:
+            orig_cm (DAG): original DAG
+            dest_cm (DAG): destination DAG
+
+        Returns:
+            DAG: destination DAG with score and pval values changed
+        """
         for t in dest_cm.g:
             if dest_cm.g[t].is_autodependent:
                 for s in dest_cm.g[t].autodependency_links:
@@ -143,11 +154,14 @@ class CAnDOIT(CausalDiscoveryMethod):
     def run(self, remove_unneeded = True, nofilter = False) -> DAG:
         """
         Run CAnDOIT
-        
+
+        Args:
+            remove_unneeded (bool, optional): Bit to remove variable discarded by the feature selection module. Defaults to True.
+            nofilter (bool, optional): Bit to enable/disable the feature selection module. Defaults to False.
+
         Returns:
             DAG: causal model
         """
-        
         if not self.isThereInterv:
             
             fpcmci = FPCMCI(self.obs_data,

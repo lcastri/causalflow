@@ -116,7 +116,6 @@ class Node():
 
         Returns:
             list: Returns list of autodependency links
-
         """
         autodep_links = list()
         if self.is_autodependent:

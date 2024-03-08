@@ -41,7 +41,7 @@ class WSDynamic(SubsamplingMethod, EntropyBasedMethod):
         Run subsampler
 
         Returns:
-            (list[int]): indexes of the remaining samples
+            (list(int)): indexes of the remaining samples
         """
         # build list of segment
         self.dataset_segmentation()

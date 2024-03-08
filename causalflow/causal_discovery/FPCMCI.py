@@ -76,6 +76,10 @@ class FPCMCI(CausalDiscoveryMethod):
         """
         Run F-PCMCI
         
+        Args:
+            remove_unneeded (bool, optional): Bit to remove variable discarded by the feature selection module. Defaults to True.
+            nofilter (bool, optional): Bit to enable/disable the feature selection module. Defaults to False.
+            
         Returns:
             DAG: causal model
         """

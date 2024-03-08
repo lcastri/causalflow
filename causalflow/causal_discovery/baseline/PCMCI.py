@@ -53,10 +53,6 @@ class PCMCI(CausalDiscoveryMethod):
         """
         Run causal discovery algorithm
 
-        Args:
-            data (Data): Data obj to analyse
-            link_assumptions (dict, optional): prior assumptions on causal model links. Defaults to None.
-
         Returns:
             (DAG): estimated causal model
         """

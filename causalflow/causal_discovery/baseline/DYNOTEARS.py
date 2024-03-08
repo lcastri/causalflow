@@ -15,10 +15,28 @@ class DYNOTEARS(CausalDiscoveryMethod):
                  alpha = 0.05, 
                  resfolder = None,
                  neglect_only_autodep = False,):
+        """
+        DYNOTEARS class constructor
+
+        Args:
+            data (Data): data to analyse
+            min_lag (int): minimum time lag
+            max_lag (int): maximum time lag
+            verbosity (CPLevel): verbosity level
+            alpha (float, optional): PCMCI significance level. Defaults to 0.05.
+            resfolder (string, optional): result folder to create. Defaults to None.
+            neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+        """
         
         super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
         
     def run(self) -> DAG:
+        """
+        Run DYNOTEARS algorithm
+
+        Returns:
+            DAG: causal discovery result
+        """
         graph_dict = dict()
         for name in self.data.features:
             graph_dict[name] = []

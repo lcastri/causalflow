@@ -8,6 +8,12 @@ class EntropyBasedMethod(ABC):
     EntropyBasedMethod abstract class
     """
     def __init__(self, threshold):
+        """
+        EntropyBasedMethod Abstract class constructor
+
+        Args:
+            threshold (float): entropy theshold for feature selection purpose
+        """
         self.windows = list()
         self.segments = list()
         self.threshold = threshold

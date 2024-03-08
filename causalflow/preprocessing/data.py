@@ -122,7 +122,12 @@ class Data():
                     
     def plot_timeseries(self, savefig = None):
         """
-        Plots timeseries data
+        Plots timeseries data. 
+        If savefig == None the figure is only shown
+        else the figure is saved using the provided path
+
+        Args:
+            savefig (str, optional): Figure path. Defaults to None.
         """
         # Create grid
         gs = gridspec.GridSpec(self.N, 1)

@@ -19,6 +19,17 @@ class TCDF(CausalDiscoveryMethod):
                  verbosity, 
                  resfolder = None,
                  neglect_only_autodep = False,):
+        """
+        TCDF class constructor
+
+        Args:
+            data (Data): data to analyse
+            min_lag (int): minimum time lag
+            max_lag (int): maximum time lag
+            verbosity (CPLevel): verbosity level
+            resfolder (string, optional): result folder to create. Defaults to None.
+            neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+        """
         
         super().__init__(data, min_lag, max_lag, verbosity, resfolder=resfolder, neglect_only_autodep=neglect_only_autodep)
 
@@ -30,6 +41,12 @@ class TCDF(CausalDiscoveryMethod):
             hidden_layers=0, 
             learning_rate=0.01,
             cuda=False) -> DAG:
+        """
+        Run causal discovery algorithm
+
+        Returns:
+            (DAG): estimated causal model
+        """
         
         # Remove all arguments from directory
         dir_path = os.path.dirname(os.path.realpath(__file__))
