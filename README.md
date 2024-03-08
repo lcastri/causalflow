@@ -16,8 +16,15 @@ Coming soon..
 Coming soon..
 
 ## Other Causal Discovery Algorithms
-Coming soon..
-<!-- To facilitate the use of -->
+Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmark purposes. As a consequence, CausalFLow provides a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series DAGs (DAGs which comprises the lag specification for each link). They are listed as follows:
+
+* [DYNOTEARS](https://arxiv.org/pdf/2002.00498.pdf) - from the [causalnex](https://github.com/mckinsey/causalnex) package;
+* [PCMCI](http://proceedings.mlr.press/v124/runge20a/runge20a.pdf) - from the [tigramite](https://github.com/jakobrunge/tigramite) package;
+* [TCDF](https://www.mdpi.com/2504-4990/1/1/19) - from the [causal_discovery_for_time_series](https://github.com/ckassaad/causal_discovery_for_time_series) package;
+* [tsFCI](https://www.researchgate.net/publication/268324455_On_Causal_Discovery_from_Time_Series_Data_using_FCI) - from the [causal_discovery_for_time_series](https://github.com/ckassaad/causal_discovery_for_time_series) package;
+* [VarLiNGAM](https://www.jmlr.org/papers/volume11/hyvarinen10a/hyvarinen10a.pdf) - from the [lingam](https://github.com/cdt15/lingam?tab=readme-ov-file) package;
+
+Some algorithms are imported from other languages such as R and Java and are then wrapped in Python. Having the majority of causal discovery methods integrated into a single framework, which handles various types of inputs and outputs causal models, can facilitate the use of these algorithms. 
 
 ## Citation
 Please consider citing the following papers depending on which method you use:
@@ -32,9 +39,7 @@ Please consider citing the following papers depending on which method you use:
     }
     ```
 * CAnDOIT:<br>
-    L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
-    CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series,<br>
-    Under review in Advanced Intelligent System.<br>
+    L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024). CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series, Under review in Advanced Intelligent System.<br>
 
 
 ## Requirements
@@ -58,7 +63,7 @@ Please consider citing the following papers depending on which method you use:
 
 Before installing the CausalFlow package, you need to install Java and the [IDTxl package](https://github.com/pwollstadt/IDTxl) used for the feature-selection process, following the guide described [here](https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements). Once complete, you can install the current release of `CausalFlow` with:
 ``` shell
-# Coming soon: pip install causalflow
+# COMING SOON: pip install causalflow
 ```
 
 For a complete installation Java - IDTxl - CausalFlow, follow the following procedure.
@@ -92,7 +97,7 @@ pip install -e .
 
 ### 3 - F-PCMCI installation
 ```shell
-# Coming soon: pip install causalflow
+# COMING SOON: pip install causalflow
 ```
 
 

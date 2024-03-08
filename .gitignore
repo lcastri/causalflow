@@ -357,5 +357,6 @@ results/
 .vscode
 old_scripts/
 
+/causalflow/causal_discovery/baseline/pkgs/R_packages/*/*.txt
 *.csv
 *.Rhistory

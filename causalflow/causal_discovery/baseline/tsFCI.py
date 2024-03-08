@@ -106,7 +106,7 @@ class tsFCI(CausalDiscoveryMethod):
 
     def _ts_fci_dataframe_to_dict(self, df, names, nlags):
         """
-        _summary_
+        Convert a causal graph saved in a dataframe into a dictionary
 
         Args:
             df (DataFrame): dataframe describing graph 
