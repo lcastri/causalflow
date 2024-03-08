@@ -1,18 +1,18 @@
 # CausalFlow: Causal Discovery Methods for Time-Series Data
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises two causal discovery methods recently released in the literature:
-* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> [F-PCMCI](https://github.com/lcastri/fpcmci) – Filtered-PCMCI
-* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT – CAusal Discovery with Observational and Interventional data from Time-series
+<div style="display: flex; align-items: center;"><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15" style="margin-right: 10px; margin-left: 10px;"> [F-PCMCI](https://github.com/lcastri/fpcmci) – Filtered-PCMCI</div>
+<div style="display: flex; align-items: center;"><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15" style="margin-right: 10px; margin-left: 10px;"> CAnDOIT – CAusal Discovery with Observational and Interventional data from Time-series</div>
 
 ## Useful links
 Coming soon..
 <!-- * [Documentation](https://lcastri.github.io/fpcmci/) -->
 <!-- * [Tutorials](https://github.com/lcastri/fpcmci/tree/main/tutorials) -->
 
-## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="25"> F-PCMCI
-Coming soon..
+## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="20"> F-PCMCI
+Extension of the state-of-the-art causal discovery method [PCMCI](https://github.com/jakobrunge/tigramite) augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and possible links between them which describe the observed process. Then, from the selected features and links, a causal model is built.
 
-## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="25"> CAnDOIT
+## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="20"> CAnDOIT
 Coming soon..
 
 ## Other Causal Discovery Algorithms
