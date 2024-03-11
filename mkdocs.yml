@@ -1,6 +1,6 @@
 site_name: CausalFlow
 site_author: 'Luca Castri'
-site_url: https://lcastri.github.io/howto
+site_url: https://lcastri.github.io/causalflow/howto
 
 theme:
   name: 'material'
@@ -42,3 +42,6 @@ nav:
   - Preprocessing: preprocessing.md
   - Subsampling: subsampling_method.md
   - Basics: basics.md
+
+# Specify the name of the branch to deploy to
+remote_branch: howto
