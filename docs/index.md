@@ -2,14 +2,14 @@
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises two causal discovery methods recently released in the literature:
 
-<div align="center">
+<!-- <div style="text-align: center;"> -->
 
 |   |  Acronym        |       Full-name             |
 |:-:|-----------------|-----------------------------|
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | [F-PCMCI](https://github.com/lcastri/fpcmci) | Filtered-PCMCI |
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> | CAnDOIT | CAusal Discovery with Observational and Interventional data from Time-series |
 
-</div>
+<!-- </div> -->
 
 ## Useful links
 Coming soon..
@@ -114,7 +114,7 @@ Although the main contribution of this repository is to present the CAnDOIT and 
 
 Some algorithms are imported from other languages such as R and Java and are then wrapped in Python. Having the majority of causal discovery methods integrated into a single framework, which handles various types of inputs and outputs causal models, can facilitate the use of these algorithms. 
 
-<div align="center">
+<!-- <div style="text-align: center;"> -->
 
 |   |  Algorithm        | Feature Selection | Observations | Interventions |
 |:-:|:-----------------|:-----------------:|:------------:|:-------------:|
@@ -126,7 +126,7 @@ Some algorithms are imported from other languages such as R and Java and are the
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | F-PCMCI | &check; | &check; | &cross; |
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> | CAnDOIT | &check; | &check; | &check; |
 
-</div>
+<!-- </div> -->
 
 ## Citation
 Please consider citing the following papers depending on which method you use:
