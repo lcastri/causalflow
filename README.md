@@ -1,4 +1,4 @@
-# CausalFlow: Causal Discovery Methods with Observational and Interventional Data from Time-series
+# <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="35"> CausalFlow: Causal Discovery Methods with Observational and Interventional Data from Time-series
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises two causal discovery methods recently released in the literature:
 
@@ -122,7 +122,8 @@ Some algorithms are imported from other languages such as R and Java and are the
 
 ## Citation
 Please consider citing the following papers depending on which method you use:
-* F-PCMCI:<br>
+
+* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
     L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023). [Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios](https://arxiv.org/abs/2302.10135), Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
     ```
     @inproceedings{castri2023fpcmci,
@@ -132,7 +133,8 @@ Please consider citing the following papers depending on which method you use:
         year={2023},
     }
     ```
-* CAnDOIT:<br>
+
+* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
     L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024). CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series, Under review in Advanced Intelligent System.<br>
 
 
@@ -155,7 +157,7 @@ Please consider citing the following papers depending on which method you use:
 
 ## Installation
 
-Before installing the CausalFlow package, you need to install Java and the [IDTxl package](https://github.com/pwollstadt/IDTxl) used for the feature-selection process, following the guide described [here](https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements). Once complete, you can install the current release of `CausalFlow` with:
+Before installing CausalFlow, you need to install Java and the [IDTxl package](https://github.com/pwollstadt/IDTxl) used for the feature-selection process, following the guide described [here](https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements). Once complete, you can install the current release of `CausalFlow` with:
 ``` shell
 # COMING SOON: pip install causalflow
 ```
@@ -189,7 +191,7 @@ cd IDTxl
 pip install -e .
 ```
 
-### 3 - F-PCMCI installation
+### 3 - CausalFlow installation
 ```shell
 # COMING SOON: pip install causalflow
 ```

@@ -89,7 +89,7 @@ class RandomDAG:
     
     
     @property            
-    def Nobs(self):
+    def Nobs(self) -> int:
         """
         Number of observable variables
 
@@ -100,7 +100,7 @@ class RandomDAG:
     
          
     @property            
-    def N(self):
+    def N(self) -> int:
         """
         Total number of variables (observed and hidden)
 
@@ -111,7 +111,7 @@ class RandomDAG:
     
     
     @property
-    def obsEquations(self):
+    def obsEquations(self) -> dict:
         """
         Equations corresponding to the observed variables
 
@@ -123,7 +123,7 @@ class RandomDAG:
         return tmp
     
                 
-    def __build_equation(self, var_choice: list):
+    def __build_equation(self, var_choice: list) -> list:
         """
         Generates random equations
 
@@ -252,7 +252,7 @@ class RandomDAG:
         return eq
             
             
-    def __evaluate_term(self, term, t, data):
+    def __evaluate_term(self, term, t, data) -> tuple:
         """
         Evaluates single term componing an equation
 
@@ -280,7 +280,7 @@ class RandomDAG:
         return operator, term_value
     
     
-    def __handle_priority_operator(self, eq):
+    def __handle_priority_operator(self, eq) -> list:
         """
         Evaluates all the terms with operator * and /
 
@@ -313,7 +313,7 @@ class RandomDAG:
         return eq
      
 
-    def __evaluate_equation(self, equation, t, data):
+    def __evaluate_equation(self, equation, t, data) -> float:
         """
         Evaluates equation
 
@@ -346,7 +346,7 @@ class RandomDAG:
         return equation_value
 
 
-    def gen_obs_ts(self):
+    def gen_obs_ts(self) -> Data:
         """
         Generates time-series data
 
@@ -364,7 +364,7 @@ class RandomDAG:
         return data
     
     
-    def gen_interv_ts(self, interventions):
+    def gen_interv_ts(self, interventions) -> Data:
         """
         Generates time-series corresponding to intervention(s)
 
@@ -399,7 +399,7 @@ class RandomDAG:
         return int_data
     
     
-    def get_SCM(self, withHidden = False):
+    def get_SCM(self, withHidden = False) -> dict:
         """
         Outputs the Structural Causal Model
 
@@ -430,7 +430,7 @@ class RandomDAG:
         for t in scm: print(t + ' : ' + str(scm[t]))    
           
         
-    def intervene(self, int_var, int_len, int_value):
+    def intervene(self, int_var, int_len, int_value) -> Data:
         """
         Generates intervention on a single variable
 
@@ -495,7 +495,7 @@ class RandomDAG:
         g.ts_dag(self.max_lag, save_name = save_name, node_color = node_color, edge_color = edge_color)
         
         
-    def get_TP(self, cm):
+    def get_TP(self, cm) -> int:
         """
         True positive number:
         edge present in the causal model 
@@ -515,7 +515,7 @@ class RandomDAG:
         return counter
 
 
-    def get_TN(self, cm):
+    def get_TN(self, cm) -> int:
         """
         True negative number:
         edge absent in the groundtruth 
@@ -546,7 +546,7 @@ class RandomDAG:
         return counter
     
     
-    def get_FP(self, cm):
+    def get_FP(self, cm) -> int:
         """
         False positive number:
         edge present in the causal model 
@@ -566,7 +566,7 @@ class RandomDAG:
         return counter
 
 
-    def get_FN(self, cm):
+    def get_FN(self, cm) -> int:
         """
         False negative number:
         edge present in the groundtruth 
@@ -586,7 +586,7 @@ class RandomDAG:
         return counter
     
     
-    def shd(self, cm):
+    def shd(self, cm) -> int:
         """
         Computes Structural Hamming Distance between ground-truth causal graph and the estimated one
 
@@ -601,7 +601,7 @@ class RandomDAG:
         return fn + fp
 
 
-    def precision(self, cm):
+    def precision(self, cm) -> float:
         """
         Computes Precision between ground-truth causal graph and the estimated one
 
@@ -617,7 +617,7 @@ class RandomDAG:
         return tp/(tp + fp)
 
         
-    def recall(self, cm):
+    def recall(self, cm) -> float:
         """
         Computes Recall between ground-truth causal graph and the estimated one
 
@@ -633,7 +633,7 @@ class RandomDAG:
         return tp/(tp + fn)
 
 
-    def f1_score(self, cm):
+    def f1_score(self, cm) -> float:
         """
         Computes F1-score between ground-truth causal graph and the estimated one
 
@@ -649,7 +649,7 @@ class RandomDAG:
         return (2 * p * r) / (p + r)
     
     
-    def FPR(self, cm):
+    def FPR(self, cm) -> float:
         """
         Computes False Positve Rate between ground-truth causal graph and the estimated one
 

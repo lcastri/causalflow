@@ -79,7 +79,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         CP.info("Selection method: " + sel_method.name)
     
     @property    
-    def isThereInterv(self):
+    def isThereInterv(self) -> bool:
         """
         is there an intervention?
 
@@ -99,7 +99,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         self.CM = self.sel_method.compute_dependencies()
         
     
-    def run_validator(self, link_assumptions = None):
+    def run_validator(self, link_assumptions = None) -> DAG:
         """
         Runs Validator (PCMCI)
 
@@ -262,8 +262,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         Print difference between old and new dependencies
 
         Args:
-            old_dep (DAG): old dag
-            new_dep (DAG): new dag
+            old_dag (DAG): old dag
+            new_dag (DAG): new dag
         """
         # Check difference(s) between validator and filter dependencies
         list_diffs = list()
