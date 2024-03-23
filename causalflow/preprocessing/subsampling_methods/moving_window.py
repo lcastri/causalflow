@@ -4,11 +4,18 @@ from scipy.stats import entropy
 
 class MovingWindow:
     def __init__(self, window):
+        """
+        Moving Windos class constructor
+
+        Args:
+            window (int): window size (number of samples)
+        """
         self.window = window
         self.T, self.dim = window.shape
         self.entropy = None
         self.opt_size = None
         self.opt_samples_index = None
+
 
     def get_pdf(self):
         """
@@ -43,12 +50,11 @@ class MovingWindow:
         """
         Select sample to be taken from a moving window
 
-
         Args:
             step (int): subsampling frequency
 
         Returns:
-            list[int]: list of indexes corresponding to the sample to be taken
+            list(int): list of indexes corresponding to the sample to be taken
         """
         return [i for i in range(0, self.T, step)]
 
@@ -56,7 +62,6 @@ class MovingWindow:
     def optimal_sampling(self, thres):
         """
         Find the optimal number of sample for a particular moving window
-
 
         Args:
             thres (float): stopping criteria threshold

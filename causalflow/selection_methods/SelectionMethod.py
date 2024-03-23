@@ -30,6 +30,12 @@ class SelectionMethod(ABC):
     SelectionMethod abstract class
     """
     def __init__(self, ctest):
+        """
+        SelectionMethod Abstract class constructor
+
+        Args:
+            ctest (CTest): Feature selection method
+        """
         self.ctest = ctest
         self.data = None
         self.alpha = None
@@ -79,7 +85,7 @@ class SelectionMethod(ABC):
         prepare the dataframe to the analysis
 
         Args:
-            target (str): name target var
+            target (str): target var name
             lag (int): lag time to apply
             apply_lag (bool, optional): True if you want to apply the lag, False otherwise. Defaults to True.
 

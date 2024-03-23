@@ -17,11 +17,28 @@ class VarLiNGAM(CausalDiscoveryMethod):
                  alpha = 0.05, 
                  resfolder = None,
                  neglect_only_autodep = False):
-        
+        """
+        VarLiNGAM class constructor
+
+        Args:
+            data (Data): data to analyse
+            min_lag (int): minimum time lag
+            max_lag (int): maximum time lag
+            verbosity (CPLevel): verbosity level
+            alpha (float, optional): PCMCI significance level. Defaults to 0.05.
+            resfolder (string, optional): result folder to create. Defaults to None.
+            neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+        """
         super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
 
 
     def run(self) -> DAG:
+        """
+        Run causal discovery algorithm
+
+        Returns:
+            (DAG): estimated causal model
+        """
         split_by_causal_effect_sign = True
 
         model = VARLiNGAM(lags = self.max_lag, criterion='bic', prune=True)

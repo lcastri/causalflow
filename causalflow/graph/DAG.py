@@ -92,6 +92,7 @@ class DAG():
             score (float): dependency score
             pval (float): dependency p-value
             lag (int): dependency lag
+            mode (LinkType, optional): link type. Default LinkType.Directed -->
         """
         self.g[t].sources[(s, abs(lag))] = {SCORE: score, PVAL: pval, TYPE: mode}
         self.g[s].children.append(t)
@@ -117,7 +118,7 @@ class DAG():
         tmp = copy.deepcopy(self.g)
         for t in self.g.keys():
             if self.g[t].is_isolated: 
-                if self.g[t].intervention_node: del tmp[self.g[t].associated_context] # FIXME: last edit to be tested
+                if self.g[t].intervention_node: del tmp[self.g[t].associated_context]
                 del tmp[t]
         self.g = tmp
             
@@ -265,6 +266,7 @@ class DAG():
             font_size (int, optional): font size. Defaults to 12.
             label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+            img_extention (ImageExt, optional): Image extention. Default ImageExt.PNG.
         """
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
@@ -389,6 +391,7 @@ class DAG():
             edge_color (str, optional): edge color. Defaults to 'grey'.
             font_size (int, optional): font size. Defaults to 12.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+            img_extention (ImageExt, optional): Image extention. Default ImageExt.PNG.
         """
         
         r = copy.deepcopy(self)

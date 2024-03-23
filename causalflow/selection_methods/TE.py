@@ -32,7 +32,7 @@ class TE(SelectionMethod):
         compute list of dependencies for each target by transfer entropy analysis
 
         Returns:
-            (dict): dictonary(TARGET: list SOURCES)
+            (DAG): dependency dag
         """
         multi_network_analysis = MultivariateTE()
         bi_network_analysis = BivariateMI()

@@ -24,6 +24,8 @@ class myPCMCI():
             max_lag (int): maximum time lag
             val_condtest (CondIndTest): validation method
             verbosity (CPLevel): verbosity level
+            sys_context (dict, optional): Dictionary describing system-context variable association. Defaults to empty dictionary.
+            neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
         """
         self.alpha = alpha
         self.min_lag = min_lag
@@ -112,13 +114,12 @@ class myPCMCI():
         return self.__PC_to_DAG(parents, data.features)
     
     
-    def __my_mci(self, autodep_dag: DAG):#, link_assumptions=None, parents=None):
+    def __my_mci(self, autodep_dag: DAG):
         """
         Performs MCI test
 
         Args:
-            link_assumptions (dict, optional): link assumptions. Defaults to None.
-            parents (dict, optional): parents dictionary. Defaults to None.
+            autodep_dag (DAG): DAG for autodependency analysis 
 
         Returns:
             (dict): MCI result
@@ -268,8 +269,7 @@ class myPCMCI():
 
         Args:
             data (Data): Data obj to analyse
-            link_assumptions (dict): prior assumptions on causal model links. Defaults to None.
-            parents (dict): causal structure
+            autodep_dag (DAG): DAG for autodependency analysis 
 
         Returns:
             (DAG): estimated causal model
@@ -335,19 +335,8 @@ class myPCMCI():
         N, lags = self.result['graph'][0].shape
         for s in range(len(self.result['graph'])):
             for t in range(N):
-                for lag in range(lags):
-                    # if self.result['graph'][s][t,lag] == '-->':
-                    #     if vars[t] in self.sys_context.keys() and vars[s] == self.sys_context[vars[t]]:
-                    #         tmp_dag.g[vars[t]].intervention_node = True
-                    #         tmp_dag.g[vars[t]].associated_context = vars[s]
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag)
-                        
-                        
-                    #         for lag in range(lags):
+                for lag in range(lags):             
+                    
                     if self.result['graph'][s][t,lag] == LinkType.Directed.value:
                         tmp_dag.add_source(vars[t], 
                                            vars[s],

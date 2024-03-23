@@ -63,7 +63,7 @@ class WSFFTStatic(SubsamplingMethod, EntropyBasedMethod):
         Run subsampler
 
         Returns:
-            (list[int]): indexes of the remaining samples
+            (list(int)): indexes of the remaining samples
         """
         # define window size
         self.ws = self.__fourier_window()

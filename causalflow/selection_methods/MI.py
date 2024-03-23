@@ -27,7 +27,7 @@ class MI(SelectionMethod):
         compute list of dependencies for each target by mutual information analysis
 
         Returns:
-            (dict): dictonary(TARGET: list SOURCES)
+            (DAG): dependency dag
         """
         with _suppress_stdout():
             data = Data(self.d.values, dim_order='sp') # sp = samples(row) x processes(col)

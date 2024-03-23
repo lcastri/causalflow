@@ -1,5 +1,6 @@
-site_name: FPCMCI
+site_name: CausalFlow
 site_author: 'Luca Castri'
+site_url: https://lcastri.github.io/causalflow/howto
 
 theme:
   name: 'material'
@@ -23,8 +24,8 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
 
-  logo: assets/logo.png
-  favicon: assets/icon.png
+  logo: assets/causalflow_logo.png
+  favicon: assets/causalflow_icon.png
 
 
 plugins:
@@ -34,8 +35,13 @@ plugins:
 
 nav:
   - Overview: index.md
+  - CausalFlow: causalflow.md
+  - Causal Graph: graph.md
+  - Feature Selection Methods: feature_selection_method.md
+  - RandomDAG: random_system.md
   - Preprocessing: preprocessing.md
   - Subsampling: subsampling_method.md
-  - Feature Selection Methods: feature_selection_method.md
-  - FPCMCI: fpcmci.md
-  - Causal Graph: causal_graph.md
+  - Basics: basics.md
+
+# Specify the name of the branch to deploy to
+remote_branch: howto

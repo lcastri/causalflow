@@ -38,7 +38,6 @@ class CausalDiscoveryMethod(ABC):
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
 
         """
-        
         self.data = data
         self.alpha = alpha
         self.min_lag = min_lag
@@ -97,6 +96,7 @@ class CausalDiscoveryMethod(ABC):
             skip_autodep (bool, optional): skip autodependency border. Defaults to False.
             font_size (int, optional): font size. Defaults to 12.
             label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
+            save_name (str, optional): Filename path. If None, default path if resfolder is not None otherwiwe the plot is shown and not saved. Defaults to None.
             img_ext (ImageExt, optional): dag image extention (.png, .pdf, ..). Default ImageExt.PNG.
         """
         
@@ -147,6 +147,7 @@ class CausalDiscoveryMethod(ABC):
                                              Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
             font_size (int, optional): font size. Defaults to 12.
+            save_name (str, optional): Filename path. If None, default path if resfolder is not None otherwiwe the plot is shown and not saved. Defaults to None.
             img_ext (ImageExt, optional): dag image extention (.png, .pdf, ..). Default ImageExt.PNG.
         """
         

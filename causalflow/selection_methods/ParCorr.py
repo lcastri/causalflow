@@ -51,7 +51,7 @@ class ParCorr(SelectionMethod):
         compute list of dependencies for each target by partial correlation analysis
 
         Returns:
-            (dict): dictonary(TARGET: list SOURCES)
+            (DAG): dependency dag
         """
         CP.info("\n##")
         CP.info("## " + self.name + " analysis")

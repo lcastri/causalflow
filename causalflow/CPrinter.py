@@ -9,6 +9,9 @@ class CPLevel(Enum):
 
 class CPrinter():
     def __init__(self):
+        """
+        CPrinter class constructor
+        """
         self.verbosity = None
     
     def set_verbosity(self, verbosity: CPLevel):

@@ -351,12 +351,13 @@ MigrationBackup/
 *.egg-info/
 build/
 dist/
+site/
 
 # results
 results/
 .vscode
 old_scripts/
 
+/causalflow/causal_discovery/baseline/pkgs/R_packages/*/*.txt
 *.csv
-*.txt
 *.Rhistory
