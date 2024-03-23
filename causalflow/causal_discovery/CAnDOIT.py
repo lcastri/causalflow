@@ -55,6 +55,10 @@ class CAnDOIT(CausalDiscoveryMethod):
             exclude_context (bool, optional): Bit for neglecting context variables. Defaults to False.
             plot_data (bool, optional): Bit for plotting obs and int data. Defaults to False.
         """
+        
+        if len(intervention_data.keys()) > 1:
+            raise ValueError("The current version of CAnDOIT does not guarantee the faithfulness assumption with multiple interventions.")
+        
         if min_lag == 0: min_lag = 1
         self.obs_data = observation_data
         self.f_alpha = f_alpha
