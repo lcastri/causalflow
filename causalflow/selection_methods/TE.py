@@ -5,11 +5,15 @@ from idtxl.multivariate_te import MultivariateTE
 from idtxl.bivariate_mi import BivariateMI
 from idtxl.data import Data
 from causalflow.CPrinter import CP
+from scipy.stats import shapiro, kstest
+import importlib
 
 
 class TEestimator(Enum):
+    Auto = 'Auto'
     Gaussian = 'JidtGaussianCMI'
     Kraskov = 'JidtKraskovCMI'
+    OpenCLKraskov = 'OpenCLKraskovCMI'
 
 
 class TE(SelectionMethod):
@@ -25,6 +29,56 @@ class TE(SelectionMethod):
         """
         super().__init__(CTest.TE)
         self.estimator = estimator
+        
+    @property
+    def isOpenCLinstalled(self):
+        """
+        checks whether the pyopencl pkg is installed
+
+        Returns:
+            bool: True if pyopencl is installed
+        """
+        try:
+            importlib.import_module('pyopencl')
+            return True
+        except ImportError:
+            return False
+        
+    def _select_estimator(self):
+        """
+        selects the TE estimator
+        """
+        CP.info("\n##")
+        CP.info("## TE Estimator selection")
+        CP.info("##")
+
+        isGaussian = True
+
+        for f in self.data.features:
+            # Perform Shapiro-Wilk test
+            shapiro_stat, shapiro_p_value = shapiro(self.data.d[f])
+            # Perform Kolmogorov-Smirnov test
+            ks_stat, ks_p_value = kstest(self.data.d[f], 'norm')
+                
+            # Print results
+            CP.debug("\n")
+            CP.debug(f"Feature '{f}':")
+            CP.debug(f"\t- Shapiro-Wilk test: val={round(shapiro_stat, 2)}, p-val={round(shapiro_p_value, 2)}")
+            CP.debug(f"\t- Kolmogorov-Smirnov test: val={round(ks_stat, 2)}, p-val={round(ks_p_value, 2)}")
+                
+            # Check if p-values are less than significance level (e.g., 0.05) for normality
+            if shapiro_p_value < 0.05 or ks_p_value < 0.05:
+                CP.debug("\tNot normally distributed")
+                isGaussian = False
+                # break
+            else:
+                CP.debug("\tNormally distributed")
+                
+        if isGaussian:
+            self.estimator = TEestimator.Gaussian
+        else:
+            self.estimator = TEestimator.OpenCLKraskov if self.isOpenCLinstalled else TEestimator.Kraskov
+        CP.info("\n## TE Estimator: " + self.estimator.value)
 
 
     def compute_dependencies(self):
@@ -34,6 +88,8 @@ class TE(SelectionMethod):
         Returns:
             (DAG): dependency dag
         """
+        if self.estimator is TEestimator.Auto: self._select_estimator()
+
         multi_network_analysis = MultivariateTE()
         bi_network_analysis = BivariateMI()
         settings = {'cmi_estimator': self.estimator.value,
