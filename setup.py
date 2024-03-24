@@ -19,6 +19,7 @@ INSTALL_REQUIRES = ["pandas>=1.5.2",
                     "causalnex>=0.12.1",
                     "lingam>=1.8.2",
                     "tigramite>=5.1.0.3",
+                    "pyopencl>=2024.1",
                     ]
 
 setup(
