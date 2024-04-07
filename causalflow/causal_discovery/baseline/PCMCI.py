@@ -21,7 +21,8 @@ class PCMCI(CausalDiscoveryMethod):
                  pc_alpha = 0.05, 
                  alpha = 0.05, 
                  resfolder = None, 
-                 neglect_only_autodep = False):
+                 neglect_only_autodep = False,
+                 clean_cls = True):
         """
         PCMCI class constructor
 
@@ -35,8 +36,9 @@ class PCMCI(CausalDiscoveryMethod):
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+            clean_cls (bool): Clean console bit. Default to True.
         """
-        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
         self.pc_alpha = pc_alpha
         
         # build tigramite dataset
@@ -67,6 +69,8 @@ class PCMCI(CausalDiscoveryMethod):
                                            pc_alpha = self.pc_alpha)
         
         self.CM = self._to_DAG()
+        
+        if self.resfolder is not None: self.logger.close()
         return self.CM
     
     

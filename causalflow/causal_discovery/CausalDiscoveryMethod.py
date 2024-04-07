@@ -24,7 +24,8 @@ class CausalDiscoveryMethod(ABC):
                  verbosity: CPLevel, 
                  alpha = 0.05, 
                  resfolder = None,
-                 neglect_only_autodep = False):
+                 neglect_only_autodep = False,
+                 clean_cls = True,):
         """
         CausalDiscoveryMethod class contructor
 
@@ -36,7 +37,7 @@ class CausalDiscoveryMethod(ABC):
             alpha (float, optional): significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
-
+            clean_cls (bool): Clean console bit. Default to True.
         """
         self.data = data
         self.alpha = alpha
@@ -49,7 +50,8 @@ class CausalDiscoveryMethod(ABC):
         self.respath, self.dag_path, self.ts_dag_path = None, None, None
         if resfolder is not None:
             logpath, self.respath, self.dag_path, self.ts_dag_path = utils.get_selectorpath(resfolder)  
-            sys.stdout = Logger(logpath)
+            self.logger = Logger(logpath, clean_cls)
+            sys.stdout = self.logger
         
         CP.set_verbosity(verbosity)
 

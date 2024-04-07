@@ -30,7 +30,8 @@ class FPCMCI(CausalDiscoveryMethod):
                  f_alpha = 0.05, 
                  alpha = 0.05, 
                  resfolder = None,
-                 neglect_only_autodep = False):
+                 neglect_only_autodep = False,
+                 clean_cls = True):
         """
         F-PCMCI class contructor
 
@@ -45,9 +46,10 @@ class FPCMCI(CausalDiscoveryMethod):
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+            clean_cls (bool): Clean console bit. Default to True.
         """
         if min_lag == 0: min_lag = 1
-        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
         
         self.f_alpha = f_alpha
         self.sel_method = sel_method
@@ -112,6 +114,7 @@ class FPCMCI(CausalDiscoveryMethod):
         if not nofilter: self._print_differences(f_dag, self.CM)
         self.save()
         
+        if self.resfolder is not None: self.logger.close()
         return self.CM
               
     

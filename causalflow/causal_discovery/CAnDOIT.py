@@ -1,5 +1,6 @@
 import copy
 import pickle
+import sys
 import numpy as np
 import pandas as pd
 from tigramite.independence_tests.independence_tests_base import CondIndTest
@@ -36,7 +37,8 @@ class CAnDOIT(CausalDiscoveryMethod):
                  resfolder = None,
                  neglect_only_autodep = False,
                  exclude_context = True,
-                 plot_data = False):
+                 plot_data = False,
+                 clean_cls = True):
         """
         CAnDOIT class contructor
 
@@ -54,6 +56,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             exclude_context (bool, optional): Bit for neglecting context variables. Defaults to False.
             plot_data (bool, optional): Bit for plotting obs and int data. Defaults to False.
+            clean_cls (bool): Clean console bit. Default to True.
         """
         
         if len(intervention_data.keys()) > 1:
@@ -65,7 +68,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         self.sel_method = sel_method
         self.val_condtest = val_condtest
         self.exclude_context = exclude_context
-        super().__init__(self.obs_data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(self.obs_data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
         
         # Create filter and validator data
         self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
@@ -223,6 +226,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             if not nofilter: self.__print_differences(f_dag, self.CM)
             self.save()
             
+        if self.resfolder is not None: self.logger.close()
         return self.CM
             
     

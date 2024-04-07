@@ -54,11 +54,12 @@ if __name__ == '__main__':
                         val_condtest = GPDC(significance = 'analytic', gp_params = None),
                         verbosity = CPLevel.DEBUG,
                         neglect_only_autodep = True,
-                        plot_data = False,
-                        exclude_context = True)
+                        plot_data = True,
+                        exclude_context = True,
+                        resfolder='results/log')
     
     new_start = time()
-    cm = candoit.run(nofilter=True)
+    cm = candoit.run()
     elapsed_candoit = time() - new_start
     print(str(timedelta(seconds = elapsed_candoit)))
     candoit.dag(label_type = LabelType.Lag, node_layout = 'dot')

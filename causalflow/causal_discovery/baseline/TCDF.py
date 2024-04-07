@@ -18,7 +18,8 @@ class TCDF(CausalDiscoveryMethod):
                  max_lag, 
                  verbosity, 
                  resfolder = None,
-                 neglect_only_autodep = False,):
+                 neglect_only_autodep = False,
+                 clean_cls = True):
         """
         TCDF class constructor
 
@@ -29,9 +30,10 @@ class TCDF(CausalDiscoveryMethod):
             verbosity (CPLevel): verbosity level
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+            clean_cls (bool): Clean console bit. Default to True.
         """
         
-        super().__init__(data, min_lag, max_lag, verbosity, resfolder=resfolder, neglect_only_autodep=neglect_only_autodep)
+        super().__init__(data, min_lag, max_lag, verbosity, resfolder=resfolder, neglect_only_autodep=neglect_only_autodep, clean_cls=clean_cls)
 
 
     def run(self, 
@@ -88,6 +90,8 @@ class TCDF(CausalDiscoveryMethod):
                 g_dict[key] = key_list
             utils.clean(dir_path)
             self.CM = self._to_DAG(g_dict)
+            
+            if self.resfolder is not None: self.logger.close()
             return self.CM
         else:
             utils.clean(dir_path)

@@ -14,7 +14,8 @@ class DYNOTEARS(CausalDiscoveryMethod):
                  verbosity, 
                  alpha = 0.05, 
                  resfolder = None,
-                 neglect_only_autodep = False,):
+                 neglect_only_autodep = False,
+                 clean_cls = True):
         """
         DYNOTEARS class constructor
 
@@ -26,9 +27,10 @@ class DYNOTEARS(CausalDiscoveryMethod):
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+            clean_cls (bool): Clean console bit. Default to True.
         """
         
-        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
         
     def run(self) -> DAG:
         """
@@ -63,6 +65,8 @@ class DYNOTEARS(CausalDiscoveryMethod):
                 graph_dict[tname_to_name_dict[e]].append((tname_to_name_dict[c], w, -t))
 
         self.CM = self._to_DAG(graph_dict)
+        
+        if self.resfolder is not None: self.logger.close()
         return self.CM
     
     

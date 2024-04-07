@@ -16,7 +16,8 @@ class VarLiNGAM(CausalDiscoveryMethod):
                  verbosity, 
                  alpha = 0.05, 
                  resfolder = None,
-                 neglect_only_autodep = False):
+                 neglect_only_autodep = False,
+                 clean_cls = True):
         """
         VarLiNGAM class constructor
 
@@ -28,8 +29,9 @@ class VarLiNGAM(CausalDiscoveryMethod):
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
+            clean_cls (bool): Clean console bit. Default to True.
         """
-        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
 
 
     def run(self) -> DAG:
@@ -68,6 +70,8 @@ class VarLiNGAM(CausalDiscoveryMethod):
                     t = te//dag.shape[0]
                     res_dict[names[e]].append((names[c], -t))
         self.CM = self._to_DAG(res_dict)
+        
+        if self.resfolder is not None: self.logger.close()
         return self.CM
     
     def _to_DAG(self, graph):
