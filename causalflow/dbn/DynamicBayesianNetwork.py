@@ -81,7 +81,9 @@ class DynamicBayesianNetwork():
     
     
     
-    # FIXME: need to understand how to model this
+    # FIXME: need to understand how to model this. I think I need to create a new Desity for
+    # the intervention variable (no longer with parents!) and add the interventional dataset
+    # to the dataset self.data (obs + int) for all the other variables
     def addInterventionData(self, target: str, data: Data):
         """
         _summary_
