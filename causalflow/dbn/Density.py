@@ -46,6 +46,13 @@ class Density():
                 self.cond_density = self.MarginalDensity()
 
         return self.cond_density
+    
+    
+    def ComputeDensity(self):
+        if self.parents is not None:
+            self.ConditionalDensity()
+        else:
+            self.MarginalDensity()
 
 
     def ParentMarginalDensity(self):
