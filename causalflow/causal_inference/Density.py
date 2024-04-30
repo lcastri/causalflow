@@ -1,6 +1,6 @@
 from copy import deepcopy
 from matplotlib import pyplot as plt
-from causalflow.dbn.Process import Process
+from causalflow.causal_inference.Process import Process
 from typing import Dict
 import numpy as np
 from sklearn.model_selection import GridSearchCV
