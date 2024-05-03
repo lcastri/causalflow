@@ -65,3 +65,6 @@ for t in range(max_lag, T):
 
 dfA_obs = Data(dB_obs)
 dfA_obs.plot_timeseries()
+
+cie = CIE(CM, dfA_obs)
+cie.whatHappensTo("X_1").If("X_2", 5)

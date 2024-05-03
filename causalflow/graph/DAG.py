@@ -194,7 +194,7 @@ class DAG():
         Returns SCM
 
         Returns:
-            dict: SCM
+            dict: SCM. For example, {"X_0": [(X_0, -1), (X_1, -2)], "X_1": [], ...}
         """
         scm = {v: list() for v in self.features}
         for t in self.g:
@@ -208,7 +208,7 @@ class DAG():
         Returns Parents dict
 
         Returns:
-            dict: Parents dict
+            dict: Parents dict. For example, {0: [(0, -1), (1, -2)], 1: [], ...}
         """
         scm = {self.features.index(v): list() for v in self.features}
         for t in self.g:
@@ -222,7 +222,7 @@ class DAG():
         Makes variables' names pretty, i.e. $ varname $
 
         Returns:
-            dict: pretty DAG
+            dict: pretty DAG. For example, X_0 -> $X_0$
         """
         pretty = dict()
         for t in self.g:
