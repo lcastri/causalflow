@@ -98,8 +98,7 @@ class CausalInferenceEngine():
             lag (int): lag time where the intervention is performed. If None, it is retrieved from the graph
         """
         
-        if lag is None: lag = self.get_lag(self.CE.DAG, treatment, self.outcome_var)
-        
+        if lag is None: lag = self.get_lag(self.CE.dag, treatment, self.outcome_var)
         
         # TODO: check if data for this intervention already exists
         if ('int_' + str(treatment)) in self.CE.Ds:
@@ -107,38 +106,50 @@ class CausalInferenceEngine():
             # TODO: apply the transportability formula to estimate the effect of the intervention on the desired population
             pass
         else:
-            adjset = self.get_adjset(self.CE.DAG, treatment, self.outcome_var, lag)
-            p_adj = 
-            p_y_xadj = 
-            # TODO: compute the adjustment set from the treatment variable to the outcome variable and compute the cause-effect by back/front-door criterion
+            # Select the adjustment set
+            adjset = self.get_adjset(self.CE.dag, treatment, self.outcome_var, lag)
+            
+            # Compute the adjustment density
+            p_adj = 1
+            for node in adjset: p_adj = p_adj * self.CE.dbn[node[0]].cond_density
+            
+            # Compute the P(outcome|treatment,adjustment) density
+            p_yxadj = self.CE.dbn[self.outcome_var].cond_density * self.CE.dbn[treatment].cond_density * p_adj
+            p_xadj = self.CE.dbn[treatment].cond_density * p_adj
+            p_y_given_xadj = p_yxadj / p_xadj
+            
+            # Compute the P(outcome|do(treatment)) density
+            # TODO: compute p_y_do_x for a particular value of X
+            p_y_do_x = np.sum(p_y_given_xadj * p_adj)
+            
             # TODO: once found the estimated cause-effect, use the transportability formula to estimate the effect of the intervention on the desired population 
-            pass
+            return p_y_do_x
             
     
 
             
-    def If(self, given_p: Dict[str, float]):
-        if self.parents is None: 
-            dens = self.MarginalDensity()
-        else:
-            # self.given_p = given_p
-            indices_X = None
-            for p in given_p.keys():
-                # if p not in self.parents:
-                #     marginal_density = self._get_marginal_density()
-                #     return marginal_density, self._expectation(marginal_density)
-                column_indices = np.where(np.isclose(self.X[:, list(self.parents.keys()).index(p)], given_p[p], atol=0.25))[0]
+    # def If(self, given_p: Dict[str, float]):
+    #     if self.parents is None: 
+    #         dens = self.MarginalDensity()
+    #     else:
+    #         # self.given_p = given_p
+    #         indices_X = None
+    #         for p in given_p.keys():
+    #             # if p not in self.parents:
+    #             #     marginal_density = self._get_marginal_density()
+    #             #     return marginal_density, self._expectation(marginal_density)
+    #             column_indices = np.where(np.isclose(self.X[:, list(self.parents.keys()).index(p)], given_p[p], atol=0.25))[0]
                 
-                if indices_X is None:
-                    indices_X = set(column_indices)
-                else:
-                    indices_X = indices_X.intersection(column_indices)
+    #             if indices_X is None:
+    #                 indices_X = set(column_indices)
+    #             else:
+    #                 indices_X = indices_X.intersection(column_indices)
             
-            indices_X = np.array(sorted(indices_X)) 
+    #         indices_X = np.array(sorted(indices_X)) 
 
-            zero_array = np.zeros_like(self.ParentMarginalDensity())
-            eval_cond_density = deepcopy(self.ConditionalDensity())
-            eval_cond_density[~np.isin(np.arange(len(self.ParentMarginalDensity())), indices_X)] = zero_array[~np.isin(np.arange(len(self.ParentMarginalDensity())), indices_X)]
-            dens = eval_cond_density.reshape(-1, 1)
+    #         zero_array = np.zeros_like(self.ParentMarginalDensity())
+    #         eval_cond_density = deepcopy(self.ConditionalDensity())
+    #         eval_cond_density[~np.isin(np.arange(len(self.ParentMarginalDensity())), indices_X)] = zero_array[~np.isin(np.arange(len(self.ParentMarginalDensity())), indices_X)]
+    #         dens = eval_cond_density.reshape(-1, 1)
             
-        return dens, self._expectation(dens)
+    #     return dens, self._expectation(dens)

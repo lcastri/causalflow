@@ -50,9 +50,9 @@ class Density():
     
     def ComputeDensity(self):
         if self.parents is not None:
-            self.ConditionalDensity()
+            return self.ConditionalDensity()
         else:
-            self.MarginalDensity()
+            return self.MarginalDensity()
 
 
     def ParentMarginalDensity(self):
@@ -82,13 +82,13 @@ class Density():
             data = np.column_stack((target, Z))
             
         # Create the grid search
-        bandwidths = np.logspace(-5, 5, 100)
-        grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths})
+        bandwidths = [0.1, 0.5, 1.0]
+        Ks = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
+        grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths, 'kernel': Ks})
         grid_search.fit(data)
-        best_bandwidth = grid_search.best_params_['bandwidth']
 
         # Fit a kernel density model to the data
-        kde = KernelDensity(bandwidth=best_bandwidth, kernel='gaussian')
+        kde = KernelDensity(bandwidth=grid_search.best_params_['bandwidth'], kernel=grid_search.best_params_['kernel'])
         kde.fit(data)
 
         # Compute the density
