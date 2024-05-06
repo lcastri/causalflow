@@ -7,3 +7,6 @@ class Process():
         self.pvarname = '$' + varname + '$'
         self.lag = lag
         self.T = len(data)
+    
+    def align(self, maxlag: int):
+        return self.data[maxlag - self.lag : self.T - self.lag]

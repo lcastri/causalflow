@@ -5,23 +5,63 @@ from typing import Dict
 import numpy as np
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
-from causalflow.preprocessing.data import Data
-from causalflow.graph.DAG import DAG
-
 
 class Density():
-    def __init__(self, dag: DAG, data: Data):
-        self.data = data
-        self.dag = dag
+    def __init__(self, y: Process, parents: Dict[str, Process] = None):
+        self.y = y
+        self.parents = parents
+        self.Y = None
+        self.X = None
+        self.joint_density = None
+        self.parent_marginal_density = None
+        self.marginal_density = None
+        self.dens = None
         self._preprocess()
 
-
+        
     @property
     def MaxLag(self):
-        if self.parents is not None: return max(p.lag for p in self.parents.values())
+        if self.parents is not None: 
+            return max(p.lag for p in self.parents.values())
         return 0
         
+        
+    def JointDensity(self):
+        if self.joint_density is None: 
+            self.joint_density = self.estimate(self.Y, self.X)
+        return self.joint_density
+        
+        
+    def MarginalDensity(self):
+        if self.marginal_density is None: 
+            self.marginal_density = self.estimate(self.Y)
+        return self.marginal_density
+         
+        
+    def ConditionalDensity(self):
+        if self.dens is None:
+            if self.parents is not None:
+                self.dens = self.JointDensity() / self.ParentMarginalDensity()
+            else:
+                self.dens = self.MarginalDensity()
+
+        return self.dens
     
+    
+    def ComputeDensity(self):
+        if self.parents is not None:
+            self.ConditionalDensity()
+        else:
+            self.MarginalDensity()
+
+
+    def ParentMarginalDensity(self):
+        if self.parent_marginal_density is None:
+            if self.parents is not None: 
+                self.parent_marginal_density = self.estimate(self.X)
+        return self.parent_marginal_density
+
+
     def _preprocess(self):
         # target
         self.Y = self.y.data[self.MaxLag - self.y.lag : self.y.T - self.y.lag]
@@ -33,11 +73,14 @@ class Density():
                 X_p = p.data[self.MaxLag - p.lag : p.T - p.lag]
                 X.append(X_p)
             self.X = np.column_stack(X)
-    
-    
-    def JointDensity(self, vars):
-        
-        data = np.column_stack((target, Z))
+
+
+    @staticmethod
+    def estimate(target, Z = None):
+        if Z is None:
+            data = target
+        else:
+            data = np.column_stack((target, Z))
             
         # Create the grid search
         bandwidths = np.logspace(-5, 5, 100)
@@ -53,62 +96,9 @@ class Density():
         log_density = kde.score_samples(data)
         density = np.exp(log_density)
         return density
-        
-        
-    # def MarginalDensity(self):
-    #     if self.marginal_density is None: 
-    #         self.marginal_density = self._estimate(self.Y)
-    #     return self.marginal_density
-         
-        
-    # def ConditionalDensity(self):
-    #     if self.cond_density is None:
-    #         if self.parents is not None:
-    #             self.cond_density = self.JointDensity() / self.ParentMarginalDensity()
-    #         else:
-    #             self.cond_density = self.MarginalDensity()
-
-    #     return self.cond_density
-    
-    
-    # def ComputeDensity(self):
-    #     if self.parents is not None:
-    #         self.ConditionalDensity()
-    #     else:
-    #         self.MarginalDensity()
-
-
-    # def ParentMarginalDensity(self):
-    #     if self.parent_marginal_density is None:
-    #         if self.parents is not None: 
-    #             self.parent_marginal_density = self._estimate(self.X)
-    #     return self.parent_marginal_density
-
-
-
-
-    def _estimate(self, target, Z = None):
-        if Z is None:
-            data = target
-        else:
-            data = np.column_stack((target, Z))
-            
-        # Create the grid search
-        bandwidths = np.logspace(-5, 5, 100)
-        grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths})
-        grid_search.fit(data)
-        best_bandwidth = grid_search.best_params_['bandwidth']
-
-        # Fit a kernel density model to the data
-        kde = KernelDensity(bandwidth=best_bandwidth, kernel='gaussian')
-        kde.fit(data)
-
-        # Compute the density
-        log_density = kde.score_samples(data)
-        density = np.exp(log_density)
-        return density
            
-            
+           
+    @staticmethod        
     def _expectation(self, cond_density):
         if np.sum(cond_density) == 0:
             # raise ValueError("Given value(s) out of distributions")
