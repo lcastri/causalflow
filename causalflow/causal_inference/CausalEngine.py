@@ -32,7 +32,7 @@ class CausalEngine():
         return self.DAGs[('obs', 0)]
     
     
-    property
+    @property
     def dbn(self):
         return self.DBNs[('obs', 0)]
         

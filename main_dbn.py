@@ -27,7 +27,7 @@ for t in range(max_lag, T):
     dA_obs[t, 2] += 1.3 * dA_obs[t-1, 0] * dA_obs[t-2, 1]
 
 dfA_obs = Data(dA_obs)
-dfA_obs.plot_timeseries()
+# dfA_obs.plot_timeseries()
 
 T = 300
 N = 3
@@ -37,7 +37,7 @@ for t in range(max_lag, T):
     dA_int[t, 2] += 1.3 * dA_int[t-1, 0] * dA_int[t-2, 1]
 
 dfA_int = Data(dA_int)
-dfA_int.plot_timeseries()
+# dfA_int.plot_timeseries()
 
 
 # Causal Discovery on Population A
@@ -64,7 +64,7 @@ for t in range(max_lag, T):
     dB_obs[t, 2] += 1.3 * dB_obs[t-1, 0] * dB_obs[t-2, 1]
 
 dfA_obs = Data(dB_obs)
-dfA_obs.plot_timeseries()
+# dfA_obs.plot_timeseries()
 
 cie = CIE(CM, dfA_obs)
 cie.whatHappensTo("X_1").If("X_2", 5)
