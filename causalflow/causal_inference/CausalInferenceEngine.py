@@ -6,14 +6,15 @@ import copy
 
 
 class CausalInferenceEngine():
-    def __init__(self, dag: DAG, obs_data: Data):
+    def __init__(self, dag: DAG, obs_data: Data, nsample = 100):
         """
         CausalEngine contructer
         """
+        self.nsample = nsample
         self.outcome_var = None
         self.DAGs = {('obs', 0): dag}
         self.Ds = {('obs', 0): obs_data}
-        self.DBNs = {('obs', 0): DynamicBayesianNetwork(dag, obs_data)}
+        self.DBNs = {('obs', 0): DynamicBayesianNetwork(dag, obs_data, self.nsample)}
         
         
     @property        
@@ -80,7 +81,7 @@ class CausalInferenceEngine():
         """
         self.DAGs = {('obs', self.nextObs): self.dag}
         self.Ds = {('obs', self.nextObs): data}
-        self.DBNs = {('obs', self.nextObs): DynamicBayesianNetwork(self.dag, data)}
+        self.DBNs = {('obs', self.nextObs): DynamicBayesianNetwork(self.dag, data, self.nsample)}
         
         
     def addIntData(self, target: str, data: Data):
@@ -98,7 +99,7 @@ class CausalInferenceEngine():
         k = 'int_' + str(target)
         self.DAGs = {(k, self.nextInt): dag}
         self.Ds = {(k, self.nextInt): data}
-        self.DBNs = {(k, self.nextInt): DynamicBayesianNetwork(self.dag, data)}
+        self.DBNs = {(k, self.nextInt): DynamicBayesianNetwork(self.dag, data, self.nsample)}
         
         
     def whatHappensTo(self, outcome):

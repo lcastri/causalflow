@@ -9,7 +9,7 @@ from tigramite.causal_effects import CausalEffects
 
 
 class DynamicBayesianNetwork():
-    def __init__(self, dag: DAG, data: Data):
+    def __init__(self, dag: DAG, data: Data, nsample = 100):
         """
         DynamicBayesianNetwork contructer
         """
@@ -20,8 +20,7 @@ class DynamicBayesianNetwork():
         for node in self.dbn:
             Y = Process(data.d[node].to_numpy(), node, 0)
             parents = self._extract_parents(node)
-            self.dbn[node] = Density(Y, parents)
-            self.dbn[node].ComputeDensity()
+            self.dbn[node] = Density(Y, parents, nsample = nsample)
             
         for node in self.dbn: self.computeDoDensity(node)
         
@@ -89,7 +88,7 @@ class DynamicBayesianNetwork():
         return max(lengths)
 
     
-    
+    # FIXME: fixLen no longer needed and also to test with the new density
     def computeDoDensity(self, outcome: str):
         """
         Computes the p(outcome|do(treatment)) density
@@ -109,11 +108,11 @@ class DynamicBayesianNetwork():
             p_adj = np.ones((des_length, 1))
             p_adj = p_adj.squeeze()
             
-            for node in adjset: p_adj = p_adj * Density.fixLen(self.dbn[self.data.features.index(node[0])].cond_density, des_length) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            for node in adjset: p_adj = p_adj * Density.fixLen(self.dbn[self.data.features.index(node[0])].CondDensity, des_length) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
 
             # Compute the p(outcome|treatment,adjustment) density
-            p_yxadj = Density.fixLen(self.dbn[outcome].cond_density, des_length) * Density.fixLen(self.dbn[treatment].cond_density, des_length) * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_xadj = Density.fixLen(self.dbn[treatment].cond_density, des_length) * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_yxadj = Density.fixLen(self.dbn[outcome].CondDensity, des_length) * Density.fixLen(self.dbn[treatment].CondDensity, des_length) * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_xadj = Density.fixLen(self.dbn[treatment].CondDensity, des_length) * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
             p_y_given_xadj = p_yxadj / p_xadj
             
             # Integrate over adjustment set recursively using trapezoidal rule
