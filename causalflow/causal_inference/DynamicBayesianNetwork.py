@@ -15,12 +15,13 @@ class DynamicBayesianNetwork():
         """
         self.dag = dag
         self.data = data
+        self.nsample = nsample
         
         self.dbn = {node: None for node in dag.g}
         for node in self.dbn:
-            Y = Process(data.d[node].to_numpy(), node, 0)
+            Y = Process(data.d[node].to_numpy(), node, 0, self.nsample)
             parents = self._extract_parents(node)
-            self.dbn[node] = Density(Y, parents, nsample = nsample)
+            self.dbn[node] = Density(Y, parents)
             
         for node in self.dbn: self.computeDoDensity(node)
         
@@ -35,7 +36,7 @@ class DynamicBayesianNetwork():
         Returns:
             dict: parents express as dict[parent name (str), parent process (Process)]
         """
-        parents = {s[0]: Process(self.data.d[s[0]].to_numpy(), s[0], s[1]) for s in self.dag.g[node].sources}
+        parents = {s[0]: Process(self.data.d[s[0]].to_numpy(), s[0], s[1], self.nsample) for s in self.dag.g[node].sources}
         if not parents: return None
         return parents
     
@@ -80,15 +81,6 @@ class DynamicBayesianNetwork():
         return opt_adj_set
     
     
-    def get_maxLen(self, adjset, outcome, treatment):
-        lengths = list()
-        for node in adjset: lengths.append(len(self.dbn[self.data.features.index(node[0])].cond_density))
-        lengths.append(len(self.dbn[outcome].cond_density))
-        lengths.append(len(self.dbn[treatment].cond_density))
-        return max(lengths)
-
-    
-    # FIXME: fixLen no longer needed and also to test with the new density
     def computeDoDensity(self, outcome: str):
         """
         Computes the p(outcome|do(treatment)) density
@@ -102,24 +94,26 @@ class DynamicBayesianNetwork():
             # Select the adjustment set
             adjset = self.get_adjset(treatment, outcome, self.get_lag(treatment, outcome))
             
-            des_length = self.get_maxLen(adjset, outcome, treatment)
+            # des_length = self.get_maxLen(adjset, outcome, treatment)
             
             # Compute the adjustment density
-            p_adj = np.ones((des_length, 1))
-            p_adj = p_adj.squeeze()
+            p_adj = np.ones((self.nsample, 1)).squeeze()
             
-            for node in adjset: p_adj = p_adj * Density.fixLen(self.dbn[self.data.features.index(node[0])].CondDensity, des_length) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            for node in adjset: p_adj = p_adj * self.dbn[self.data.features[node[0]]].CondDensity # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
 
             # Compute the p(outcome|treatment,adjustment) density
-            p_yxadj = Density.fixLen(self.dbn[outcome].CondDensity, des_length) * Density.fixLen(self.dbn[treatment].CondDensity, des_length) * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_xadj = Density.fixLen(self.dbn[treatment].CondDensity, des_length) * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_yxadj = self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_xadj = self.dbn[treatment].CondDensity * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
             p_y_given_xadj = p_yxadj / p_xadj
             
-            # Integrate over adjustment set recursively using trapezoidal rule
-            for node in adjset: p_y_given_xadj *= np.trapz(p_y_given_xadj, node[1])
-            
             # Compute the p(outcome|do(treatment)) density
-            p_y_do_x = p_y_given_xadj * p_adj
+            if len(p_y_given_xadj.shape) > 2: 
+                # Sum over the adjustment set
+                p_y_do_x = np.sum(p_y_given_xadj, axis=tuple(range(2, len(p_y_given_xadj.shape)))) * np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
+            else:
+                p_y_do_x = p_y_given_xadj
+            
+            # p_y_do_x = p_y_given_xadj * p_adj
             self.dbn[outcome].DO[treatment] = p_y_do_x
             
             

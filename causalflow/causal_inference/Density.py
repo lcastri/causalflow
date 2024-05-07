@@ -13,13 +13,10 @@ from scipy.integrate import simps
 
 
 class Density():
-    def __init__(self, y: Process, parents: Dict[str, Process] = None, nsample = 100):
-        self.nsamples = nsample
+    def __init__(self, y: Process, parents: Dict[str, Process] = None):
         
         self.y = y
         self.parents = parents
-        self.Y = None
-        self.X = None
         self.DO = {}
         self._preprocess()
         
@@ -34,7 +31,7 @@ class Density():
         self.computeJointDensity()
         self.computeParentJointDensity()
         self.computeConditionalDensity()
-        # self.computeMarginalDensity()
+        self.computeMarginalDensity()
 
         
     @property
@@ -46,60 +43,41 @@ class Density():
         
     def _preprocess(self):
         # target
-        self.Y = self.y.align(self.MaxLag)
+        self.y.align(self.MaxLag)
         
         if self.parents is not None:
             # parents
-            X = [p.align(self.MaxLag) for p in self.parents.values()]
-            self.X = np.column_stack(X)
+            for p in self.parents.values():
+                p.align(self.MaxLag)
             
             
     def computeJointDensity(self):
         if self.JointDensity is None:
             if self.parents is not None:
-                self.JointDensity = self.estimate(np.column_stack([self.Y, self.X]))
+                yz = [p for p in self.parents.values()]
+                yz.insert(0, self.y)
+                self.JointDensity = self.estimate(yz)
             else:
-                self.JointDensity = self.estimate(self.Y)
+                self.JointDensity = self.estimate(self.y)
         return self.JointDensity
+    
     
     def computePriorDensity(self):
         if self.PriorDensity is None: 
-            self.PriorDensity = self.estimate(self.Y)
+            self.PriorDensity = self.estimate(self.y)
         return self.PriorDensity
         
         
-    # FIXME: to fix with the new density
-    # def computeMarginalDensity(self):
-    #     if self.MarginalDensity is None:
-    #         if self.parents is None:
-    #             self.MarginalDensity = self.PriorDensity()
-    #         else:
-    #             # Compute conditional density P(Y | parents of Y)
-    #             conditional_density = self.CondDensity()
-                
-    #             # Integrate over all possible values of parent variables to obtain marginal density of Y
-    #             # Assuming self.parents contains all possible values of parent variables
-    #             self.MarginalDensity = copy.deepcopy(conditional_density)
-    #             # for p in self.parents:
-    #             #     # FIXME: it is negative when I do the integral
-    #             #     self.marginal_density *= np.trapz(self.marginal_density, x = self.X[:, list(self.parents.keys()).index(p)], axis = 0)
-                        
-    #             # FIXME: not sure about it
-    #             for p in self.parents:
-    #                 # Get the x values corresponding to the current parent variable
-    #                 x_values = copy.deepcopy(self.X[:, list(self.parents.keys()).index(p)])
-                    
-    #                 # Sort the x values and the conditional density array based on x values
-    #                 sorted_indices = np.argsort(x_values)
-    #                 x_sorted = x_values[sorted_indices]
-    #                 density_sorted = self.MarginalDensity[sorted_indices]
-                    
-    #                 marginal_density_partial = np.trapz(density_sorted, x=x_sorted)
-                    
-    #                 self.MarginalDensity *= marginal_density_partial
+    def computeMarginalDensity(self):
+        if self.MarginalDensity is None:
+            if self.parents is None:
+                self.MarginalDensity = self.PriorDensity
+            else:                
+                # Sum over parents axis
+                self.MarginalDensity = copy.deepcopy(self.JointDensity)
+                self.MarginalDensity = np.sum(self.MarginalDensity, axis=tuple(range(1, len(self.JointDensity.shape))))  
 
-                
-    #     return self.MarginalDensity
+        return self.MarginalDensity
          
         
     def computeConditionalDensity(self):
@@ -114,76 +92,40 @@ class Density():
     def computeParentJointDensity(self):
         if self.ParentJointDensity is None:
             if self.parents is not None: 
-                self.ParentJointDensity = self.estimate(self.X)
+                self.ParentJointDensity = self.estimate([p for p in self.parents.values()])
         return self.ParentJointDensity
     
     
-    
-    # FIXME: by using self.nsample, this method might be useless 
     @staticmethod
-    def fixLen(density, desired_length):
-        # Define the interpolation function for density
-        interp_func_1 = interp1d(np.arange(len(density)), density, kind='linear', fill_value="extrapolate")
-
-        # Interpolate density to match the maximum length
-        return interp_func_1(np.linspace(0, len(density) - 1, desired_length))
-    
-
-    def estimate(self, YZ):
-
-        data = YZ
-        XZ_mesh = np.meshgrid(*[np.linspace(min(YZ[:, i]), max(YZ[:, i]), self.nsamples) for i in range(YZ.shape[1])])
-        XY_samples = np.column_stack([xz.ravel() for xz in XZ_mesh])
-
-
+    def estimate(YZ):
+        if not isinstance(YZ, list): YZ = [YZ]
+        
+        YZ_data = np.column_stack([yz.aligndata for yz in YZ])
+        YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ])
+        YZ_samples = np.column_stack([yz.ravel() for yz in YZ_mesh])
+        
         # Create the grid search
         bandwidths = [0.1, 0.5, 1]
         Ks = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
         grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths, 'kernel': Ks})
-        grid_search.fit(data)
+        grid_search.fit(YZ_data)
 
         # Fit a kernel density model to the data
         kde = KernelDensity(bandwidth=grid_search.best_params_['bandwidth'], kernel=grid_search.best_params_['kernel'])
-        kde.fit(data)
+        kde.fit(YZ_data)
 
         # Compute the density
-        log_density = kde.score_samples(XY_samples)
+        log_density = kde.score_samples(YZ_samples)
         density = np.exp(log_density)
-        density = density.reshape(XZ_mesh[0].shape)
+        density = density.reshape(YZ_mesh[0].shape)
         return density
-    # def estimate(self, target, Z = None):
-    #     if Z is None:
-    #         data = target
-    #         YZ = np.linspace(min(target), max(target), self.nsamples)
-    #     else:
-    #         data = np.column_stack((target, Z))
-    #         XZ_mesh = np.meshgrid(np.linspace(min(target), max(target), self.nsamples), *[np.linspace(min(Z[:, i]), max(Z[:, i]), self.nsamples) for i in range(Z.shape[1])])
-    #         YZ = np.column_stack([xz.ravel() for xz in XZ_mesh])
-
-
-    #     # Create the grid search
-    #     bandwidths = [0.1, 0.5, 1]
-    #     Ks = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
-    #     grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths, 'kernel': Ks})
-    #     grid_search.fit(data)
-
-    #     # Fit a kernel density model to the data
-    #     kde = KernelDensity(bandwidth=grid_search.best_params_['bandwidth'], kernel=grid_search.best_params_['kernel'])
-    #     kde.fit(data)
-
-    #     # Compute the density
-    #     log_density = kde.score_samples(YZ)
-    #     density = np.exp(log_density)
-    #     if Z is not None:
-    #         density = density.reshape(XZ_mesh[0].shape)
-    #     return density
            
            
     def expectation(self, cond_density):
         if np.sum(cond_density) == 0:
             # raise ValueError("Given value(s) out of distributions")
             return np.nan
-        expectation_Y_given_X = np.sum(self.Y * cond_density) / np.sum(cond_density)
+        expectation_Y_given_X = np.sum(self.y.samples * cond_density) / np.sum(cond_density)
         return expectation_Y_given_X
         
     
