@@ -1,16 +1,10 @@
-from copy import deepcopy
 import copy
-from matplotlib import pyplot as plt
 from causalflow.causal_inference.Process import Process
 from typing import Dict
 import numpy as np
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
-from tigramite.causal_effects import CausalEffects
-from causalflow.graph.DAG import DAG
-from scipy.interpolate import interp1d
-from scipy.integrate import simps
-
+from causalflow.basics.constants import *
 
 class Density():
     def __init__(self, y: Process, parents: Dict[str, Process] = None):
@@ -18,6 +12,10 @@ class Density():
         self.y = y
         self.parents = parents
         self.DO = {}
+        if self.parents is not None:
+            self.DO = {treatment: {ADJ: None, 
+                                P_Y_GIVEN_DOX_ADJ: None, 
+                                P_Y_GIVEN_DOX: None} for treatment in self.parents.keys()}
         self._preprocess()
         
         # init density variables

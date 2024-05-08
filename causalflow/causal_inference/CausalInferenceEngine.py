@@ -1,4 +1,5 @@
 import numpy as np
+from causalflow.basics.constants import *
 from causalflow.causal_inference.DynamicBayesianNetwork import DynamicBayesianNetwork
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
@@ -130,12 +131,15 @@ class CausalInferenceEngine():
         if ('int_' + str(treatment)) in self.Ds:
             # TODO: search for the most similar intervention. if not present, go to else
             # TODO: apply the transportability formula to estimate the effect of the intervention on the desired population
-            pass
+            p_y_do_x = self.transport(('int_' + str(treatment)), )
         else:
-            p_y_do_X_x, E_p_y_do_X_x = self.dbn.evalDoDensity(treatment, self.outcome_var, value)
+            # TODO: which observational data?
+            # TODO: I need to specify the source and target populations
+            p_y_do_x = self.transport()
+            # TODO: I have to evaluate the p_y_do_x with a specific interventional value
+            # p_y_do_X_x, E_p_y_do_X_x = self.dbn.evalDoDensity(treatment, self.outcome_var, value)
             
-            # TODO: once found the estimated cause-effect, use the transportability formula to estimate the effect of the intervention on the desired population 
-            return p_y_do_X_x, E_p_y_do_X_x
+            # return p_y_do_X_x, E_p_y_do_X_x
         
         
     def transport(self, sourceP: tuple, targetP: tuple, treatment: str, outcome: str):
@@ -154,10 +158,11 @@ class CausalInferenceEngine():
         Returns:
             nd.array: Target population's p_y_do(x)
         """
-        adjset = self.DBNs[sourceP][outcome].DO[treatment]['adj']
+        # adjset = self.DBNs[sourceP][outcome].DO[treatment][ADJ] # FIXME: I think I need to compute again the adjset for the target population
+        adjset = self.DBNs[targetP].get_adjset(treatment, outcome) # TODO: to test
         
         # Source population's p(output|do(treatment), adjustment)
-        pS_y_given_xadj = self.DBNs[sourceP][outcome].DO[treatment]['p_y_given_xadj']
+        pS_y_do_x_adj = self.DBNs[sourceP][outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
         
         # Compute the adjustment density for the target population
         pT_adj = np.ones((self.nsample, 1)).squeeze()
@@ -165,10 +170,43 @@ class CausalInferenceEngine():
         for node in adjset: pT_adj = pT_adj * self.DBNs[targetP][self.data.features[node[0]]].CondDensity
         
         # Compute the p(outcome|do(treatment)) density
-        if len(pS_y_given_xadj.shape) > 2: 
+        if len(pS_y_do_x_adj.shape) > 2: 
             # Sum over the adjustment set
-            p_y_do_x = np.sum(pS_y_given_xadj * pT_adj, axis=tuple(range(2, len(pS_y_given_xadj.shape)))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
+            p_y_do_x = np.sum(pS_y_do_x_adj * pT_adj, axis=tuple(range(2, len(pS_y_do_x_adj.shape)))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
         else:
-            p_y_do_x = pS_y_given_xadj
+            p_y_do_x = pS_y_do_x_adj
         
         return p_y_do_x
+    
+    
+    
+        # def evalDoDensity(self, treatment: str, outcome: str, value):
+    #     """
+    #     Evaluates the p(outcome|treatment = t)
+
+    #     Args:
+    #         treatment (str): treatment variable
+    #         outcome (str): outcome variable
+    #         value (float): treatment value
+
+    #     Returns:
+    #         tuple: p(outcome|treatment = t), E[p(outcome|treatment = t)]
+    #     """
+    #     indices_X = None
+    #     column_indices = np.where(np.isclose(self.dbn[outcome].X[:, treatment], value, atol=0.25))[0]
+    #     if indices_X is None:
+    #         indices_X = set(column_indices)
+    #     else:
+    #         # The intersection is needed to take the common indices 
+    #         indices_X = indices_X.intersection(column_indices)
+        
+    #     indices_X = np.array(sorted(indices_X))
+        
+    #     X_dens = np.zeros_like(self.dbn[treatment].MarginalDensity)
+    #     zero_array = np.zeros_like(X_dens)
+    #     p_y_do_X_x = copy.deepcopy(self.dbn[outcome].DO[treatment])
+    #     p_y_do_X_x[~np.isin(np.arange(len(X_dens)), indices_X)] = zero_array[~np.isin(np.arange(len(X_dens)), indices_X)]
+    #     p_y_do_X_x = p_y_do_X_x.reshape(-1, 1)
+        
+    #     # TODO: once found the estimated cause-effect, use the transportability formula to estimate the effect of the intervention on the desired population 
+    #     return p_y_do_X_x, self.dbn[outcome].expectation(p_y_do_X_x)

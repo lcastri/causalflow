@@ -3,10 +3,8 @@ from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_inference.Density import Density
 from causalflow.causal_inference.Process import Process
-import copy
 from tigramite.causal_effects import CausalEffects
-
-
+from causalflow.basics.constants import *
 
 class DynamicBayesianNetwork():
     def __init__(self, dag: DAG, data: Data, nsample = 100):
@@ -57,7 +55,7 @@ class DynamicBayesianNetwork():
         return min(matching_keys)
 
     
-    def get_adjset(self, treatment: str, outcome: str, lag: int):
+    def get_adjset(self, treatment: str, outcome: str):
         """
         Outputs the optimal adjustment set associated to the treatment-outcome intervention.
         The adjustment set is calculated through the TIGRAMITE pkg based on [1]
@@ -69,18 +67,19 @@ class DynamicBayesianNetwork():
         Args:
             treatment (str): treatment variable
             outcome (str): outcome variable
-            lag (int): lag time where the intervention is performed.
 
         Returns:
             tuple: optimal adjustment set for the treatment->outcome link 
         """
+        lag = self.get_lag(treatment, outcome)
+        
         graph = CausalEffects.get_graph_from_dict(self.dag.get_parents(), tau_max = self.dag.max_lag)
         opt_adj_set = CausalEffects(graph, graph_type='stationary_dag', 
                                     X = [(self.dag.features.index(treatment), -abs(lag))], 
                                     Y = [(self.dag.features.index(outcome), 0)]).get_optimal_set()
         return opt_adj_set
     
-    
+    # TODO: to remove
     # def computeDoDensity(self, outcome: str):
     #     """
     #     Computes the p(outcome|do(treatment)) density
@@ -124,7 +123,7 @@ class DynamicBayesianNetwork():
         for treatment in self.dbn[outcome].parents:
                     
             # Select the adjustment set
-            adjset = self.get_adjset(treatment, outcome, self.get_lag(treatment, outcome))
+            adjset = self.get_adjset(treatment, outcome)
                         
             # Compute the adjustment density
             p_adj = np.ones((self.nsample, 1)).squeeze()
@@ -136,7 +135,7 @@ class DynamicBayesianNetwork():
             p_xadj = self.dbn[treatment].CondDensity * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
             p_y_given_xadj = p_yxadj / p_xadj
             
-            # Compute the p(outcome|do(treatment)) density
+            # Compute the p(outcome|do(treatment)) and p(outcome|do(treatment),adjustment)*p(adjustment) densities
             if len(p_y_given_xadj.shape) > 2: 
                 # Sum over the adjustment set
                 p_y_do_x_adj = p_y_given_xadj * p_adj
@@ -145,40 +144,40 @@ class DynamicBayesianNetwork():
                 p_y_do_x_adj = p_y_given_xadj
                 p_y_do_x = p_y_given_xadj
             
-            self.dbn[outcome].DO[treatment]['adj'] = adjset
-            self.dbn[outcome].DO[treatment]['p_y|do(x)_adj'] = p_y_do_x_adj
-            self.dbn[outcome].DO[treatment]['p_y|do_x'] = p_y_do_x
+            self.dbn[outcome].DO[treatment][ADJ] = adjset
+            self.dbn[outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ] = p_y_do_x_adj
+            self.dbn[outcome].DO[treatment][P_Y_GIVEN_DOX] = p_y_do_x
             
-            
-    def evalDoDensity(self, treatment: str, outcome: str, value):
-        """
-        Evaluates the p(outcome|treatment = t)
+    # TODO: maybe in the CausalInferenceEngine class  
+    # def evalDoDensity(self, treatment: str, outcome: str, value):
+    #     """
+    #     Evaluates the p(outcome|treatment = t)
 
-        Args:
-            treatment (str): treatment variable
-            outcome (str): outcome variable
-            value (float): treatment value
+    #     Args:
+    #         treatment (str): treatment variable
+    #         outcome (str): outcome variable
+    #         value (float): treatment value
 
-        Returns:
-            tuple: p(outcome|treatment = t), E[p(outcome|treatment = t)]
-        """
-        indices_X = None
-        column_indices = np.where(np.isclose(self.dbn[outcome].X[:, treatment], value, atol=0.25))[0]
-        if indices_X is None:
-            indices_X = set(column_indices)
-        else:
-            # The intersection is needed to take the common indices 
-            indices_X = indices_X.intersection(column_indices)
+    #     Returns:
+    #         tuple: p(outcome|treatment = t), E[p(outcome|treatment = t)]
+    #     """
+    #     indices_X = None
+    #     column_indices = np.where(np.isclose(self.dbn[outcome].X[:, treatment], value, atol=0.25))[0]
+    #     if indices_X is None:
+    #         indices_X = set(column_indices)
+    #     else:
+    #         # The intersection is needed to take the common indices 
+    #         indices_X = indices_X.intersection(column_indices)
         
-        indices_X = np.array(sorted(indices_X))
+    #     indices_X = np.array(sorted(indices_X))
         
-        X_dens = np.zeros_like(self.dbn[treatment].MarginalDensity)
-        zero_array = np.zeros_like(X_dens)
-        p_y_do_X_x = copy.deepcopy(self.dbn[outcome].DO[treatment])
-        p_y_do_X_x[~np.isin(np.arange(len(X_dens)), indices_X)] = zero_array[~np.isin(np.arange(len(X_dens)), indices_X)]
-        p_y_do_X_x = p_y_do_X_x.reshape(-1, 1)
+    #     X_dens = np.zeros_like(self.dbn[treatment].MarginalDensity)
+    #     zero_array = np.zeros_like(X_dens)
+    #     p_y_do_X_x = copy.deepcopy(self.dbn[outcome].DO[treatment])
+    #     p_y_do_X_x[~np.isin(np.arange(len(X_dens)), indices_X)] = zero_array[~np.isin(np.arange(len(X_dens)), indices_X)]
+    #     p_y_do_X_x = p_y_do_X_x.reshape(-1, 1)
         
-        # TODO: once found the estimated cause-effect, use the transportability formula to estimate the effect of the intervention on the desired population 
-        return p_y_do_X_x, self.dbn[outcome].expectation(p_y_do_X_x)
+    #     # TODO: once found the estimated cause-effect, use the transportability formula to estimate the effect of the intervention on the desired population 
+    #     return p_y_do_X_x, self.dbn[outcome].expectation(p_y_do_X_x)
         
         
