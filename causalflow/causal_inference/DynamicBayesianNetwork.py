@@ -109,7 +109,8 @@ class DynamicBayesianNetwork():
             # Compute the p(outcome|do(treatment)) density
             if len(p_y_given_xadj.shape) > 2: 
                 # Sum over the adjustment set
-                p_y_do_x = np.sum(p_y_given_xadj, axis=tuple(range(2, len(p_y_given_xadj.shape)))) * np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
+                p_y_do_x = np.sum(p_y_given_xadj * p_adj, axis=tuple(range(2, len(p_y_given_xadj.shape))))
+                # p_y_do_x = np.sum(p_y_given_xadj, axis=tuple(range(2, len(p_y_given_xadj.shape)))) * np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
             else:
                 p_y_do_x = p_y_given_xadj
             
