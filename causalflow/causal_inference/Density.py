@@ -8,7 +8,13 @@ from causalflow.basics.constants import *
 
 class Density():
     def __init__(self, y: Process, parents: Dict[str, Process] = None):
-        
+        """
+        Density constructer
+
+        Args:
+            y (Process): target process
+            parents (Dict[str, Process], optional): Target's parents. Defaults to None.
+        """
         self.y = y
         self.parents = parents
         self.DO = {}
@@ -34,12 +40,21 @@ class Density():
         
     @property
     def MaxLag(self):
+        """
+        Returns max time lag between target and all its parents
+
+        Returns:
+            int: max time lag
+        """
         if self.parents is not None: 
             return max(p.lag for p in self.parents.values())
         return 0
         
         
     def _preprocess(self):
+        """
+        Preprocesses the data to have all the same length by using the maxlag
+        """
         # target
         self.y.align(self.MaxLag)
         
@@ -50,6 +65,12 @@ class Density():
             
             
     def computeJointDensity(self):
+        """
+        Computes the joint density p(y, parents)
+
+        Returns:
+            ndarray: joint density p(y, parents)
+        """
         if self.JointDensity is None:
             if self.parents is not None:
                 yz = [p for p in self.parents.values()]
@@ -57,16 +78,30 @@ class Density():
                 self.JointDensity = self.estimate(yz)
             else:
                 self.JointDensity = self.estimate(self.y)
+        self.JointDensity = self.normalise(self.JointDensity)
         return self.JointDensity
     
     
     def computePriorDensity(self):
+        """
+        Computes the prior density p(y)
+
+        Returns:
+            ndarray: prior density p(y)
+        """
         if self.PriorDensity is None: 
             self.PriorDensity = self.estimate(self.y)
+        self.PriorDensity = self.normalise(self.PriorDensity)
         return self.PriorDensity
         
         
     def computeMarginalDensity(self):
+        """
+        Computes the marginal density p(y) = \sum_parents p(y, parents)
+
+        Returns:
+            ndarray: marginal density p(y) = \sum_parents p(y, parents)
+        """
         if self.MarginalDensity is None:
             if self.parents is None:
                 self.MarginalDensity = self.PriorDensity
@@ -74,28 +109,51 @@ class Density():
                 # Sum over parents axis
                 self.MarginalDensity = copy.deepcopy(self.JointDensity)
                 self.MarginalDensity = np.sum(self.MarginalDensity, axis=tuple(range(1, len(self.JointDensity.shape))))  
-
+        self.MarginalDensity = self.normalise(self.MarginalDensity)
         return self.MarginalDensity
          
         
     def computeConditionalDensity(self):
+        """
+        Compute the conditional density p(y|parents) = p(y, parents) / p(parents)
+
+        Returns:
+            ndarray: conditional density p(y|parents) = p(y, parents) / p(parents)
+        """
         if self.CondDensity is None:
             if self.parents is not None:
                 self.CondDensity = self.JointDensity / self.ParentJointDensity
             else:
                 self.CondDensity = self.PriorDensity
+        self.CondDensity = self.normalise(self.CondDensity)
         return self.CondDensity
 
 
     def computeParentJointDensity(self):
+        """
+        Computes the parents's joint density p(parents)
+
+        Returns:
+            ndarray: parents's joint density p(parents)
+        """
         if self.ParentJointDensity is None:
             if self.parents is not None: 
                 self.ParentJointDensity = self.estimate([p for p in self.parents.values()])
+                self.ParentJointDensity = self.normalise(self.ParentJointDensity)
         return self.ParentJointDensity
     
     
     @staticmethod
     def estimate(YZ):
+        """
+        Estimates the density through KDE
+
+        Args:
+            YZ (Process or [Process]): Process(es) for density estimation
+
+        Returns:
+            ndarray: density
+        """
         if not isinstance(YZ, list): YZ = [YZ]
         
         YZ_data = np.column_stack([yz.aligndata for yz in YZ])
@@ -119,38 +177,37 @@ class Density():
         return density
            
            
-    def expectation(self, cond_density):
-        if np.sum(cond_density) == 0:
+    @staticmethod
+    def expectation(y, p):
+        """
+        Computes the expectation E[y*p(y)/sum(p(y))]
+
+        Args:
+            y (ndarray): process samples
+            p (ndarray): probability density function
+
+        Returns:
+            float: expectation E[y*p(y)/sum(p(y))]
+        """
+        if np.sum(p) == 0:
             # raise ValueError("Given value(s) out of distributions")
             return np.nan
-        expectation_Y_given_X = np.sum(self.y.samples * cond_density) / np.sum(cond_density)
+        expectation_Y_given_X = np.sum(y * p) / np.sum(p)
         return expectation_Y_given_X
-        
     
-    # def If(self, given_p: Dict[str, float]):
-    #     if self.parents is None: 
-    #         dens = self.MarginalDensity()
-    #     else:
-    #         # self.given_p = given_p
-    #         indices_X = None
-    #         for p in given_p.keys():
-    #             # if p not in self.parents:
-    #             #     marginal_density = self._get_marginal_density()
-    #             #     return marginal_density, self._expectation(marginal_density)
-    #             column_indices = np.where(np.isclose(self.X[:, list(self.parents.keys()).index(p)], given_p[p], atol=0.25))[0]
-                
-    #             if indices_X is None:
-    #                 indices_X = set(column_indices)
-    #             else:
-    #                 indices_X = indices_X.intersection(column_indices)
-            
-    #         indices_X = np.array(sorted(indices_X)) 
+    
+    @staticmethod
+    def normalise(p):
+        """
+        Normalises the probability density function to ensure it sums to 1
 
-    #         zero_array = np.zeros_like(self.ParentMarginalDensity())
-    #         eval_cond_density = deepcopy(self.ConditionalDensity())
-    #         eval_cond_density[~np.isin(np.arange(len(self.ParentMarginalDensity())), indices_X)] = zero_array[~np.isin(np.arange(len(self.ParentMarginalDensity())), indices_X)]
-    #         dens = eval_cond_density.reshape(-1, 1)
-            
-    #     return dens, self._expectation(dens)
-    
+        Args:
+            p (ndarray): probability density function
+
+        Returns:
+            ndarray: normalised probability density function
+        """
+        if np.sum(p) != 1:
+            return p / np.sum(p)
+        return p
     

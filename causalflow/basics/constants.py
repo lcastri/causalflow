@@ -14,6 +14,9 @@ TSDAG_FILENAME = "ts_dag"
 LOG_FILENAME = "log.txt"
 
 
+OUTCOME = 'outcome'
+TREATMENT = 'treatment'
+VALUE = 'value'
 ADJ = 'adj'
 P_Y_GIVEN_DOX_ADJ = 'p_y|do(x)_adj'
 P_Y_GIVEN_DOX = 'p_y|do_x'

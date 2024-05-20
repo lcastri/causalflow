@@ -10,6 +10,11 @@ class DynamicBayesianNetwork():
     def __init__(self, dag: DAG, data: Data, nsample = 100):
         """
         DynamicBayesianNetwork contructer
+
+        Args:
+            dag (DAG): DAG from which deriving the DBN
+            data (Data): Data associated to the DAG
+            nsample (int, optional): Number of samples used for density estimation. Defaults to 100.
         """
         self.dag = dag
         self.data = data
@@ -79,39 +84,7 @@ class DynamicBayesianNetwork():
                                     Y = [(self.dag.features.index(outcome), 0)]).get_optimal_set()
         return opt_adj_set
     
-    # TODO: to remove
-    # def computeDoDensity(self, outcome: str):
-    #     """
-    #     Computes the p(outcome|do(treatment)) density
-
-    #     Args:
-    #         outcome (str): outcome variable
-    #     """
-    #     if self.dbn[outcome].parents is None: return
-    #     for treatment in self.dbn[outcome].parents:
-                    
-    #         # Select the adjustment set
-    #         adjset = self.get_adjset(treatment, outcome, self.get_lag(treatment, outcome))
-                        
-    #         # Compute the adjustment density
-    #         p_adj = np.ones((self.nsample, 1)).squeeze()
-            
-    #         for node in adjset: p_adj = p_adj * self.dbn[self.data.features[node[0]]].CondDensity # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-
-    #         # Compute the p(outcome|treatment,adjustment) density
-    #         p_yxadj = self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-    #         p_xadj = self.dbn[treatment].CondDensity * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-    #         p_y_given_xadj = p_yxadj / p_xadj
-            
-    #         # Compute the p(outcome|do(treatment)) density
-    #         if len(p_y_given_xadj.shape) > 2: 
-    #             # Sum over the adjustment set
-    #             p_y_do_x = np.sum(p_y_given_xadj * p_adj, axis=tuple(range(2, len(p_y_given_xadj.shape)))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
-    #         else:
-    #             p_y_do_x = p_y_given_xadj
-            
-    #         # p_y_do_x = p_y_given_xadj * p_adj
-    #         self.dbn[outcome].DO[treatment] = p_y_do_x
+    
     def computeDoDensity(self, outcome: str):
         """
         Computes the p(outcome|do(treatment)) density
@@ -129,17 +102,18 @@ class DynamicBayesianNetwork():
             p_adj = np.ones((self.nsample, 1)).squeeze()
             
             for node in adjset: p_adj = p_adj * self.dbn[self.data.features[node[0]]].CondDensity # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-
+            p_adj = Density.normalise(p_adj)
+            
             # Compute the p(outcome|treatment,adjustment) density
-            p_yxadj = self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_xadj = self.dbn[treatment].CondDensity * p_adj # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_y_given_xadj = p_yxadj / p_xadj
+            p_yxadj = Density.normalise(self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_xadj = Density.normalise(self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_y_given_xadj = Density.normalise(p_yxadj / p_xadj)
             
             # Compute the p(outcome|do(treatment)) and p(outcome|do(treatment),adjustment)*p(adjustment) densities
             if len(p_y_given_xadj.shape) > 2: 
                 # Sum over the adjustment set
-                p_y_do_x_adj = p_y_given_xadj * p_adj
-                p_y_do_x = np.sum(p_y_given_xadj * p_adj, axis=tuple(range(2, len(p_y_given_xadj.shape)))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
+                p_y_do_x_adj = Density.normalise(p_y_given_xadj * p_adj)
+                p_y_do_x = Density.normalise(np.sum(p_y_given_xadj * p_adj, axis=tuple(range(2, len(p_y_given_xadj.shape))))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
             else:
                 p_y_do_x_adj = p_y_given_xadj
                 p_y_do_x = p_y_given_xadj
@@ -147,37 +121,5 @@ class DynamicBayesianNetwork():
             self.dbn[outcome].DO[treatment][ADJ] = adjset
             self.dbn[outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ] = p_y_do_x_adj
             self.dbn[outcome].DO[treatment][P_Y_GIVEN_DOX] = p_y_do_x
-            
-    # TODO: maybe in the CausalInferenceEngine class  
-    # def evalDoDensity(self, treatment: str, outcome: str, value):
-    #     """
-    #     Evaluates the p(outcome|treatment = t)
-
-    #     Args:
-    #         treatment (str): treatment variable
-    #         outcome (str): outcome variable
-    #         value (float): treatment value
-
-    #     Returns:
-    #         tuple: p(outcome|treatment = t), E[p(outcome|treatment = t)]
-    #     """
-    #     indices_X = None
-    #     column_indices = np.where(np.isclose(self.dbn[outcome].X[:, treatment], value, atol=0.25))[0]
-    #     if indices_X is None:
-    #         indices_X = set(column_indices)
-    #     else:
-    #         # The intersection is needed to take the common indices 
-    #         indices_X = indices_X.intersection(column_indices)
-        
-    #     indices_X = np.array(sorted(indices_X))
-        
-    #     X_dens = np.zeros_like(self.dbn[treatment].MarginalDensity)
-    #     zero_array = np.zeros_like(X_dens)
-    #     p_y_do_X_x = copy.deepcopy(self.dbn[outcome].DO[treatment])
-    #     p_y_do_X_x[~np.isin(np.arange(len(X_dens)), indices_X)] = zero_array[~np.isin(np.arange(len(X_dens)), indices_X)]
-    #     p_y_do_X_x = p_y_do_X_x.reshape(-1, 1)
-        
-    #     # TODO: once found the estimated cause-effect, use the transportability formula to estimate the effect of the intervention on the desired population 
-    #     return p_y_do_X_x, self.dbn[outcome].expectation(p_y_do_X_x)
         
         
