@@ -1,4 +1,5 @@
 import numpy as np
+from causalflow.CPrinter import CP
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_inference.Density import Density
@@ -22,6 +23,7 @@ class DynamicBayesianNetwork():
         
         self.dbn = {node: None for node in dag.g}
         for node in self.dbn:
+            CP.info("\n### Target variable: " + node)
             Y = Process(data.d[node].to_numpy(), node, 0, self.nsample)
             parents = self._extract_parents(node)
             self.dbn[node] = Density(Y, parents)

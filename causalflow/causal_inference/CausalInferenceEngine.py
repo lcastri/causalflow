@@ -1,4 +1,6 @@
+from matplotlib import pyplot as plt
 import numpy as np
+from causalflow.CPrinter import CP
 from causalflow.basics.constants import *
 from causalflow.causal_inference.Density import Density
 from causalflow.causal_inference.DynamicBayesianNetwork import DynamicBayesianNetwork
@@ -19,11 +21,17 @@ class CausalInferenceEngine():
             nsample (int, optional): Number of samples used for density estimation. Defaults to 100.
             atol (float, optional): absolute tolerance used to check if a specific intervention has been already observed. Defaults to 0.25.
         """
+
+        CP.info("\n##")
+        CP.info("## Causal Inference Engine")
+        CP.info("##")
+        
         self.nsample = nsample
         self.atol = atol
         self.Q = {}
         self.DAGs = {('obs', 0): dag}
         self.Ds = {('obs', 0): obs_data}
+        CP.info("\n## Building DBN for DAG ID " + str(('obs', 0)))
         self.DBNs = {('obs', 0): DynamicBayesianNetwork(dag, obs_data, self.nsample)}
         
         
@@ -77,6 +85,7 @@ class CausalInferenceEngine():
         id = ('obs', self.nextObs)
         self.DAGs[id] = self.dag
         self.Ds[id] = data
+        CP.info("\n## Building DBN for DAG ID " + str(id))
         self.DBNs[id] = DynamicBayesianNetwork(self.dag, data, self.nsample)
         return id
         
@@ -96,6 +105,7 @@ class CausalInferenceEngine():
         id = ('int', str(target), self.nextInt)
         self.DAGs[id] = dag
         self.Ds[id] = data
+        CP.info("\n## Building DBN for DAG ID " + str(id))
         self.DBNs[id] = DynamicBayesianNetwork(dag, data, self.nsample)
         return id
         
@@ -128,6 +138,15 @@ class CausalInferenceEngine():
     
     
     def _findSource(self, Ds):
+        """
+        finds source population with maximum number of occurrences treatment = value
+
+        Args:
+            Ds (dict): dataset dictionary {id (str): d (Data)}
+
+        Returns:
+            tuple: number of occurrences, source dataset
+        """
         occurrences = 0
         for id, d in Ds.items():
             # TODO: not sure if here I need to take the d or the DBN samples
@@ -150,6 +169,9 @@ class CausalInferenceEngine():
             tuple: ( p(outcome|treatment = t), E[p(outcome|treatment = t)] )
         """
         
+        CP.info("\n## Query")
+        CP.info("## What happens to " + self.Q[OUTCOME] + " if " + self.Q[TREATMENT] + " = " + str(self.Q[VALUE]) + " in population " + str(targetP) + " ?")
+        
         # searches the population with greatest number of occurrences treatment == treatment's value
         otherDs = copy.deepcopy(self.Ds)
         otherDs.pop(targetP, None)
@@ -159,7 +181,7 @@ class CausalInferenceEngine():
             otherDs.pop(key, None)
             
         intOcc, intSource = self._findSource(intDs)
-        otherOcc, otherSource = self._findSource(otherDs) 
+        otherOcc, otherSource = self._findSource(otherDs)
         
         sourceP = intSource if intOcc != 0 else otherSource
         
@@ -201,7 +223,7 @@ class CausalInferenceEngine():
         # Compute the p(outcome|do(treatment)) density
         if len(pS_y_do_x_adj.shape) > 2: 
             # Sum over the adjustment set
-            p_y_do_x = Density.normalise(np.sum(pS_y_do_x_adj * pT_adj, axis=tuple(range(2, len(pS_y_do_x_adj.shape))))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
+            p_y_do_x = Density.normalise(np.sum(pS_y_do_x_adj * pT_adj, axis = tuple(range(2, len(pS_y_do_x_adj.shape))))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
         else:
             p_y_do_x = pS_y_do_x_adj
         
@@ -225,5 +247,19 @@ class CausalInferenceEngine():
         # I am taking all the outcome's densities associated to the treatment == value
         # Normalise the density to ensure it sums to 1
         p_y_do_X_x = Density.normalise(np.sum(p_y_do_x[:, indices_X], axis = 1))
-                
-        return p_y_do_X_x, Density.expectation(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
+        E_p_y_do_X_x = Density.expectation(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
+        # self.plot_pE(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, show = True)
+        return self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x
+    
+    
+    def plot_pE(self, ysamples, density, expectation = None, show = False):
+        plt.figure(figsize=(10, 6))
+        plt.plot(ysamples, density, label='Density')
+        if expectation is not None: plt.axvline(expectation, color='r', linestyle='--', label='Expectation = ' + str(round(expectation, 2)))
+        plt.xlabel(self.Q[OUTCOME])
+        plt.ylabel('p($' + self.Q[OUTCOME] + '$|do($' + self.Q[TREATMENT] + '$ = ' + str(self.Q[VALUE]) + '))')
+        plt.legend()
+        if show: 
+            plt.show()
+        else:
+            plt.savefig('p(' + self.Q[OUTCOME] + '|do(' + self.Q[TREATMENT] + ' = ' + str(self.Q[VALUE]) + ')).png')

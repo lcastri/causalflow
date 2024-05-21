@@ -58,4 +58,4 @@ class Process():
         Returns:
             ndarray: _nsample_ samples of the original dataset
         """
-        return np.linspace(min(self.aligndata), max(self.aligndata), self.nsample)
+        return np.squeeze(np.linspace(min(self.aligndata), max(self.aligndata), self.nsample))

@@ -1,4 +1,6 @@
 import copy
+import warnings
+from causalflow.CPrinter import CP
 from causalflow.causal_inference.Process import Process
 from typing import Dict
 import numpy as np
@@ -71,6 +73,7 @@ class Density():
         Returns:
             ndarray: joint density p(y, parents)
         """
+        CP.debug("- Joint density")
         if self.JointDensity is None:
             if self.parents is not None:
                 yz = [p for p in self.parents.values()]
@@ -89,6 +92,7 @@ class Density():
         Returns:
             ndarray: prior density p(y)
         """
+        CP.debug("- Prior density")
         if self.PriorDensity is None: 
             self.PriorDensity = self.estimate(self.y)
         self.PriorDensity = self.normalise(self.PriorDensity)
@@ -102,6 +106,7 @@ class Density():
         Returns:
             ndarray: marginal density p(y) = \sum_parents p(y, parents)
         """
+        CP.debug("- Marginal density")
         if self.MarginalDensity is None:
             if self.parents is None:
                 self.MarginalDensity = self.PriorDensity
@@ -120,6 +125,7 @@ class Density():
         Returns:
             ndarray: conditional density p(y|parents) = p(y, parents) / p(parents)
         """
+        CP.debug("- Conditional density")
         if self.CondDensity is None:
             if self.parents is not None:
                 self.CondDensity = self.JointDensity / self.ParentJointDensity
@@ -136,6 +142,7 @@ class Density():
         Returns:
             ndarray: parents's joint density p(parents)
         """
+        CP.debug("- Parent density")
         if self.ParentJointDensity is None:
             if self.parents is not None: 
                 self.ParentJointDensity = self.estimate([p for p in self.parents.values()])
@@ -163,17 +170,19 @@ class Density():
         # Create the grid search
         bandwidths = [0.1, 0.5, 1]
         Ks = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
-        grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths, 'kernel': Ks})
-        grid_search.fit(YZ_data)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths, 'kernel': Ks})
+            grid_search.fit(YZ_data)
 
-        # Fit a kernel density model to the data
-        kde = KernelDensity(bandwidth=grid_search.best_params_['bandwidth'], kernel=grid_search.best_params_['kernel'])
-        kde.fit(YZ_data)
+            # Fit a kernel density model to the data
+            kde = KernelDensity(bandwidth=grid_search.best_params_['bandwidth'], kernel=grid_search.best_params_['kernel'])
+            kde.fit(YZ_data)
 
-        # Compute the density
-        log_density = kde.score_samples(YZ_samples)
-        density = np.exp(log_density)
-        density = density.reshape(YZ_mesh[0].shape)
+            # Compute the density
+            log_density = kde.score_samples(YZ_samples)
+            density = np.exp(log_density)
+            density = density.reshape(YZ_mesh[0].shape)
         return density
            
            
@@ -192,7 +201,8 @@ class Density():
         if np.sum(p) == 0:
             # raise ValueError("Given value(s) out of distributions")
             return np.nan
-        expectation_Y_given_X = np.sum(y * p) / np.sum(p)
+        expectation_Y_given_X = np.sum(y * p)
+        # expectation_Y_given_X = np.sum(y * p) / np.sum(p)
         return expectation_Y_given_X
     
     
