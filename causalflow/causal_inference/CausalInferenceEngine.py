@@ -187,9 +187,9 @@ class CausalInferenceEngine():
         
         p_y_do_x = self.transport(sourceP, targetP, self.Q[TREATMENT], self.Q[OUTCOME])
         
-        p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(p_y_do_x, sourceP)
+        y, p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(p_y_do_x, sourceP)
             
-        return p_y_do_X_x, E_p_y_do_X_x
+        return y, p_y_do_X_x, E_p_y_do_X_x
         
         
     def transport(self, sourceP: tuple, targetP: tuple, treatment: str, outcome: str):
