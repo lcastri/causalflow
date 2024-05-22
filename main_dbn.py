@@ -1,5 +1,4 @@
 import numpy as np
-from causalflow.basics.constants import LabelType
 from causalflow.preprocessing.data import Data
 from tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
@@ -30,7 +29,7 @@ dfA_obs = Data(dA_obs)
 T = 300
 N = 3
 dA_int = np.random.normal(0, 1, size = (T, N))
-dA_int[:, 1] = np.squeeze(5 * np.ones(shape=(T,1)))
+dA_int[:, 1] = np.squeeze(5 * np.ones(shape = (T, 1)))
 for t in range(max_lag, T):
     dA_int[t, 2] += 1.3 * dA_int[t-1, 0] * dA_int[t-2, 1]
 
@@ -67,5 +66,5 @@ dfB_obs = Data(dB_obs)
 cie = CIE(CM, dfA_obs)
 Aint_id = cie.addIntData('X_1', dfA_int)
 Bobs_id = cie.addObsData(dfB_obs)
-y, p, e = cie.whatHappensTo('X_2').If('X_1', 5).In(Bobs_id)
+y, p, e = cie.whatHappens('X_2', 'X_1', 5, Bobs_id)
 cie.plot_pE(y, p ,e)

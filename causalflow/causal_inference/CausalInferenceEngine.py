@@ -110,64 +110,22 @@ class CausalInferenceEngine():
         return id
         
         
-    def whatHappensTo(self, outcome: str):
+    def whatHappens(self, outcome: str, treatment: str, value, targetP: tuple):
         """
-        initialises the query taking in input the outcome variable
+        calculates p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]
 
         Args:
             outcome (str): outcome variable
-
-        Returns:
-            CausalInferenceEngine: self
-        """
-        self.Q[OUTCOME] = outcome
-        return self
-    
-    
-    def If(self, treatment: str, value):
-        """
-        continues the query, which has been initialised by whatHappenTo, taking in input the treatment variable and its value
-
-        Args:
             treatment (str): treatment variable
             value (float): treatment value
-        """
-        self.Q[TREATMENT] = treatment
-        self.Q[VALUE] = value
-        return self
-    
-    
-    def _findSource(self, Ds):
-        """
-        finds source population with maximum number of occurrences treatment = value
-
-        Args:
-            Ds (dict): dataset dictionary {id (str): d (Data)}
-
-        Returns:
-            tuple: number of occurrences, source dataset
-        """
-        occurrences = 0
-        for id, d in Ds.items():
-            # TODO: not sure if here I need to take the d or the DBN samples
-            indexes = np.where(np.isclose(d.d[self.Q[TREATMENT]], self.Q[VALUE], atol = self.atol))[0]
-            if len(indexes) > occurrences: 
-                occurrences = len(indexes)
-                sourceP = id
-                
-        return occurrences, sourceP
-    
-    
-    def In(self, targetP: tuple):
-        """
-        finalises the query, which has been initialised by whatHappenTo and If, taking in input the target population
-
-        Args:
             targetP (tuple): target population ID (e.g., ("obs", 3))
 
         Returns:
-            tuple: ( p(outcome|treatment = t), E[p(outcome|treatment = t)] )
+            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))] )
         """
+        self.Q[OUTCOME] = outcome
+        self.Q[TREATMENT] = treatment
+        self.Q[VALUE] = value
         
         CP.info("\n## Query")
         CP.info("## What happens to " + self.Q[OUTCOME] + " if " + self.Q[TREATMENT] + " = " + str(self.Q[VALUE]) + " in population " + str(targetP) + " ?")
@@ -190,6 +148,65 @@ class CausalInferenceEngine():
         y, p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(p_y_do_x, sourceP)
             
         return y, p_y_do_X_x, E_p_y_do_X_x
+    
+    
+    def predict(self, outcome: str, treatment: str, value, data: Data):
+        """
+        calculates p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]
+
+        Args:
+            outcome (str): outcome variable
+            treatment (str): treatment variable
+            value (float/ndarray): treatment value
+            data (Data): target population ID (e.g., ("obs", 3))
+
+        Returns:
+            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))] )
+        """
+        # TODO: to do the whatHappens method for timeseries interventions
+        self.Q[OUTCOME] = outcome
+        self.Q[TREATMENT] = treatment
+        self.Q[VALUE] = value
+              
+        # searches the population with greatest number of occurrences treatment == treatment's value
+        otherDs = copy.deepcopy(self.Ds)
+        otherDs.pop(targetP, None)
+        intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}
+        # Remove the items in intDs from self.Ds
+        for key in intDs.keys():
+            otherDs.pop(key, None)
+            
+        intOcc, intSource = self._findSource(intDs)
+        otherOcc, otherSource = self._findSource(otherDs)
+        
+        sourceP = intSource if intOcc != 0 else otherSource
+        
+        p_y_do_x = self.transport(sourceP, targetP, self.Q[TREATMENT], self.Q[OUTCOME])
+        
+        y, p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(p_y_do_x, sourceP)
+            
+        return y, p_y_do_X_x, E_p_y_do_X_x
+    
+    
+    def _findSource(self, Ds):
+        """
+        finds source population with maximum number of occurrences treatment = value
+
+        Args:
+            Ds (dict): dataset dictionary {id (str): d (Data)}
+
+        Returns:
+            tuple: number of occurrences, source dataset
+        """
+        occurrences = 0
+        for id, d in Ds.items():
+            # TODO: not sure if here I need to take the d or the DBN samples
+            indexes = np.where(np.isclose(d.d[self.Q[TREATMENT]], self.Q[VALUE], atol = self.atol))[0]
+            if len(indexes) > occurrences: 
+                occurrences = len(indexes)
+                sourceP = id
+                
+        return occurrences, sourceP     
         
         
     def transport(self, sourceP: tuple, targetP: tuple, treatment: str, outcome: str):
@@ -232,14 +249,14 @@ class CausalInferenceEngine():
     
     def evalDoDensity(self, p_y_do_x, sourceP: tuple):
         """
-        Evaluates the p(outcome|do(treatment) = t)
+        Evaluates the p(outcome|do(treatment = t))
 
         Args:
             p_y_do_x: p(outcome|do(treatment)) density
             sourceP (tuple): source population ID
 
         Returns:
-            tuple: p(outcome|treatment = t), E[p(outcome|treatment = t)]
+            tuple: outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]
         """
         indices_X = np.where(np.isclose(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].parents[self.Q[TREATMENT]].samples, self.Q[VALUE], atol = self.atol))[0]
         indices_X = np.array(sorted(indices_X))               
