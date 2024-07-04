@@ -163,29 +163,30 @@ class CausalInferenceEngine():
         Returns:
             tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))] )
         """
-        # TODO: to do the whatHappens method for timeseries interventions
-        self.Q[OUTCOME] = outcome
-        self.Q[TREATMENT] = treatment
-        self.Q[VALUE] = value
+        pass
+        # # TODO: to do the whatHappens method for timeseries interventions
+        # self.Q[OUTCOME] = outcome
+        # self.Q[TREATMENT] = treatment
+        # self.Q[VALUE] = value
               
-        # searches the population with greatest number of occurrences treatment == treatment's value
-        otherDs = copy.deepcopy(self.Ds)
-        otherDs.pop(targetP, None)
-        intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}
-        # Remove the items in intDs from self.Ds
-        for key in intDs.keys():
-            otherDs.pop(key, None)
+        # # searches the population with greatest number of occurrences treatment == treatment's value
+        # otherDs = copy.deepcopy(self.Ds)
+        # otherDs.pop(targetP, None)
+        # intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}
+        # # Remove the items in intDs from self.Ds
+        # for key in intDs.keys():
+        #     otherDs.pop(key, None)
             
-        intOcc, intSource = self._findSource(intDs)
-        otherOcc, otherSource = self._findSource(otherDs)
+        # intOcc, intSource = self._findSource(intDs)
+        # otherOcc, otherSource = self._findSource(otherDs)
         
-        sourceP = intSource if intOcc != 0 else otherSource
+        # sourceP = intSource if intOcc != 0 else otherSource
         
-        p_y_do_x = self.transport(sourceP, targetP, self.Q[TREATMENT], self.Q[OUTCOME])
+        # p_y_do_x = self.transport(sourceP, targetP, self.Q[TREATMENT], self.Q[OUTCOME])
         
-        y, p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(p_y_do_x, sourceP)
+        # y, p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(p_y_do_x, sourceP)
             
-        return y, p_y_do_X_x, E_p_y_do_X_x
+        # return y, p_y_do_X_x, E_p_y_do_X_x
     
     
     def _findSource(self, Ds):
