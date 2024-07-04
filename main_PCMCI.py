@@ -1,14 +1,14 @@
 from tigramite.independence_tests.gpdc import GPDC
-from connectingdots.CPrinter import CPLevel
-from connectingdots.causal_discovery.FPCMCI import FPCMCI
-from connectingdots.preprocessing.data import Data
-from connectingdots.preprocessing.subsampling_methods.Static import Static
-from connectingdots.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod
-from connectingdots.preprocessing.subsampling_methods.WSDynamic import WSDynamic
-from connectingdots.preprocessing.subsampling_methods.WSFFTStatic import WSFFTStatic
-from connectingdots.preprocessing.subsampling_methods.WSStatic import WSStatic
-from connectingdots.selection_methods.TE import TE, TEestimator
-from connectingdots.basics.constants import LabelType
+from causalflow.CPrinter import CPLevel
+from causalflow.causal_discovery.FPCMCI import FPCMCI
+from causalflow.preprocessing.data import Data
+from causalflow.preprocessing.subsampling_methods.Static import Static
+from causalflow.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod
+from causalflow.preprocessing.subsampling_methods.WSDynamic import WSDynamic
+from causalflow.preprocessing.subsampling_methods.WSFFTStatic import WSFFTStatic
+from causalflow.preprocessing.subsampling_methods.WSStatic import WSStatic
+from causalflow.selection_methods.TE import TE, TEestimator
+from causalflow.basics.constants import LabelType
 import numpy as np
 
 from time import time

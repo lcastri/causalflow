@@ -3,11 +3,11 @@ import json
 import os
 import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
-from connectingdots.CPrinter import CPLevel
-from connectingdots.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOIT_cont
-from connectingdots.preprocessing.data import Data
-from connectingdots.selection_methods.TE import TE, TEestimator
-from connectingdots.random_system.RandomDAG import NoiseType, RandomDAG
+from causalflow.CPrinter import CPLevel
+from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOIT_cont
+from causalflow.preprocessing.data import Data
+from causalflow.selection_methods.TE import TE, TEestimator
+from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
 import traceback
 

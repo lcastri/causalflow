@@ -1,15 +1,15 @@
 from tigramite.independence_tests.gpdc import GPDC
-from connectingdots.CPrinter import CPLevel
-from connectingdots.causal_discovery.FPCMCI import FPCMCI
-from connectingdots.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
-from connectingdots.causal_discovery.baseline.TiMINo import TiMINo
-from connectingdots.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
-from connectingdots.causal_discovery.baseline.PCMCI import PCMCI
-from connectingdots.causal_discovery.baseline.TCDF import TCDF
-from connectingdots.causal_discovery.baseline.tsFCI import tsFCI
-from connectingdots.preprocessing.data import Data
-from connectingdots.selection_methods.TE import TE, TEestimator
-from connectingdots.basics.constants import LabelType
+from causalflow.CPrinter import CPLevel
+from causalflow.causal_discovery.FPCMCI import FPCMCI
+from causalflow.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
+from causalflow.causal_discovery.baseline.TiMINo import TiMINo
+from causalflow.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
+from causalflow.causal_discovery.baseline.PCMCI import PCMCI
+from causalflow.causal_discovery.baseline.TCDF import TCDF
+from causalflow.causal_discovery.baseline.tsFCI import tsFCI
+from causalflow.preprocessing.data import Data
+from causalflow.selection_methods.TE import TE, TEestimator
+from causalflow.basics.constants import LabelType
 import numpy as np
 
 

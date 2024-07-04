@@ -5,13 +5,10 @@ import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
-from causalflow.causal_discovery.CAnDOIT import CAnDOIT
+from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 from causalflow.causal_discovery.FPCMCI import FPCMCI
-from causalflow.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
-from causalflow.causal_discovery.baseline.PCMCI import PCMCI
-from causalflow.causal_discovery.baseline.TCDF import TCDF
-from causalflow.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
-from causalflow.causal_discovery.baseline.tsFCI import tsFCI
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
+from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOIT_cont
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
@@ -45,10 +42,9 @@ EMPTY_RES = {jWord.GT.value : None,
              jWord.InterventionVariables.value : None,
              jWord.ExpectedSpuriousLinks.value : None,
              jWord.N_GSPU.value : None,
-             Algo.CAnDOITLagged.value : deepcopy(ALGO_RES),   
-             Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
-             Algo.FPCMCI.value : deepcopy(ALGO_RES),   
-             Algo.PCMCI.value : deepcopy(ALGO_RES),
+             Algo.CAnDOIT.value : deepcopy(ALGO_RES),      
+             Algo.CAnDOITCont.value : deepcopy(ALGO_RES),
+             Algo.FPCMCI.value : deepcopy(ALGO_RES),
              }
 
 
@@ -109,45 +105,43 @@ def save_result(d):
     
 if __name__ == '__main__':   
     nsample_obs = 1200
-    nsample_int = 300
+    nsample_int = 100
     # resdir = "S1_" + str(nsample_obs) + "_" + str(nsample_int)
-    resdir = "ATTEMPT_1"
+    resdir = "CAnDOIT_LPCMCI"
     f_alpha = 0.05
     alpha = 0.05
     min_lag = 1
     max_lag = 2
     min_c = 0.1
     max_c = 0.5
-    nfeature = range(7, 15)
+    nconfounder = range(1, 4)
     nrun = 25
     
     
-    for n in nfeature:
+    for n in nconfounder:
         for nr in range(nrun):
             #########################################################################################################################
             # DATA
             while True:
-                try:
+                # try:
                     resfolder = 'results/' + resdir + '/' + str(n) + '/' + str(nr)
                     os.makedirs(resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
-                    coeff_sign = random.choice([-1, 1])
                     noise_param = random.uniform(0.5, 2)
                     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-                    hidden_conf = random.randint(2,3)
-                    RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
-                                   max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
+                    RS = RandomDAG(nvars = 5, nsamples = nsample_obs + nsample_int, 
+                                   max_terms = 3, coeff_range = (min_c, max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
-                                   functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = hidden_conf)
+                                   functions = [''], operators=['+', '-', '*'], n_hidden_confounders = n)
                     RS.gen_equations()
 
                     d_obs = RS.gen_obs_ts()
                     
                     d_int = dict()
                     for int_var in RS.confintvar.values():
-                        i = RS.intervene(int_var, nsample_int/hidden_conf, random.uniform(5, 10))
+                        i = RS.intervene(int_var, nsample_int, random.uniform(5, 10))
                         d_int[int_var] = i[int_var]
                         d_int[int_var].plot_timeseries(resfolder + '/interv_' + int_var + '.png')
 
@@ -158,60 +152,87 @@ if __name__ == '__main__':
                     
                     RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
                     RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')                  
+                    
             
-            
-                    #########################################################################################################################
-                    # FPCMCI
-                    fpcmci = FPCMCI(deepcopy(d_obs),
-                                    f_alpha = f_alpha, 
-                                    alpha = alpha, 
-                                    min_lag = min_lag, 
-                                    max_lag = max_lag, 
-                                    sel_method = TE(TEestimator.Gaussian), 
-                                    val_condtest = GPDC(significance = 'analytic'),
-                                    verbosity = CPLevel.INFO,
-                                    neglect_only_autodep = False,
-                                    resfolder = resfolder + "/fpcmci")
-
-                    new_start = time()
-                    fpcmci_cm = fpcmci.run()
-                    elapsed_fpcmci = time() - new_start
-                    fpcmci_time = str(timedelta(seconds = elapsed_fpcmci))
-                    print(fpcmci_time)
-                    fpcmci.timeseries_dag()
-                    gc.collect()
-            
-                    if len(get_spurious_links(fpcmci_cm.get_SCM())) == 0: 
-                        gc.collect()
-                        remove_directory(os.getcwd() + '/' + resfolder)
-                        continue
+                    # #########################################################################################################################
+                    # # CAnDOIT
+                    # new_d_obs = deepcopy(d_obs)
+                    # new_d_obs.d = new_d_obs.d[:-nsample_int]
+                    # candoit = CAnDOIT(new_d_obs, 
+                    #                   deepcopy(d_int),
+                    #                   f_alpha = f_alpha, 
+                    #                   alpha = alpha, 
+                    #                   min_lag = min_lag, 
+                    #                   max_lag = max_lag, 
+                    #                   sel_method = TE(TEestimator.Gaussian), 
+                    #                   val_condtest = GPDC(significance = 'analytic'),
+                    #                   verbosity = CPLevel.INFO,
+                    #                   neglect_only_autodep = False,
+                    #                   resfolder = resfolder + "/candoit",
+                    #                   plot_data = False,
+                    #                   exclude_context = True)
+                    
+                    # new_start = time()
+                    # candoit_cm = candoit.run()
+                    # elapsed_candoit = time() - new_start
+                    # candoit_time = str(timedelta(seconds = elapsed_candoit))
+                    # print(candoit_time)
+                    # candoit.timeseries_dag()
+                    # gc.collect()
+                    
+                    
+                    # #########################################################################################################################
+                    # # CAnDOIT
+                    # new_d_obs = deepcopy(d_obs)
+                    # new_d_obs.d = new_d_obs.d[:-nsample_int]
+                    # candoit_lagged = CAnDOIT_lagged(new_d_obs, 
+                    #                   deepcopy(d_int),
+                    #                   f_alpha = f_alpha, 
+                    #                   alpha = alpha, 
+                    #                   min_lag = min_lag, 
+                    #                   max_lag = max_lag, 
+                    #                   sel_method = TE(TEestimator.Gaussian), 
+                    #                   val_condtest = GPDC(significance = 'analytic'),
+                    #                   verbosity = CPLevel.INFO,
+                    #                   neglect_only_autodep = False,
+                    #                   resfolder = resfolder + "/candoit_lagged",
+                    #                   plot_data = False,
+                    #                   exclude_context = True)
+                    
+                    # new_start = time()
+                    # candoit_lagged_cm = candoit_lagged.run()
+                    # elapsed_candoit_lagged = time() - new_start
+                    # candoit_lagged_time = str(timedelta(seconds = elapsed_candoit_lagged))
+                    # print(candoit_lagged_time)
+                    # candoit_lagged.timeseries_dag()
+                    # gc.collect()
                     
                     
                     #########################################################################################################################
-                    # PCMCI
-                    pcmci = PCMCI(deepcopy(d_obs),
+                    # LPCMCI
+                    lpcmci = LPCMCI(deepcopy(d_obs),
                                     min_lag = min_lag, 
                                     max_lag = max_lag, 
                                     val_condtest = GPDC(significance = 'analytic'),
                                     verbosity = CPLevel.INFO,
                                     alpha = alpha, 
                                     neglect_only_autodep = False,
-                                    resfolder = resfolder + "/pcmci")
+                                    resfolder = resfolder + "/lpcmci")
                     
                     new_start = time()
-                    pcmci_cm = pcmci.run()
+                    pcmci_cm = lpcmci.run()
                     elapsed_pcmci = time() - new_start
                     pcmci_time = str(timedelta(seconds = elapsed_pcmci))
                     print(pcmci_time)
-                    pcmci.timeseries_dag()
+                    lpcmci.timeseries_dag()
                     gc.collect()
                     
-            
+                    
                     #########################################################################################################################
-                    # CAnDOIT
+                    # CAnDOIT contemporaneous
                     new_d_obs = deepcopy(d_obs)
                     new_d_obs.d = new_d_obs.d[:-nsample_int]
-                    candoit = CAnDOIT(new_d_obs, 
+                    candoit_cont = CAnDOIT_cont(new_d_obs, 
                                       deepcopy(d_int),
                                       f_alpha = f_alpha, 
                                       alpha = alpha, 
@@ -221,63 +242,58 @@ if __name__ == '__main__':
                                       val_condtest = GPDC(significance = 'analytic'),
                                       verbosity = CPLevel.INFO,
                                       neglect_only_autodep = False,
-                                      resfolder = resfolder + "/candoit",
+                                      resfolder = resfolder + "/candoit_cont",
                                       plot_data = False,
                                       exclude_context = True)
                     
                     new_start = time()
-                    candoit_cm = candoit.run()
-                    elapsed_candoit = time() - new_start
-                    candoit_time = str(timedelta(seconds = elapsed_candoit))
-                    print(candoit_time)
-                    candoit.timeseries_dag()
+                    candoit_cont_cm = candoit_cont.run()
+                    elapsed_candoit_cont = time() - new_start
+                    candoit_cont_time = str(timedelta(seconds = elapsed_candoit_cont))
+                    print(candoit_cont_time)
+                    candoit_cont.timeseries_dag()
                     gc.collect()
                     
+                                
+                    # #########################################################################################################################
+                    # # FPCMCI
+                    # fpcmci = FPCMCI(deepcopy(d_obs),
+                    #                 f_alpha = f_alpha, 
+                    #                 alpha = alpha, 
+                    #                 min_lag = min_lag, 
+                    #                 max_lag = max_lag, 
+                    #                 sel_method = TE(TEestimator.Gaussian), 
+                    #                 val_condtest = GPDC(significance = 'analytic'),
+                    #                 verbosity = CPLevel.INFO,
+                    #                 neglect_only_autodep = False,
+                    #                 resfolder = resfolder + "/fpcmci")
+
+                    # new_start = time()
+                    # fpcmci_cm = fpcmci.run()
+                    # elapsed_fpcmci = time() - new_start
+                    # fpcmci_time = str(timedelta(seconds = elapsed_fpcmci))
+                    # print(fpcmci_time)
+                    # fpcmci.timeseries_dag()
+                    # gc.collect()
                     
-                    #########################################################################################################################
-                    # CAnDOIT
-                    new_d_obs = deepcopy(d_obs)
-                    new_d_obs.d = new_d_obs.d[:-nsample_int]
-                    candoit_lagged = CAnDOIT(new_d_obs, 
-                                      deepcopy(d_int),
-                                      f_alpha = f_alpha, 
-                                      alpha = alpha, 
-                                      min_lag = min_lag, 
-                                      max_lag = max_lag, 
-                                      sel_method = TE(TEestimator.Gaussian), 
-                                      val_condtest = GPDC(significance = 'analytic'),
-                                      verbosity = CPLevel.INFO,
-                                      neglect_only_autodep = False,
-                                      resfolder = resfolder + "/candoit_lagged",
-                                      plot_data = False,
-                                      exclude_context = True)
-                    
-                    new_start = time()
-                    candoit_lagged_cm = candoit_lagged.run_lagged()
-                    elapsed_candoit_lagged = time() - new_start
-                    candoit_lagged_time = str(timedelta(seconds = elapsed_candoit_lagged))
-                    print(candoit_lagged_time)
-                    candoit_lagged.timeseries_dag()
-                    gc.collect()
-                        
                     break
                     
-                except Exception as e:
-                    traceback_info = traceback.format_exc()
-                    with open(os.getcwd() + "/" + 'results/' + resdir + '/error.txt', 'a') as f:
-                        f.write("Exception occurred: " + str(e) + "\n")
-                        f.write("Traceback:\n" + traceback_info + "\n")
-                    remove_directory(os.getcwd() + "/" + resfolder)
-                    continue
+                # except Exception as e:
+                #     traceback_info = traceback.format_exc()
+                #     with open(os.getcwd() + "/" + 'results/' + resdir + '/error.txt', 'a') as f:
+                #         f.write("Exception occurred: " + str(e) + "\n")
+                #         f.write("Traceback:\n" + traceback_info + "\n")
+                #     remove_directory(os.getcwd() + "/" + resfolder)
+                #     continue
 
 
             #########################################################################################################################
             # SAVE
             res = {
-                Algo.CAnDOITLagged: {"time":candoit_lagged_time, "scm":get_correct_SCM(GT, candoit_lagged_cm.get_SCM())},
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
+                # Algo.CAnDOITLagged: {"time":candoit_lagged_time, "scm":get_correct_SCM(GT, candoit_lagged_cm.get_SCM())},
+                Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_SCM())},
                 Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
-                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
             }
             save_result(res)
             

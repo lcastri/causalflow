@@ -2,12 +2,12 @@ import copy
 import os
 # from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from tigramite.independence_tests.gpdc import GPDC
-from connectingdots.CPrinter import CPLevel
-from connectingdots.basics.constants import ImageExt
-from connectingdots.CAnDOIT import CAnDOIT
-from connectingdots.FPCMCI import FPCMCI
-from connectingdots.preprocessing.data import Data
-from connectingdots.selection_methods.TE import TE, TEestimator
+from causalflow.CPrinter import CPLevel
+from causalflow.basics.constants import ImageExt
+from causalflow.CAnDOIT import CAnDOIT
+from causalflow.FPCMCI import FPCMCI
+from causalflow.preprocessing.data import Data
+from causalflow.selection_methods.TE import TE, TEestimator
 
 if __name__ == '__main__':   
     resfolder = "CW_result"
