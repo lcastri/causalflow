@@ -364,34 +364,175 @@ class DAG():
         return pretty
         
     
+    # def dag(self,
+    #         node_layout = 'dot',
+    #         min_width = 1, max_width = 5,
+    #         min_score = 0, max_score = 1,
+    #         node_size = 8, node_color = 'orange',
+    #         edge_color = 'grey',
+    #         bundle_parallel_edges = True,
+    #         font_size = 12,
+    #         label_type = LabelType.Lag,
+    #         save_name = None,
+    #         img_extention = ImageExt.PNG):
+    #     """
+    #     build a dag
+
+    #     Args:
+    #         node_layout (str, optional): Node layout. Defaults to 'dot'.
+    #         min_width (int, optional): minimum linewidth. Defaults to 1.
+    #         max_width (int, optional): maximum linewidth. Defaults to 5.
+    #         min_score (int, optional): minimum score range. Defaults to 0.
+    #         max_score (int, optional): maximum score range. Defaults to 1.
+    #         node_size (int, optional): node size. Defaults to 8.
+    #         node_color (str, optional): node color. Defaults to 'orange'.
+    #         edge_color (str, optional): edge color. Defaults to 'grey'.
+    #         bundle_parallel_edges (str, optional): bundle parallel edge bit. Defaults to True.
+    #         font_size (int, optional): font size. Defaults to 12.
+    #         label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
+    #         save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+    #     """
+    #     r = copy.deepcopy(self)
+    #     r.g = r.make_pretty()
+
+    #     G = nx.DiGraph()
+
+    #     # NODES DEFINITION
+    #     G.add_nodes_from(r.g.keys())
+        
+    #     # BORDER LINE
+    #     border = dict()
+    #     for t in r.g:
+    #         border[t] = 0
+    #         if r.g[t].is_autodependent:
+    #             autodep = r.g[t].get_max_autodependent
+    #             border[t] = max(self.__scale(r.g[t].sources[autodep][SCORE], min_width, max_width, min_score, max_score), border[t])
+        
+    #     # BORDER LABEL
+    #     node_label = None
+    #     if label_type == LabelType.Lag or label_type == LabelType.Score:
+    #         node_label = {t: [] for t in r.g.keys()}
+    #         for t in r.g:
+    #             if r.g[t].is_autodependent:
+    #                 autodep = r.g[t].get_max_autodependent
+    #                 if label_type == LabelType.Lag:
+    #                     node_label[t].append(autodep[1])
+    #                 elif label_type == LabelType.Score:
+    #                     node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
+    #             node_label[t] = ",".join(str(s) for s in node_label[t])
+
+
+    #     # EDGE DEFINITION
+    #     # edges = [(s[0], t) for t in r.g for s in r.g[t].sources if t != s[0]]
+    #     # arrows = {(s[0], t) : True for t in r.g for s in r.g[t].sources if t != s[0]}
+    #     edges = list()
+    #     edge_width = dict()
+    #     arrows = {}
+    #     for t in r.g:
+    #         for s in r.g[t].sources:
+    #             if t != s[0]:
+    #                 edges.append((s[0], t))
+    #                 edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
+    #                 arrows[(s[0], t)] = {'h': False, 't': ''}
+    #                 if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
+    #                     arrows[(s[0], t)] = {'h': True, 't': ''}
+    #                 elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
+    #                     edges.append((t, s[0]))
+    #                     edge_width[(t, s[0])] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
+    #                     arrows[(t, s[0])] = {'h': True, 't': ''}
+    #                     arrows[(s[0], t)] = {'h': True, 't': ''}
+    #                 elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
+    #                     arrows[(s[0], t)] = {'h': True, 't': 'o'}
+    #                 elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
+    #                     arrows[(s[0], t)] = {'h': False, 't': 'o'}
+
+    #     G.add_edges_from(edges)
+        
+    #     # EDGE LINE
+    #     # for t in r.g:
+    #     #     for s in r.g[t].sources:
+    #     #         if t != s[0]:
+    #     #             edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), edge_width[(s[0], t)])
+        
+    #     # EDGE LABEL
+    #     edge_label = None
+    #     if label_type == LabelType.Lag or label_type == LabelType.Score:
+    #         edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0]}
+    #         for t in r.g:
+    #             for s in r.g[t].sources:
+    #                 if t != s[0]:
+    #                     if label_type == LabelType.Lag:
+    #                         edge_label[(s[0], t)].append(s[1])
+    #                     elif label_type == LabelType.Score:
+    #                         edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
+    #         for k in edge_label.keys():
+    #             edge_label[k] = ",".join(str(s) for s in edge_label[k])
+
+    #     fig, ax = plt.subplots(figsize=(8,6))
+
+    #     if edges:
+    #         a = Graph(G, 
+    #                 node_layout = node_layout,
+    #                 node_size = node_size,
+    #                 node_color = node_color,
+    #                 node_labels = node_label,
+    #                 node_edge_width = border,
+    #                 node_label_fontdict = dict(size=font_size),
+    #                 node_edge_color = edge_color,
+    #                 node_label_offset = 0.1,
+    #                 node_alpha = 1,
+                    
+    #                 arrows = arrows,
+    #                 edge_layout = 'curved',
+    #                 edge_label = label_type != LabelType.NoLabels,
+    #                 edge_labels = edge_label,
+    #                 edge_label_fontdict = dict(size=font_size),
+    #                 edge_color = edge_color, 
+    #                 edge_width = edge_width,
+    #                 edge_alpha = 1,
+    #                 edge_zorder = 1,
+    #                 edge_label_position = 0.35,
+    #                 edge_layout_kwargs = dict(bundle_parallel_edges = bundle_parallel_edges, k = 0.05))
+            
+    #         nx.draw_networkx_labels(G, 
+    #                                 pos = a.node_positions,
+    #                                 labels = {n: n for n in G},
+    #                                 font_size = font_size)
+
+    #     if save_name is not None:
+    #         plt.savefig(save_name + img_extention.value, dpi = 300)
+    #     else:
+    #         plt.show()   
+    
     def dag(self,
-            node_layout = 'dot',
-            min_width = 1, max_width = 5,
-            min_score = 0, max_score = 1,
-            node_size = 8, node_color = 'orange',
-            edge_color = 'grey',
+            node_layout='circular',
+            min_width=1, max_width=5,
+            min_score=0, max_score=1,
+            node_size=8, node_color='orange',
+            edge_color='grey',
             bundle_parallel_edges = True,
-            font_size = 12,
-            label_type = LabelType.Lag,
-            save_name = None,
-            img_extention = ImageExt.PNG):
+            font_size=12,
+            label_type=LabelType.Lag,
+            save_name=None,
+            img_extention=ImageExt.PNG):
         """
-        build a dag
+        Build a DAG.
 
         Args:
             node_layout (str, optional): Node layout. Defaults to 'dot'.
-            min_width (int, optional): minimum linewidth. Defaults to 1.
-            max_width (int, optional): maximum linewidth. Defaults to 5.
-            min_score (int, optional): minimum score range. Defaults to 0.
-            max_score (int, optional): maximum score range. Defaults to 1.
-            node_size (int, optional): node size. Defaults to 8.
-            node_color (str, optional): node color. Defaults to 'orange'.
-            edge_color (str, optional): edge color. Defaults to 'grey'.
-            bundle_parallel_edges (str, optional): bundle parallel edge bit. Defaults to True.
-            font_size (int, optional): font size. Defaults to 12.
-            label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
+            min_width (int, optional): Minimum linewidth. Defaults to 1.
+            max_width (int, optional): Maximum linewidth. Defaults to 5.
+            min_score (int, optional): Minimum score range. Defaults to 0.
+            max_score (int, optional): Maximum score range. Defaults to 1.
+            node_size (int, optional): Node size. Defaults to 8.
+            node_color (str, optional): Node color. Defaults to 'orange'.
+            edge_color (str, optional): Edge color. Defaults to 'grey'.
+            font_size (int, optional): Font size. Defaults to 12.
+            label_type (LabelType, optional): Enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
         """
+        # FIXME: polish and define inputs
+        edge_label_pos = 0.3
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
 
@@ -421,10 +562,8 @@ class DAG():
                         node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
                 node_label[t] = ",".join(str(s) for s in node_label[t])
 
-
         # EDGE DEFINITION
-        # edges = [(s[0], t) for t in r.g for s in r.g[t].sources if t != s[0]]
-        # arrows = {(s[0], t) : True for t in r.g for s in r.g[t].sources if t != s[0]}
+        connectionstyle = 'arc3,rad=0.0'
         edges = list()
         edge_width = dict()
         arrows = {}
@@ -433,27 +572,22 @@ class DAG():
                 if t != s[0]:
                     edges.append((s[0], t))
                     edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
-                    arrows[(s[0], t)] = {'h': False, 't': ''}
                     if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
-                        arrows[(s[0], t)] = {'h': True, 't': ''}
+                        arrows[(s[0], t)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s[0], t)]}
                     elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
                         edges.append((t, s[0]))
                         edge_width[(t, s[0])] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
-                        arrows[(t, s[0])] = {'h': True, 't': ''}
-                        arrows[(s[0], t)] = {'h': True, 't': ''}
+                        arrows[(s[0], t)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s[0], t)]}
+                        arrows[(t, s[0])] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(t, s[0])]}
                     elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
-                        arrows[(s[0], t)] = {'h': True, 't': 'o'}
+                        # FIXME: circle as tail
+                        arrows[(s[0], t)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s[0], t)]}
                     elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
-                        arrows[(s[0], t)] = {'h': False, 't': 'o'}
+                        # FIXME: circle as tail
+                        arrows[(s[0], t)] = {'arrowstyle': '-', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s[0], t)]}
 
         G.add_edges_from(edges)
-        
-        # EDGE LINE
-        # for t in r.g:
-        #     for s in r.g[t].sources:
-        #         if t != s[0]:
-        #             edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), edge_width[(s[0], t)])
-        
+
         # EDGE LABEL
         edge_label = None
         if label_type == LabelType.Lag or label_type == LabelType.Score:
@@ -468,41 +602,58 @@ class DAG():
             for k in edge_label.keys():
                 edge_label[k] = ",".join(str(s) for s in edge_label[k])
 
+        if node_layout == "spring":
+            pos = nx.spring_layout(G)
+        elif node_layout == "circular":
+            pos = nx.circular_layout(G)
+        elif node_layout == "kamada_kawai":
+            pos = nx.kamada_kawai_layout(G)
+        elif node_layout == "random":
+            pos = nx.random_layout(G)
+        elif node_layout == "spectral":
+            pos = nx.spectral_layout(G)
+
         fig, ax = plt.subplots(figsize=(8,6))
 
-        if edges:
-            a = Graph(G, 
-                    node_layout = node_layout,
-                    node_size = node_size,
-                    node_color = node_color,
-                    node_labels = node_label,
-                    node_edge_width = border,
-                    node_label_fontdict = dict(size=font_size),
-                    node_edge_color = edge_color,
-                    node_label_offset = 0.1,
-                    node_alpha = 1,
-                    
-                    arrows = arrows,
-                    edge_layout = 'curved',
-                    edge_label = label_type != LabelType.NoLabels,
-                    edge_labels = edge_label,
-                    edge_label_fontdict = dict(size=font_size),
-                    edge_color = edge_color, 
-                    edge_width = edge_width,
-                    edge_alpha = 1,
-                    edge_zorder = 1,
-                    edge_label_position = 0.35,
-                    edge_layout_kwargs = dict(bundle_parallel_edges = bundle_parallel_edges, k = 0.05))
-            
-            nx.draw_networkx_labels(G, 
-                                    pos = a.node_positions,
-                                    labels = {n: n for n in G},
-                                    font_size = font_size)
+        # Draw the graph using networkx
+        nx.draw_networkx_nodes(G, pos, node_size = 300, node_color=node_color, edgecolors=edge_color, linewidths=list(border.values()))
+        nx.draw_networkx_labels(G, pos, labels={v:name for v, name in zip(G.nodes(), r.g.keys())}, font_size=font_size)
 
+        for (u, v) in G.edges():
+            arrs = nx.draw_networkx_edges(G, pos, 
+                                edgelist=[(u, v)], 
+                                width=edge_width[(u, v)], 
+                                edge_color=edge_color, 
+                                arrowstyle=arrows.get((u, v), {}).get('arrowstyle', '-|>'), 
+                                connectionstyle=arrows.get((u, v), {}).get('connectionstyle', 'arc3,rad=0.1'), 
+                                arrowsize=arrows.get((u, v), {}).get('arrowsize', 10))
+    
+            for a, w in zip(arrs, edge_width.values()):
+                a.set_mutation_scale(20 + w)
+                a.set_joinstyle('miter')
+                a.set_capstyle('butt')
+
+        # Adding custom labels near nodes
+        # FIXME: lag label close the nodes
+        # for node, (x, y) in pos.items():
+        #     ax.text(x + 0.075, y, node_label[node], fontsize=font_size, ha='center', va='center')
+
+        if edge_label:
+            # Calculate custom edge label positions
+            edge_label_pos_dict = {}
+            for (u, v), label in edge_label.items():
+                x1, y1 = pos[u]
+                x2, y2 = pos[v]
+                edge_label_pos_dict[(u, v)] = ((1 - edge_label_pos) * x1 + edge_label_pos * x2, (1 - edge_label_pos) * y1 + edge_label_pos * y2)
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_label, font_size=font_size, label_pos=edge_label_pos)
+
+        # Remove axes
+        ax.set_axis_off()
+        
         if save_name is not None:
-            plt.savefig(save_name + img_extention.value, dpi = 300)
+            plt.savefig(save_name + img_extention.value, dpi=300)
         else:
-            plt.show()         
+            plt.show()      
             
     
     # def ts_dag(self,
@@ -665,11 +816,11 @@ class DAG():
     
     
     
-    def draw_circle(self, ax, s_node, t_node, radius):
-        # Calculate circle position along the edge (s_node -> t_node)
-        circle_pos_x = s_node[0] + 0.02 * (t_node[0] - s_node[0])  # Adjust position as needed
-        circle_pos_y = s_node[1] + 0.02 * (t_node[1] - s_node[1])
-        ax.scatter(x=circle_pos_x, y=circle_pos_y, s=radius, c='r', edgecolors='none')
+    # def draw_circle(self, ax, s_node, t_node, radius):
+    #     # Calculate circle position along the edge (s_node -> t_node)
+    #     circle_pos_x = s_node[0] + 0.02 * (t_node[0] - s_node[0])  # Adjust position as needed
+    #     circle_pos_y = s_node[1] + 0.02 * (t_node[1] - s_node[1])
+    #     ax.scatter(x=circle_pos_x, y=circle_pos_y, s=radius, c='r', edgecolors='none')
     
 
 
@@ -700,6 +851,8 @@ class DAG():
             font_size (int, optional): font size. Defaults to 12.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
         """
+        # FIXME: polish and define inputs
+
         fig, ax = plt.subplots(figsize=(8, 6))
         circle_radius = 100  # Adjust the radius as needed
 
@@ -748,12 +901,14 @@ class DAG():
                             arrows[(t_node, s_node)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(t_node, s_node)]}
                             arrows[(s_node, t_node)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s_node, t_node)]}
                         elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
+                            # FIXME: circle as tail
                             arrows[(s_node, t_node)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s_node, t_node)]}
-                            self.draw_circle(ax, s_node, t_node, circle_radius)
+                            # self.draw_circle(ax, s_node, t_node, circle_radius)
                         elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
+                            # FIXME: circle as tail
                             arrows[(s_node, t_node)] = {'arrowstyle': '-', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s_node, t_node)]}
-                            self.draw_circle(ax, s_node, t_node, circle_radius)
-                            self.draw_circle(ax, t_node, s_node, circle_radius)
+                            # self.draw_circle(ax, s_node, t_node, circle_radius)
+                            # self.draw_circle(ax, t_node, s_node, circle_radius)
                         
                 # Lagged dependencies
                 else:
@@ -769,11 +924,11 @@ class DAG():
                         edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
                         if r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
                             arrows[(s_node, t_node)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s_node, t_node)]}
-                            self.draw_circle(ax, s_node, t_node, circle_radius)
+                            # self.draw_circle(ax, s_node, t_node, circle_radius)
                         elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
                             arrows[(s_node, t_node)] = {'arrowstyle': '-|>', 'connectionstyle': connectionstyle, 'arrowsize': edge_width[(s_node, t_node)]}
-                            self.draw_circle(ax, s_node, t_node, circle_radius)
-                            self.draw_circle(ax, t_node, s_node, circle_radius)
+                            # self.draw_circle(ax, s_node, t_node, circle_radius)
+                            # self.draw_circle(ax, t_node, s_node, circle_radius)
                         elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
                             connectionstyle = 'arc3,rad=0.0'
                             edges.append((t_node, s_node))

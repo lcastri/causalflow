@@ -67,7 +67,7 @@ pc_alpha = 0.01
 results = lpcmci.run_lpcmci(tau_max=tau_max,
                             pc_alpha=pc_alpha)
 
-var_names = [r'X^{%d}' % j for j in range(N)]
+var_names = [r'X_{%d}' % j for j in range(N)]
 df = Data(data_obs, vars = var_names)
 ahah = LPCMCI(df,
                 min_lag = 0, 
@@ -81,11 +81,11 @@ ahah_res = ahah.run()
 
 
 # Plot the learned time series DPAG
-tp.plot_time_series_graph(graph=results['graph'],
-                          val_matrix=results['val_matrix'])
+# tp.plot_time_series_graph(graph=results['graph'],
+#                           val_matrix=results['val_matrix'])
 # plt.show()
-ahah.CM.g['X^{1}'].sources[('X^{2}', 2)]["type"] = 'o->'
-ahah.timeseries_dag()
+ahah.CM.g['X_{1}'].sources[('X_{2}', 2)]["type"] = 'o->'
+# ahah.timeseries_dag()
 
 
 # Plot the learned time series DPAG
