@@ -68,7 +68,6 @@ class Data():
             scaler = scaler.fit(self.d)
             self.d = pd.DataFrame(scaler.transform(self.d), columns = self.features)
         
-        
     @property  
     def features(self):
         """
@@ -123,6 +122,9 @@ class Data():
     def plot_timeseries(self, savefig = None):
         """
         Plots timeseries data
+        
+        Args:
+            savefig (str): figure path
         """
         # Create grid
         gs = gridspec.GridSpec(self.N, 1)
@@ -140,3 +142,13 @@ class Data():
             plt.savefig(savefig)
         else:
             plt.show()
+            
+            
+    def save_csv(self, csvpath):
+        """
+        Saves timeseries data into a CSV file
+        
+        Args:
+            csvpath (str): CSV path
+        """
+        self.d.to_csv(csvpath)

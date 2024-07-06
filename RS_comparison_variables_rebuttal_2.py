@@ -159,7 +159,7 @@ if __name__ == '__main__':
                     res_tmp = deepcopy(EMPTY_RES)
                     
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs+nsample_int, 
-                                        max_terms = 2, coeff_range = (min_c, max_c), max_exp = 2, 
+                                        link_density = 2, coeff_range = (min_c, max_c), max_exp = 2, 
                                         min_lag = min_lag, max_lag = max_lag, noise_config = noise,
                                         functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1)
                     RS.gen_equations()
@@ -167,7 +167,7 @@ if __name__ == '__main__':
                     d_obs = RS.gen_obs_ts()
                     
                     d_int = dict()
-                    for int_var in RS.confintvar.values():
+                    for int_var in RS.potentialIntervention.values():
                         i = RS.intervene(int_var, nsample_int, random.uniform(2, 3))
                         d_int[int_var] = i[int_var]
                         d_int[int_var].plot_timeseries('results/' + resfolder + '/interv_' + int_var + '.png')

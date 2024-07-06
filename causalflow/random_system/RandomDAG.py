@@ -20,7 +20,7 @@ class PriorityOp(Enum):
     
 
 class RandomDAG:
-    def __init__(self, nvars, nsamples, max_terms, coeff_range: tuple, 
+    def __init__(self, nvars, nsamples, link_density, coeff_range: tuple, 
                  min_lag, max_lag, max_exp = None, noise_config: tuple = None, 
                  operators = ['+', '-', '*'], 
                  functions = ['','sin', 'cos', 'exp', 'abs', 'pow'],
@@ -32,7 +32,7 @@ class RandomDAG:
         Args:
             nvars (int): Number of variable
             nsamples (int): Number of samples
-            max_terms (int): Max number of parents per variable
+            link_density (int): Max number of parents per variable
             coeff_range (tuple): Coefficient range. E.g. (-1, 1)
             min_lag (int): Min lagged dependency
             max_lag (int): Max lagged dependency
@@ -50,7 +50,7 @@ class RandomDAG:
             raise ValueError('max_exp cannot be None if functions list contains pow')
                
         self.T = nsamples
-        self.max_terms = max_terms
+        self.link_density = link_density
         self.coeff_range = coeff_range
         self.exponents = list(range(0, max_exp))
         self.min_lag = min_lag
@@ -64,8 +64,9 @@ class RandomDAG:
         self.functions = functions
         self.equations = {var: list() for var in self.obsVar + self.hiddenVar}
         self.confounders = {h: list() for h in self.hiddenVar}
-        self.confintvar = dict()
-        
+        self.potentialIntervention = {h: {'type': None, 'vars': list()} for h in self.hiddenVar}
+        self.dependency_graph = {var: set() for var in self.obsVar + self.hiddenVar}
+
         self.noise_config = noise_config
         self.noise = None
         if noise_config is not None:
@@ -122,8 +123,54 @@ class RandomDAG:
         for h in self.hiddenVar: del tmp[h]
         return tmp
     
+    
+    def __check_cycles(self):
+        def dfs(node, lag, visited, stack, initial_lag_diff, path):
+            """
+            Helper function to perform DFS and check for cycles.
+            """
+            visited.add((node, lag))
+            stack.add((node, lag))
+            path.append((node, lag))
+            
+            for neighbor, neighbor_lag in scm.get(node, []):
+                if (neighbor, neighbor_lag) not in visited:
+                    # If it's the first edge, initialize the lag difference
+                    if initial_lag_diff is None:
+                        new_lag_diff = neighbor_lag - lag
+                    else:
+                        new_lag_diff = initial_lag_diff
+
+                    # Check for contemporaneous cycles
+                    if initial_lag_diff == 0 and neighbor_lag == 0:
+                        if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
+                            return True
+                    # Check for non-contemporaneous cycles maintaining the same lag difference
+                    elif initial_lag_diff != 0 and (neighbor_lag - lag) == initial_lag_diff:
+                        if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
+                            return True
+                elif (neighbor, neighbor_lag) in stack:
+                    if initial_lag_diff == 0 or (neighbor_lag - lag) == initial_lag_diff:
+                        cycle_path = path[path.index((neighbor, neighbor_lag)):] + [(neighbor, neighbor_lag)]
+                        print(f"Cycle detected: {' -> '.join([f'{n} (lag {l})' for n, l in cycle_path])}")
+                        return True
+            
+            stack.remove((node, lag))
+            path.pop()
+            return False
+
+        scm = self.get_SCM(True)
+        for node in scm:
+            visited = set()
+            stack = set()
+            for neighbor, neighbor_lag in scm[node]:
+                if dfs(neighbor, neighbor_lag, visited, stack, neighbor_lag, [(node, 0)]):
+                    return True
+        
+        return False
+    
                 
-    def __build_equation(self, var_choice: list):
+    def __build_equation(self, var_lagged_choice: list, var_contemp_choice: list, target_var):
         """
         Generates random equations
 
@@ -132,22 +179,60 @@ class RandomDAG:
 
         Returns:
             list: equation (list of tuple)
-        """
+        """        
         equation = []
-        for _ in range(random.randint(1, self.max_terms)):
+        n_parents = random.randint(1, self.link_density)
+        while len(equation) < n_parents:
             coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
-            variable = random.choice(var_choice)
-            var_choice.remove(variable)
-            operator = random.choice(self.operators)
             lag = random.randint(self.min_lag, self.max_lag)
-            function = random.choice(self.functions)
-            if function == 'pow':
-                exponent = random.choice(self.exponents)
-                term = (operator, coefficient, function, variable, lag, exponent)
+            if lag != 0:
+                variable = random.choice(var_lagged_choice)
+                var_lagged_choice.remove(variable)
             else:
-                term = (operator, coefficient, function, variable, lag)
-            equation.append(term)
+                variable = random.choice(var_contemp_choice)
+                var_contemp_choice.remove(variable)
+                
+            if not self.__creates_cycle((target_var, 0), (variable, lag)):
+                operator = random.choice(self.operators)
+                function = random.choice(self.functions)
+                if function == 'pow':
+                    exponent = random.choice(self.exponents)
+                    term = (operator, coefficient, function, variable, lag, exponent)
+                else:
+                    term = (operator, coefficient, function, variable, lag)
+                equation.append(term)
+                
+                # # Update dependency graph
+                # self.dependency_graph[target_var].add((variable, lag))
         return equation
+    
+    
+    # FIXME: first option
+    def __creates_cycle(self, target_var_lag, variable_lag):
+        """
+        Checks if adding an edge from variable_lag to target_var_lag would create a cycle
+        considering only the same time lag
+        """
+        target_var, target_lag = target_var_lag
+        variable, lag = variable_lag
+
+        visited = set()
+        stack = [(variable, lag, [(variable, lag)], lag - target_lag)]
+        while stack:
+            current_var, current_lag, path, initial_lag_diff = stack.pop()
+            if (current_var, current_lag) == target_var_lag:
+                print(f"Cycle path: {' -> '.join([f'{var} (lag {l})' for var, l in [target_var_lag] + path])}")
+                return True
+            if (current_var, current_lag) not in visited:
+                visited.add((current_var, current_lag))
+                for neighbor_var, neighbor_lag in self.dependency_graph.get(current_var, []):
+                    if (neighbor_var, neighbor_lag) not in visited:
+                        # Check if the lag difference is the same as the initial lag difference
+                        if (neighbor_lag - current_lag) == initial_lag_diff:
+                            stack.append((neighbor_var, neighbor_lag, path + [(neighbor_var, neighbor_lag)], initial_lag_diff))
+        # Update dependency graph
+        self.dependency_graph[target_var].add(variable_lag)
+        return False
 
 
     def gen_equations(self):
@@ -155,15 +240,23 @@ class RandomDAG:
         Generates random equations using the operator and function lists provided in the constructor 
         """
         for var in self.obsVar:
-            var_choice = copy.deepcopy(self.obsVar)
-            self.equations[var] = self.__build_equation(var_choice)
+            var_lagged_choice = copy.deepcopy(self.obsVar)
+            var_contemp_choice = copy.deepcopy(var_lagged_choice)
+            var_contemp_choice.remove(var)
+            self.equations[var] = self.__build_equation(var_lagged_choice, var_contemp_choice, var)
             
         for hid in self.hiddenVar:
-            var_choice = copy.deepcopy(self.obsVar + self.hiddenVar)
-            self.equations[hid] = self.__build_equation(var_choice)
+            var_lagged_choice = copy.deepcopy(self.obsVar + self.hiddenVar)
+            var_contemp_choice = copy.deepcopy(var_lagged_choice)
+            var_contemp_choice.remove(hid)
+            self.equations[hid] = self.__build_equation(var_lagged_choice, var_contemp_choice, hid)
             
         self.__add_conf_links()
         
+        # NOTE: this is an extra check once the SCM is built
+        if self.__check_cycles():
+            raise ValueError("RandomDAG contains cycles")
+               
         
     def __add_conf_links(self):
         """
@@ -172,48 +265,101 @@ class RandomDAG:
         self.expected_spurious_links = list()
         firstvar_choice = copy.deepcopy(self.obsVar)
         for hid in self.hiddenVar:
-            firstConf = True
-            var_choice = copy.deepcopy(self.obsVar)
+            tmp_n_confounded = 0
+            isContemporaneous = random.choice([True, False])
             n_confounded = random.randint(2, self.Nobs) if self.n_confounded is None else self.n_confounded 
             
-            var_t1 = None
-            var_t = list()
-            for _ in range(n_confounded):
-                coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
-                if firstConf:
+            if isContemporaneous:
+                self.potentialIntervention[hid]['type'] = 'contemporaneous'
+                # I need to do the same here for variables confounded contemporaneously
+                lag = random.randint(self.min_lag, self.max_lag)
+                confVar = list()
+                while tmp_n_confounded < n_confounded:
+                #for _ in range(n_confounded):
                     variable = random.choice(firstvar_choice)
-                    firstvar_choice.remove(variable)
-                    var_choice.remove(variable)
                     
-                    var_t1 = variable
-                else:
-                    variable = random.choice(var_choice)
-                    var_choice.remove(variable)
-                    var_t.append(variable)
+                    if not self.__creates_cycle((variable, 0), (hid, lag)):
+                        tmp_n_confounded += 1
+                        firstvar_choice.remove(variable)
+                        confVar.append(variable)
+                                            
+                        self.potentialIntervention[hid]['vars'].append(variable)
+                        
+                        function = random.choice(self.functions)
+                        coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
+                        operator = random.choice(self.operators)
+                        if function == 'pow':
+                            exponent = random.choice(self.exponents)
+                            term = (operator, coefficient, function, hid, lag, exponent)
+                        else:
+                            term = (operator, coefficient, function, hid, lag)
+                            
+                        # NOTE: This is to remove the true link between confounded variable for ensuring 
+                        # that the link due to the confounder is classified as spurious
+                        if len(confVar) > 1:
+                            for source in confVar:
+                                tmp = copy.deepcopy(confVar)
+                                tmp.remove(source)
+                                for target in tmp:
+                                    if (source, 0) in self.get_SCM()[target]:
+                                        self.equations[target] = list(filter(lambda item: item[3] != source and item[3] != 0, self.equations[target]))
+                        self.equations[variable].append(term)
                     
-                    if (var_t1, -1) in self.get_SCM()[variable]:
-                        self.equations[variable] = list(filter(lambda item: item[3] != var_t1 and item[3] != -1, self.equations[variable]))
-                    
-                operator = random.choice(self.operators)
-                if firstConf:
-                    lag = self.min_lag
-                    self.confintvar[hid] = variable
-                    firstConf = False
-                else:
-                    lag = random.randint(self.min_lag + 1, self.max_lag)
+                        self.confounders[hid].append((variable, lag))
+                for source in confVar:
+                    tmp = copy.deepcopy(confVar)
+                    tmp.remove(source)
+                    for target in tmp:
+                        if not (source, 0) in self.get_SCM()[target]:
+                            self.expected_spurious_links.append({'s':source, 't':target, 'lag':0})
+            else:    
+                self.potentialIntervention[hid]['type'] = 'lagged'  
+                var_choice = copy.deepcopy(self.obsVar)
+                firstConf = True
+                source = None
+                sourceLag = None
+                targets = list()
                 
-                function = random.choice(self.functions)
-                if function == 'pow':
-                    exponent = random.choice(self.exponents)
-                    term = (operator, coefficient, function, hid, lag, exponent)
-                else:
-                    term = (operator, coefficient, function, hid, lag)
-                self.equations[variable].append(term)
-            
-                self.confounders[hid].append((variable, lag))
-            for v in var_t:
-                if not (var_t1, -1) in self.get_SCM()[v]:
-                    self.expected_spurious_links.append((var_t1, v))
+                while tmp_n_confounded < n_confounded:
+                # for _ in range(n_confounded):
+                    if firstConf:
+                        variable = random.choice(firstvar_choice)
+                        lag = random.randint(self.min_lag, self.max_lag - 1)
+                        sourceLag = lag
+                    else:
+                        variable = random.choice(var_choice)
+                        lag = random.randint(sourceLag + 1, self.max_lag)
+                     
+                    if not self.__creates_cycle((variable, 0), (hid, lag)):
+                        tmp_n_confounded += 1
+                        var_choice.remove(variable)
+                        if firstConf:
+                            firstvar_choice.remove(variable)
+                            self.potentialIntervention[hid]['vars'].append(variable)
+                            firstConf = False
+                            source = variable
+                        else:
+                            targets.append((variable, lag))
+                            
+                            # NOTE: This is to remove the true link between confounded variable for ensuring 
+                            # that the link due to the confounder is classified as spurious
+                            if (source, lag - sourceLag) in self.get_SCM()[variable]:
+                                self.equations[variable] = list(filter(lambda item: item[3] != source and item[3] != lag - sourceLag, self.equations[variable]))
+                        
+                        function = random.choice(self.functions)
+                        coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
+                        operator = random.choice(self.operators)
+                        if function == 'pow':
+                            exponent = random.choice(self.exponents)
+                            term = (operator, coefficient, function, hid, lag, exponent)
+                        else:
+                            term = (operator, coefficient, function, hid, lag)
+                        self.equations[variable].append(term)
+                    
+                        self.confounders[hid].append((variable, lag))
+                for v in targets:
+                    if not (source, v[1] - sourceLag) in self.get_SCM()[v[0]]:
+                        self.expected_spurious_links.append({'s':source, 't':v[0], 'lag':v[1] - sourceLag})
 
 
     def print_equations(self):
@@ -226,14 +372,14 @@ class RandomDAG:
             for i, term in enumerate(eq):
                 if len(term) == 6:
                     operator, coefficient, function, variable, lag, exponent = term
-                    coefficient = round(coefficient, 3)
+                    coefficient = round(coefficient, 2)
                     if i != 0: 
                         term_str = f"{operator} {coefficient} * {function}({variable}, {exponent})(t-{lag}) "
                     else:
                         term_str = f"{coefficient} * {function}({variable}, {exponent})(t-{lag}) "
                 else:
                     operator, coefficient, function, variable, lag = term
-                    coefficient = round(coefficient, 3)
+                    coefficient = round(coefficient, 2)
                     if function != '':
                         if i != 0: 
                             term_str = f"{operator} {coefficient} * {function}({variable})(t-{lag}) "
@@ -353,10 +499,14 @@ class RandomDAG:
             Data: generated data
         """
         np_data = np.zeros((self.T, self.N))
-        for t in range(self.max_lag, self.T):
-            for target, eq in self.equations.items():
-                np_data[t, self.variables.index(target)] = self.__evaluate_equation(eq, t, np_data)
-                if self.noise is not None: np_data[t, self.variables.index(target)] += self.noise[t, self.variables.index(target)]
+        for t in range(self.T):
+            if t < self.max_lag:
+                for target, eq in self.equations.items():
+                    np_data[t, self.variables.index(target)] = self.noise[t, self.variables.index(target)]
+            else:
+                for target, eq in self.equations.items():
+                    np_data[t, self.variables.index(target)] = self.__evaluate_equation(eq, t, np_data)
+                    if self.noise is not None: np_data[t, self.variables.index(target)] += self.noise[t, self.variables.index(target)]
                     
         data = Data(np_data, self.variables)
         data.shrink(self.obsVar)
@@ -385,13 +535,17 @@ class RandomDAG:
                 elif self.noise_config[0] is NoiseType.Weibull:
                     self.noise = np.random.weibull(self.noise_config[1], (self.T, self.N)) * self.noise_config[2]
             np_data = np.zeros((T, self.N))
-            for t in range(self.max_lag, T):
-                for target, eq in self.equations.items():
-                    if target != int_var:
-                        np_data[t, self.variables.index(target)] = self.__evaluate_equation(eq, t, np_data)
-                        if self.noise_config is not None: np_data[t, self.variables.index(target)] += int_noise[t, self.variables.index(target)]
-                    else:
-                        np_data[t, self.variables.index(target)] = interventions[int_var]["VAL"]
+            for t in range(T):
+                if t < self.max_lag:
+                    for target, eq in self.equations.items():
+                        np_data[t, self.variables.index(target)] = self.noise[t, self.variables.index(target)]
+                else:
+                    for target, eq in self.equations.items():
+                        if target != int_var:
+                            np_data[t, self.variables.index(target)] = self.__evaluate_equation(eq, t, np_data)
+                            if self.noise_config is not None: np_data[t, self.variables.index(target)] += int_noise[t, self.variables.index(target)]
+                        else:
+                            np_data[t, self.variables.index(target)] = interventions[int_var]["VAL"]
                         
             int_data[int_var] = Data(np_data, self.variables)
             int_data[int_var].shrink(self.obsVar)
@@ -418,11 +572,11 @@ class RandomDAG:
         return scm
     
     
-    def print_SCM(self):
+    def print_SCM(self, withHidden = False):
         """
         Prints the Structural Causal Model
         """
-        scm = self.get_SCM()
+        scm = self.get_SCM(withHidden)
         for t in scm: print(t + ' : ' + str(scm[t]))    
           
         
@@ -478,8 +632,8 @@ class RandomDAG:
                         else:
                             edge_color[(s_node, t_node)] = 'gray'
                             
-                        s_lag -= s[1]
-                        t_lag -= s[1]
+                        s_lag -= 1
+                        t_lag -= 1
                         
         g.ts_dag(self.max_lag, save_name = save_name, node_color = node_color, edge_color = edge_color)
         

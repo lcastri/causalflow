@@ -1,3 +1,4 @@
+import copy
 from enum import Enum
 import numpy as np
 from causalflow.selection_methods.SelectionMethod import SelectionMethod, CTest, _suppress_stdout
@@ -92,7 +93,7 @@ class TE(SelectionMethod):
 
         multi_network_analysis = MultivariateTE()
         bi_network_analysis = BivariateMI()
-        settings = {'cmi_estimator': self.estimator.value,
+        cross_settings = {'cmi_estimator': self.estimator.value,
                     'max_lag_sources': self.max_lag,
                     'min_lag_sources': self.min_lag,
                     'max_lag_target': self.max_lag,
@@ -102,6 +103,9 @@ class TE(SelectionMethod):
                     'alpha_omnibus': self.alpha,
                     'alpha_max_seq': self.alpha,
                     'verbose': False}
+        autodep_settings = copy.deepcopy(cross_settings)
+        if self.min_lag == 0:
+            autodep_settings['min_lag_sources'] = 1
         
         CP.info("\n##")
         CP.info("## " + self.name + " analysis")
@@ -114,11 +118,11 @@ class TE(SelectionMethod):
                 # Check auto-dependency
                 tmp_d = np.c_[self.data.d.values[:, t], self.data.d.values[:, t]]
                 data = Data(tmp_d, dim_order='sp') # sp = samples(row) x processes(col)
-                res_auto = bi_network_analysis.analyse_single_target(settings = settings, data = data, target = 0, sources = 1)
+                res_auto = bi_network_analysis.analyse_single_target(settings = autodep_settings, data = data, target = 0, sources = 1)
                 
                 # Check cross-dependencies
                 data = Data(self.data.d.values, dim_order='sp') # sp = samples(row) x processes(col)
-                res_cross = multi_network_analysis.analyse_single_target(settings = settings, data = data, target = t)
+                res_cross = multi_network_analysis.analyse_single_target(settings = cross_settings, data = data, target = t)
             
             # Auto-dependency handling
             auto_lag = [s[1] for s in res_auto._single_target[0]['selected_vars_sources']]

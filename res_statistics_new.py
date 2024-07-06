@@ -17,11 +17,13 @@ class jWord(Enum):
     
 class Algo(Enum):
     CAnDOIT = 'candoit'
-    CAnDOITLagged = 'candoit_lagged'
-    CAnDOITCont = 'candoit_cont'
+    # CAnDOITLagged = 'candoit_lagged'
+    # CAnDOITCont = 'candoit_cont'
     DYNOTEARS = 'dynotears'
     FPCMCI = 'fpcmci'
     PCMCI = 'pcmci'
+    PCMCIplus = 'pcmciplus'
+    LPCMCI = 'lpcmci'
     TCDF = 'tcdf'
     tsFCI = 'tsfci'
     VarLiNGAM = 'varlingam'
@@ -45,11 +47,12 @@ plotLabel = {Metric.TIME : 'Time [s]',
              Metric.F1SCORE : '$F_1$ Score',
              Metric.SHD : 'SHD',
              Algo.CAnDOIT : 'CAnDOIT',
-             Algo.CAnDOITCont : 'CAnDOITCont',
-             Algo.CAnDOITLagged : 'CAnDOITLagged',
+            #  Algo.CAnDOITCont : 'CAnDOITCont',
+            #  Algo.CAnDOITLagged : 'CAnDOITLagged',
              Algo.DYNOTEARS : 'DYNOTEARS',
              Algo.FPCMCI : 'F-PCMCI',
              Algo.PCMCI : 'PCMCI',
+             Algo.LPCMCI : 'LPCMCI',
              Algo.TCDF : 'TCDF',
              Algo.tsFCI : 'tsFCI',
              Algo.VarLiNGAM : 'VarLiNGAM',

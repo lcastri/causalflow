@@ -120,7 +120,7 @@ if __name__ == '__main__':
         noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
         noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
         RS = RandomDAG(nvars = 10, nsamples = nsample, 
-                       max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
+                       link_density = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                        min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                        functions = [''], operators=['+', '-', '*'], n_hidden_confounders = 1)
     
@@ -128,7 +128,7 @@ if __name__ == '__main__':
         d_obs = RS.gen_obs_ts()
     
         d_int = dict()
-        for int_var in RS.confintvar.values():
+        for int_var in RS.potentialIntervention.values():
             i = RS.intervene(int_var, nsample, random.uniform(5, 10))
             d_int[int_var] = i[int_var]
             d_int[int_var].plot_timeseries(resfolder + '/interv_' + int_var + '.png')

@@ -97,31 +97,4 @@ class LPCMCI(CausalDiscoveryMethod):
                                         self.result['p_matrix'][s][t,lag],
                                         lag,
                                         self.result['graph'][s][t,lag])
-                    # if self.result['graph'][s][t,lag] == LinkType.Directed.value:
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag)
-                    # elif self.result['graph'][s][t,lag] == LinkType.Uncertain.value:
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag,
-                    #                        LinkType.Uncertain.value)
-                    # elif self.result['graph'][s][t,lag] == LinkType.Bidirected.value:
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag,
-                    #                        LinkType.Bidirected.value)
-                    # elif self.result['graph'][s][t,lag] == LinkType.HalfUncertain.value:
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag,
-                    #                        LinkType.HalfUncertain.value)
         return tmp_dag

@@ -9,7 +9,7 @@ from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 
 
-class PCMCI(CausalDiscoveryMethod):
+class PCMCIplus(CausalDiscoveryMethod):
     """
     PCMCI causal discovery method.
     """
@@ -63,14 +63,13 @@ class PCMCI(CausalDiscoveryMethod):
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
 
-        self.result = self.pcmci.run_pcmci(tau_max = self.max_lag,
-                                           tau_min = self.min_lag,
-                                           alpha_level = self.alpha,
-                                           pc_alpha = self.pc_alpha)
+        self.result = self.pcmci.run_pcmciplus(tau_max = self.max_lag,
+                                               tau_min = self.min_lag,
+                                               pc_alpha = self.pc_alpha)
         
         self.CM = self._to_DAG()
         
-        if self.resfolder is not None: self.logger.close()        
+        if self.resfolder is not None: self.logger.close()
         return self.CM
     
     
@@ -99,17 +98,4 @@ class PCMCI(CausalDiscoveryMethod):
                                         self.result['p_matrix'][s][t,lag],
                                         lag,
                                         self.result['graph'][s][t,lag])
-                    # if self.result['graph'][s][t,lag] == LinkType.Directed.value:
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag)
-                    # elif self.result['graph'][s][t,lag] == LinkType.Uncertain.value:
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag,
-                    #                        LinkType.Uncertain.value)
         return tmp_dag

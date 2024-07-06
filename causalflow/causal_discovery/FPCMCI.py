@@ -100,8 +100,11 @@ class FPCMCI(CausalDiscoveryMethod):
             # calculate dependencies on selected links
             f_dag = copy.deepcopy(self.CM)
             
-        self.CM = self.validator.run(self.data, link_assumptions)
-
+        if self.min_lag != 0:
+            self.CM = self.validator.run(self.data, link_assumptions)
+        else:
+            self.CM = self.validator.run_plus(self.data, link_assumptions)
+            
         # list of selected features based on validator dependencies
         if remove_unneeded: self.CM.remove_unneeded_features()
     

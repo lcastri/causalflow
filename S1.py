@@ -142,7 +142,7 @@ if __name__ == '__main__':
                     nconfounder = random.randint(1, 4)
 
                     RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
-                                   max_terms = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
+                                   link_density = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                                    functions = ['', 'sin', 'cos', 'abs', 'exp', 'pow'], operators=['+', '-', '*', '/'], n_hidden_confounders = nconfounder)
                     RS.gen_equations()
@@ -150,7 +150,7 @@ if __name__ == '__main__':
                     d_obs = RS.gen_obs_ts()
                     
                     d_int = dict()
-                    for int_var in RS.confintvar.values():
+                    for int_var in RS.potentialIntervention.values():
                         i = RS.intervene(int_var, nsample_int, random.uniform(5, 10))
                         d_int[int_var] = i[int_var]
                         d_int[int_var].plot_timeseries('results/' + resfolder + '/interv_' + int_var + '.png')
