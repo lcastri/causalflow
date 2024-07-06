@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import networkx as nx
 from netgraph import Graph
 from matplotlib.patches import FancyArrowPatch, Circle
-
+from tigramite.plotting import plot_time_series_graph, plot_graph
 
 class DAG():
     def __init__(self, var_names, min_lag, max_lag, neglect_autodep = False, scm = None):
@@ -39,7 +39,18 @@ class DAG():
         Returns:
             list: Features list
         """
-        return list(self.g)
+        return list(self.g.keys())
+    
+    
+    @property
+    def pretty_features(self):
+        """
+        Returns list of features with LaTeX symbols
+                
+        Returns:
+            list(str): list of feature names
+        """
+        return [r'$' + str(v) + '$' for v in self.g.keys()]
 
     
     @property
@@ -329,31 +340,26 @@ class DAG():
         return link_assump
 
 
-    def get_SCM(self) -> dict:   
+    def get_SCM(self, indexed = False) -> dict:   
         """
         Returns SCM
+        
+        Args:
+            indexed (bool, optional): If true, returns the SCM with index instead of variables' names. Otherwise it uses variables' names. Defaults to False.
 
         Returns:
             dict: SCM
         """
-        scm = {v: list() for v in self.features}
-        for t in self.g:
-            for s in self.g[t].sources:
-                scm[t].append((s[0], -abs(s[1]))) 
-        return scm
-    
-    
-    def get_parents(self) -> dict:
-        """
-        Returns Parents dict
-
-        Returns:
-            dict: Parents dict
-        """
-        scm = {self.features.index(v): list() for v in self.features}
-        for t in self.g:
-            for s in self.g[t].sources:
-                scm[self.features.index(t)].append((self.features.index(s[0]), -abs(s[1]))) 
+        if not indexed:
+            scm = {v: list() for v in self.features}
+            for t in self.g:
+                for s in self.g[t].sources:
+                    scm[t].append((s[0], -abs(s[1]))) 
+        else:
+            scm = {self.features.index(v): list() for v in self.features}
+            for t in self.g:
+                for s in self.g[t].sources:
+                    scm[self.features.index(t)].append((self.features.index(s[0]), -abs(s[1]))) 
         return scm
     
     
@@ -377,145 +383,145 @@ class DAG():
         return pretty
         
     
-    def dag(self,
-            node_layout = 'dot',
-            min_width = 1, max_width = 5,
-            min_score = 0, max_score = 1,
-            node_size = 8, node_color = 'orange',
-            edge_color = 'grey',
-            bundle_parallel_edges = True,
-            font_size = 12,
-            label_type = LabelType.Lag,
-            save_name = None,
-            img_extention = ImageExt.PNG):
-        """
-        build a dag
+    # def dag(self,
+    #         node_layout = 'dot',
+    #         min_width = 1, max_width = 5,
+    #         min_score = 0, max_score = 1,
+    #         node_size = 8, node_color = 'orange',
+    #         edge_color = 'grey',
+    #         bundle_parallel_edges = True,
+    #         font_size = 12,
+    #         label_type = LabelType.Lag,
+    #         save_name = None,
+    #         img_extention = ImageExt.PNG):
+    #     """
+    #     build a dag
 
-        Args:
-            node_layout (str, optional): Node layout. Defaults to 'dot'.
-            min_width (int, optional): minimum linewidth. Defaults to 1.
-            max_width (int, optional): maximum linewidth. Defaults to 5.
-            min_score (int, optional): minimum score range. Defaults to 0.
-            max_score (int, optional): maximum score range. Defaults to 1.
-            node_size (int, optional): node size. Defaults to 8.
-            node_color (str, optional): node color. Defaults to 'orange'.
-            edge_color (str, optional): edge color. Defaults to 'grey'.
-            bundle_parallel_edges (str, optional): bundle parallel edge bit. Defaults to True.
-            font_size (int, optional): font size. Defaults to 12.
-            label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
-            save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
-        """
-        r = copy.deepcopy(self)
-        r.g = r.make_pretty()
+    #     Args:
+    #         node_layout (str, optional): Node layout. Defaults to 'dot'.
+    #         min_width (int, optional): minimum linewidth. Defaults to 1.
+    #         max_width (int, optional): maximum linewidth. Defaults to 5.
+    #         min_score (int, optional): minimum score range. Defaults to 0.
+    #         max_score (int, optional): maximum score range. Defaults to 1.
+    #         node_size (int, optional): node size. Defaults to 8.
+    #         node_color (str, optional): node color. Defaults to 'orange'.
+    #         edge_color (str, optional): edge color. Defaults to 'grey'.
+    #         bundle_parallel_edges (str, optional): bundle parallel edge bit. Defaults to True.
+    #         font_size (int, optional): font size. Defaults to 12.
+    #         label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
+    #         save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+    #     """
+    #     r = copy.deepcopy(self)
+    #     r.g = r.make_pretty()
 
-        G = nx.DiGraph()
+    #     G = nx.DiGraph()
 
-        # NODES DEFINITION
-        G.add_nodes_from(r.g.keys())
+    #     # NODES DEFINITION
+    #     G.add_nodes_from(r.g.keys())
         
-        # BORDER LINE
-        border = dict()
-        for t in r.g:
-            border[t] = 0
-            if r.g[t].is_autodependent:
-                autodep = r.g[t].get_max_autodependent
-                border[t] = max(self.__scale(r.g[t].sources[autodep][SCORE], min_width, max_width, min_score, max_score), border[t])
+    #     # BORDER LINE
+    #     border = dict()
+    #     for t in r.g:
+    #         border[t] = 0
+    #         if r.g[t].is_autodependent:
+    #             autodep = r.g[t].get_max_autodependent
+    #             border[t] = max(self.__scale(r.g[t].sources[autodep][SCORE], min_width, max_width, min_score, max_score), border[t])
         
-        # BORDER LABEL
-        node_label = None
-        if label_type == LabelType.Lag or label_type == LabelType.Score:
-            node_label = {t: [] for t in r.g.keys()}
-            for t in r.g:
-                if r.g[t].is_autodependent:
-                    autodep = r.g[t].get_max_autodependent
-                    if label_type == LabelType.Lag:
-                        node_label[t].append(autodep[1])
-                    elif label_type == LabelType.Score:
-                        node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
-                node_label[t] = ",".join(str(s) for s in node_label[t])
+    #     # BORDER LABEL
+    #     node_label = None
+    #     if label_type == LabelType.Lag or label_type == LabelType.Score:
+    #         node_label = {t: [] for t in r.g.keys()}
+    #         for t in r.g:
+    #             if r.g[t].is_autodependent:
+    #                 autodep = r.g[t].get_max_autodependent
+    #                 if label_type == LabelType.Lag:
+    #                     node_label[t].append(autodep[1])
+    #                 elif label_type == LabelType.Score:
+    #                     node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
+    #             node_label[t] = ",".join(str(s) for s in node_label[t])
 
 
-        # EDGE DEFINITION
-        # edges = [(s[0], t) for t in r.g for s in r.g[t].sources if t != s[0]]
-        # arrows = {(s[0], t) : True for t in r.g for s in r.g[t].sources if t != s[0]}
-        edges = list()
-        edge_width = dict()
-        arrows = {}
-        for t in r.g:
-            for s in r.g[t].sources:
-                if t != s[0]:
-                    edges.append((s[0], t))
-                    edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
-                    arrows[(s[0], t)] = {'h': False, 't': ''}
-                    if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
-                        arrows[(s[0], t)] = {'h': True, 't': ''}
-                    elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
-                        edges.append((t, s[0]))
-                        edge_width[(t, s[0])] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
-                        arrows[(t, s[0])] = {'h': True, 't': ''}
-                        arrows[(s[0], t)] = {'h': True, 't': ''}
-                    elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
-                        arrows[(s[0], t)] = {'h': True, 't': 'o'}
-                    elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
-                        arrows[(s[0], t)] = {'h': False, 't': 'o'}
+    #     # EDGE DEFINITION
+    #     # edges = [(s[0], t) for t in r.g for s in r.g[t].sources if t != s[0]]
+    #     # arrows = {(s[0], t) : True for t in r.g for s in r.g[t].sources if t != s[0]}
+    #     edges = list()
+    #     edge_width = dict()
+    #     arrows = {}
+    #     for t in r.g:
+    #         for s in r.g[t].sources:
+    #             if t != s[0]:
+    #                 edges.append((s[0], t))
+    #                 edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
+    #                 arrows[(s[0], t)] = {'h': False, 't': ''}
+    #                 if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
+    #                     arrows[(s[0], t)] = {'h': True, 't': ''}
+    #                 elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
+    #                     edges.append((t, s[0]))
+    #                     edge_width[(t, s[0])] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
+    #                     arrows[(t, s[0])] = {'h': True, 't': ''}
+    #                     arrows[(s[0], t)] = {'h': True, 't': ''}
+    #                 elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
+    #                     arrows[(s[0], t)] = {'h': True, 't': 'o'}
+    #                 elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
+    #                     arrows[(s[0], t)] = {'h': False, 't': 'o'}
 
-        G.add_edges_from(edges)
+    #     G.add_edges_from(edges)
         
-        # EDGE LINE
-        # for t in r.g:
-        #     for s in r.g[t].sources:
-        #         if t != s[0]:
-        #             edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), edge_width[(s[0], t)])
+    #     # EDGE LINE
+    #     # for t in r.g:
+    #     #     for s in r.g[t].sources:
+    #     #         if t != s[0]:
+    #     #             edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), edge_width[(s[0], t)])
         
-        # EDGE LABEL
-        edge_label = None
-        if label_type == LabelType.Lag or label_type == LabelType.Score:
-            edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0]}
-            for t in r.g:
-                for s in r.g[t].sources:
-                    if t != s[0]:
-                        if label_type == LabelType.Lag:
-                            edge_label[(s[0], t)].append(s[1])
-                        elif label_type == LabelType.Score:
-                            edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
-            for k in edge_label.keys():
-                edge_label[k] = ",".join(str(s) for s in edge_label[k])
+    #     # EDGE LABEL
+    #     edge_label = None
+    #     if label_type == LabelType.Lag or label_type == LabelType.Score:
+    #         edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0]}
+    #         for t in r.g:
+    #             for s in r.g[t].sources:
+    #                 if t != s[0]:
+    #                     if label_type == LabelType.Lag:
+    #                         edge_label[(s[0], t)].append(s[1])
+    #                     elif label_type == LabelType.Score:
+    #                         edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
+    #         for k in edge_label.keys():
+    #             edge_label[k] = ",".join(str(s) for s in edge_label[k])
 
-        fig, ax = plt.subplots(figsize=(8,6))
+    #     fig, ax = plt.subplots(figsize=(8,6))
 
-        if edges:
-            a = Graph(G, 
-                    node_layout = node_layout,
-                    node_size = node_size,
-                    node_color = node_color,
-                    node_labels = node_label,
-                    node_edge_width = border,
-                    node_label_fontdict = dict(size=font_size),
-                    node_edge_color = edge_color,
-                    node_label_offset = 0.1,
-                    node_alpha = 1,
+    #     if edges:
+    #         a = Graph(G, 
+    #                 node_layout = node_layout,
+    #                 node_size = node_size,
+    #                 node_color = node_color,
+    #                 node_labels = node_label,
+    #                 node_edge_width = border,
+    #                 node_label_fontdict = dict(size=font_size),
+    #                 node_edge_color = edge_color,
+    #                 node_label_offset = 0.1,
+    #                 node_alpha = 1,
                     
-                    arrows = arrows,
-                    edge_layout = 'curved',
-                    edge_label = label_type != LabelType.NoLabels,
-                    edge_labels = edge_label,
-                    edge_label_fontdict = dict(size=font_size),
-                    edge_color = edge_color, 
-                    edge_width = edge_width,
-                    edge_alpha = 1,
-                    edge_zorder = 1,
-                    edge_label_position = 0.35,
-                    edge_layout_kwargs = dict(bundle_parallel_edges = bundle_parallel_edges, k = 0.05))
+    #                 arrows = arrows,
+    #                 edge_layout = 'curved',
+    #                 edge_label = label_type != LabelType.NoLabels,
+    #                 edge_labels = edge_label,
+    #                 edge_label_fontdict = dict(size=font_size),
+    #                 edge_color = edge_color, 
+    #                 edge_width = edge_width,
+    #                 edge_alpha = 1,
+    #                 edge_zorder = 1,
+    #                 edge_label_position = 0.35,
+    #                 edge_layout_kwargs = dict(bundle_parallel_edges = bundle_parallel_edges, k = 0.05))
             
-            nx.draw_networkx_labels(G, 
-                                    pos = a.node_positions,
-                                    labels = {n: n for n in G},
-                                    font_size = font_size)
+    #         nx.draw_networkx_labels(G, 
+    #                                 pos = a.node_positions,
+    #                                 labels = {n: n for n in G},
+    #                                 font_size = font_size)
 
-        if save_name is not None:
-            plt.savefig(save_name + img_extention.value, dpi = 300)
-        else:
-            plt.show()   
+    #     if save_name is not None:
+    #         plt.savefig(save_name + img_extention.value, dpi = 300)
+    #     else:
+    #         plt.show()   
     
     # def dag(self,
     #         node_layout='circular',
@@ -666,166 +672,202 @@ class DAG():
     #     if save_name is not None:
     #         plt.savefig(save_name + img_extention.value, dpi=300)
     #     else:
-    #         plt.show()      
-            
+    #         plt.show()
+    
     
     def ts_dag(self,
-               tau,
-               min_width = 1, max_width = 5,
-               min_score = 0, max_score = 1,
                node_size = 8,
-               node_proximity = 2,
                node_color = 'orange',
                edge_color = 'grey',
                font_size = 12,
                save_name = None,
                img_extention = ImageExt.PNG):
-        """
-        build a timeseries dag
-
-        Args:
-            tau (int): max time lag
-            min_width (int, optional): minimum linewidth. Defaults to 1.
-            max_width (int, optional): maximum linewidth. Defaults to 5.
-            min_score (int, optional): minimum score range. Defaults to 0.
-            max_score (int, optional): maximum score range. Defaults to 1.
-            node_size (int, optional): node size. Defaults to 8.
-            node_proximity (int, optional): node proximity. Defaults to 2.
-            node_color (str/list, optional): node color. 
-                                             If a string, all the nodes will have the same colour. 
-                                             If a list (same dimension of features), each colour will have the specified colour.
-                                             Defaults to 'orange'.
-            edge_color (str, optional): edge color. Defaults to 'grey'.
-            font_size (int, optional): font size. Defaults to 12.
-            save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
-        """
         
-        r = copy.deepcopy(self)
-        r.g = r.make_pretty()
-
-        G = nx.DiGraph()
-
-        # Add nodes to the graph
-        if isinstance(node_color, list):
-            node_c = dict()
-        else:
-            node_c = node_color
-        for i in range(len(self.features)):
-            for j in range(tau + 1):
-                G.add_node((j, i))
-                if isinstance(node_color, list): node_c[(j, i)] = node_color[abs(i - (len(r.g.keys()) - 1))]
-                
-        pos = {n : (n[0], n[1]/node_proximity) for n in G.nodes()}
-        scale = max(pos.values())
+        plot_time_series_graph(graph = self.get_graph_matrix(),
+                               val_matrix = self.get_val_matrix(),
+                               var_names = self.pretty_features,
+                               node_size = node_size,
+                               standard_color_nodes = node_color,
+                               standard_color_links = edge_color,
+                               label_fontsize = font_size,
+                               save_name = save_name + img_extention.value) 
+    def dag(self,
+               node_size = 8,
+               node_color = 'orange',
+               edge_color = 'grey',
+               font_size = 12,
+               save_name = None,
+               img_extention = ImageExt.PNG):
         
-        # Nodes color definition
-        # node_c = ['tab:blue', 'tab:orange','tab:red', 'tab:purple']
-        # node_c = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
-        # # tmpG = nx.grid_2d_graph(self.max_lag + 1, len(r.g.keys()))
-        # for n in G.nodes():
-
-        # edges definition
-        edges = list()
-        edge_width = dict()
-        arrows = dict()
-
-        for t in r.g:
-            for s in r.g[t].sources:
-                s_index = len(r.g.keys())-1 - list(r.g.keys()).index(s[0])
-                t_index = len(r.g.keys())-1 - list(r.g.keys()).index(t)
-                
-                # Contemporaneous dependecies
-                if s[1] == 0:
-                    for i in range(tau + 1):
-                        s_node = (i, s_index)
-                        t_node = (i, t_index)
-                        edges.append((s_node, t_node))
-                        edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-                        if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
-                            arrows[(s_node, t_node)] = {'h':True, 't':''}
-                        elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
-                            edges.append((t_node, s_node))
-                            edge_width[(t_node, s_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-                            arrows[(t_node, s_node)] = {'h':True, 't':''}
-                            arrows[(s_node, t_node)] = {'h':True, 't':''}
-                        elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
-                            arrows[(s_node, t_node)] = {'h':True, 't':'o'}
-                        elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
-                            arrows[(s_node, t_node)] = {'h':False, 't':'o'}
-                        
-                        # if (t_node, s_node) not in edges: # this is to avoit double edge for undirected contemporaneous link
-                        #     edges.append((s_node, t_node))
-                        #     arrows[(s_node, t_node)] = {'h':False, 't':''}
-                        #     edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-                        #     arrows[(s_node, t_node)]['h'] = r.g[t].sources[s][TYPE] == LinkType.Directed.value
-                        #     if r.g[t].sources[(s[0], t)][TYPE] == LinkType.HalfUncertain.value or r.g[t].sources[(s[0], t)][TYPE] == LinkType.Uncertain.value:
-                        #         arrows[(s_node, t_node)]['t'] = 'o'
-                # Lagged dependecies
-                else:
-                    s_lag = tau - s[1]
-                    t_lag = tau
-                    while s_lag >= 0:
-                        s_node = (s_lag, s_index)
-                        t_node = (t_lag, t_index)
-                        edges.append((s_node, t_node))
-                        edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-                        if r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
-                            arrows[(s_node, t_node)] = {'h':True, 't':'o'}
-                        elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
-                            arrows[(s_node, t_node)] = {'h':False, 't':'o'}
-                        elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
-                            # add also the link from target to source
-                            edges.append((t_node, s_node))
-                            edge_width[(t_node, s_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-                            arrows[(t_node, s_node)] = {'h':True, 't':''}
-                            arrows[(s_node, t_node)] = {'h':True, 't':''}
-                        else:
-                            arrows[(s_node, t_node)] = {'h':True, 't':''}
-                        s_lag -= 1
-                        t_lag -= 1
-                    
-        G.add_edges_from(edges)
-
-        # label definition
-        labeldict = {}
-        for n in G.nodes():
-            if n[0] == 0:
-                labeldict[n] = list(r.g.keys())[len(r.g.keys()) - 1 - n[1]]
-
-        fig, ax = plt.subplots(figsize=(8,6))
-
-        # time line text drawing
-        pos_tau = set([pos[p][0] for p in pos])
-        max_y = max([pos[p][1] for p in pos])
-        for p in pos_tau:
-            if abs(int(p) - tau) == 0:
-                ax.text(p, max_y + .3, r"$t$", horizontalalignment='center', fontsize=font_size)
-            else:
-                ax.text(p, max_y + .3, r"$t-" + str(abs(int(p) - tau)) + "$", horizontalalignment='center', fontsize=font_size)
-
-        Graph(G,
-            node_layout = {p : np.array(pos[p]) for p in pos},
-            node_size = node_size,
-            node_color = node_c,
-            node_labels = labeldict,
-            node_label_offset = 0,
-            node_edge_width = 0,
-            node_label_fontdict = dict(size=font_size),
-            node_alpha = 1,
+        plot_graph(graph = self.get_graph_matrix(),
+                               val_matrix = self.get_val_matrix(),
+                               var_names = self.pretty_features,
+                               node_size = node_size,
+                               standard_color_nodes = node_color,
+                               standard_color_links = edge_color,
+                               label_fontsize = font_size,
+                               node_label_size = font_size,
+                               link_label_fontsize = font_size,
+                               save_name = save_name + img_extention.value) 
             
-            arrows = arrows,
-            edge_layout = 'curved',
-            edge_label = False,
-            edge_color = edge_color, 
-            edge_width = edge_width,
-            edge_alpha = 1,
-            edge_zorder = 1,
-            scale = (scale[0] + 2, scale[1] + 2))
+    
+    # def ts_dag(self,
+    #            tau,
+    #            min_width = 1, max_width = 5,
+    #            min_score = 0, max_score = 1,
+    #            node_size = 8,
+    #            node_proximity = 2,
+    #            node_color = 'orange',
+    #            edge_color = 'grey',
+    #            font_size = 12,
+    #            save_name = None,
+    #            img_extention = ImageExt.PNG):
+    #     """
+    #     build a timeseries dag
 
-        if save_name is not None:
-            plt.savefig(save_name + img_extention.value, dpi = 300)
-        else:
-            plt.show()
+    #     Args:
+    #         tau (int): max time lag
+    #         min_width (int, optional): minimum linewidth. Defaults to 1.
+    #         max_width (int, optional): maximum linewidth. Defaults to 5.
+    #         min_score (int, optional): minimum score range. Defaults to 0.
+    #         max_score (int, optional): maximum score range. Defaults to 1.
+    #         node_size (int, optional): node size. Defaults to 8.
+    #         node_proximity (int, optional): node proximity. Defaults to 2.
+    #         node_color (str/list, optional): node color. 
+    #                                          If a string, all the nodes will have the same colour. 
+    #                                          If a list (same dimension of features), each colour will have the specified colour.
+    #                                          Defaults to 'orange'.
+    #         edge_color (str, optional): edge color. Defaults to 'grey'.
+    #         font_size (int, optional): font size. Defaults to 12.
+    #         save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+    #     """
+        
+    #     r = copy.deepcopy(self)
+    #     r.g = r.make_pretty()
+
+    #     G = nx.DiGraph()
+
+    #     # Add nodes to the graph
+    #     if isinstance(node_color, list):
+    #         node_c = dict()
+    #     else:
+    #         node_c = node_color
+    #     for i in range(len(self.features)):
+    #         for j in range(tau + 1):
+    #             G.add_node((j, i))
+    #             if isinstance(node_color, list): node_c[(j, i)] = node_color[abs(i - (len(r.g.keys()) - 1))]
+                
+    #     pos = {n : (n[0], n[1]/node_proximity) for n in G.nodes()}
+    #     scale = max(pos.values())
+        
+    #     # Nodes color definition
+    #     # node_c = ['tab:blue', 'tab:orange','tab:red', 'tab:purple']
+    #     # node_c = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+    #     # # tmpG = nx.grid_2d_graph(self.max_lag + 1, len(r.g.keys()))
+    #     # for n in G.nodes():
+
+    #     # edges definition
+    #     edges = list()
+    #     edge_width = dict()
+    #     arrows = dict()
+
+    #     for t in r.g:
+    #         for s in r.g[t].sources:
+    #             s_index = len(r.g.keys())-1 - list(r.g.keys()).index(s[0])
+    #             t_index = len(r.g.keys())-1 - list(r.g.keys()).index(t)
+                
+    #             # Contemporaneous dependecies
+    #             if s[1] == 0:
+    #                 for i in range(tau + 1):
+    #                     s_node = (i, s_index)
+    #                     t_node = (i, t_index)
+    #                     edges.append((s_node, t_node))
+    #                     edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+    #                     if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
+    #                         arrows[(s_node, t_node)] = {'h':True, 't':''}
+    #                     elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
+    #                         edges.append((t_node, s_node))
+    #                         edge_width[(t_node, s_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+    #                         arrows[(t_node, s_node)] = {'h':True, 't':''}
+    #                         arrows[(s_node, t_node)] = {'h':True, 't':''}
+    #                     elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
+    #                         arrows[(s_node, t_node)] = {'h':True, 't':'o'}
+    #                     elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
+    #                         arrows[(s_node, t_node)] = {'h':False, 't':'o'}
+                        
+    #                     # if (t_node, s_node) not in edges: # this is to avoit double edge for undirected contemporaneous link
+    #                     #     edges.append((s_node, t_node))
+    #                     #     arrows[(s_node, t_node)] = {'h':False, 't':''}
+    #                     #     edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+    #                     #     arrows[(s_node, t_node)]['h'] = r.g[t].sources[s][TYPE] == LinkType.Directed.value
+    #                     #     if r.g[t].sources[(s[0], t)][TYPE] == LinkType.HalfUncertain.value or r.g[t].sources[(s[0], t)][TYPE] == LinkType.Uncertain.value:
+    #                     #         arrows[(s_node, t_node)]['t'] = 'o'
+    #             # Lagged dependecies
+    #             else:
+    #                 s_lag = tau - s[1]
+    #                 t_lag = tau
+    #                 while s_lag >= 0:
+    #                     s_node = (s_lag, s_index)
+    #                     t_node = (t_lag, t_index)
+    #                     edges.append((s_node, t_node))
+    #                     edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+    #                     if r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
+    #                         arrows[(s_node, t_node)] = {'h':True, 't':'o'}
+    #                     elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
+    #                         arrows[(s_node, t_node)] = {'h':False, 't':'o'}
+    #                     elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
+    #                         # add also the link from target to source
+    #                         edges.append((t_node, s_node))
+    #                         edge_width[(t_node, s_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+    #                         arrows[(t_node, s_node)] = {'h':True, 't':''}
+    #                         arrows[(s_node, t_node)] = {'h':True, 't':''}
+    #                     else:
+    #                         arrows[(s_node, t_node)] = {'h':True, 't':''}
+    #                     s_lag -= 1
+    #                     t_lag -= 1
+                    
+    #     G.add_edges_from(edges)
+
+    #     # label definition
+    #     labeldict = {}
+    #     for n in G.nodes():
+    #         if n[0] == 0:
+    #             labeldict[n] = list(r.g.keys())[len(r.g.keys()) - 1 - n[1]]
+
+    #     fig, ax = plt.subplots(figsize=(8,6))
+
+    #     # time line text drawing
+    #     pos_tau = set([pos[p][0] for p in pos])
+    #     max_y = max([pos[p][1] for p in pos])
+    #     for p in pos_tau:
+    #         if abs(int(p) - tau) == 0:
+    #             ax.text(p, max_y + .3, r"$t$", horizontalalignment='center', fontsize=font_size)
+    #         else:
+    #             ax.text(p, max_y + .3, r"$t-" + str(abs(int(p) - tau)) + "$", horizontalalignment='center', fontsize=font_size)
+
+    #     Graph(G,
+    #         node_layout = {p : np.array(pos[p]) for p in pos},
+    #         node_size = node_size,
+    #         node_color = node_c,
+    #         node_labels = labeldict,
+    #         node_label_offset = 0,
+    #         node_edge_width = 0,
+    #         node_label_fontdict = dict(size=font_size),
+    #         node_alpha = 1,
+            
+    #         arrows = arrows,
+    #         edge_layout = 'curved',
+    #         edge_label = False,
+    #         edge_color = edge_color, 
+    #         edge_width = edge_width,
+    #         edge_alpha = 1,
+    #         edge_zorder = 1,
+    #         scale = (scale[0] + 2, scale[1] + 2))
+
+    #     if save_name is not None:
+    #         plt.savefig(save_name + img_extention.value, dpi = 300)
+    #     else:
+    #         plt.show()
     
     
     
@@ -1027,11 +1069,12 @@ class DAG():
         Returns:
             np.array: skeleton matrix
         """
-        r = [np.zeros(shape=(len(self.features), len(self.features)), dtype = np.int32) for _ in range(self.min_lag, self.max_lag + 1)]
+        # r = [np.zeros(shape=(len(self.features), len(self.features)), dtype = np.int32) for _ in range(self.min_lag, self.max_lag + 1)]
+        r = np.full((len(self.features), len(self.features), self.max_lag - self.min_lag + 1), '', dtype=object)
         for l in range(self.min_lag, self.max_lag + 1):
             for t in self.g.keys():
                 for s in self.g[t].sources:
-                    if s[1] == l: r[l - self.min_lag][self.features.index(t), self.features.index(s[0])] = 1
+                    if s[1] == l: r[self.features.index(t), self.features.index(s[0])][l - self.min_lag] = 1
         return np.array(r)
 
 
@@ -1043,25 +1086,44 @@ class DAG():
         Returns:
             np.array: val matrix
         """
-        r = [np.zeros(shape=(len(self.features), len(self.features))) for _ in range(self.min_lag, self.max_lag + 1)]
+        # r = [np.zeros(shape=(len(self.features), len(self.features))) for _ in range(self.min_lag, self.max_lag + 1)]
+        r = np.full((len(self.features), len(self.features), self.max_lag - self.min_lag + 1), '', dtype=object)
         for l in range(self.min_lag, self.max_lag + 1):
             for t in self.g.keys():
                 for s, info in self.g[t].sources.items():
-                    if s[1] == l: r[l - self.min_lag][self.features.index(t), self.features.index(s[0])] = info['score']
+                    if s[1] == l: r[self.features.index(t), self.features.index(s[0])][l - self.min_lag] = info[SCORE]
         return np.array(r)
 
 
     def get_pval_matrix(self) -> np.array:
         """
         Returns pval matrix.
-        pval matrix contains information about the pval of the links componing the causal model.=
+        pval matrix contains information about the pval of the links componing the causal model.
         
         Returns:
             np.array: pval matrix
         """
-        r = [np.zeros(shape=(len(self.features), len(self.features))) for _ in range(self.min_lag, self.max_lag + 1)]
+        # r = [np.zeros(shape=(len(self.features), len(self.features))) for _ in range(self.min_lag, self.max_lag + 1)]
+        r = np.full((len(self.features), len(self.features), self.max_lag - self.min_lag + 1), '', dtype=object)
         for l in range(self.min_lag, self.max_lag + 1):
             for t in self.g.keys():
                 for s, info in self.g[t].sources.items():
-                    if s[1] == l: r[l - self.min_lag][self.features.index(t), self.features.index(s[0])] = info['pval']
+                    if s[1] == l: r[self.features.index(t), self.features.index(s[0])][l - self.min_lag] = info[PVAL]
+        return np.array(r)
+    
+    
+    def get_graph_matrix(self) -> np.array:
+        """
+        Returns graph matrix.
+        graph matrix contains information about the link type. E.g., -->, <->, ..
+        
+        Returns:
+            np.array: graph matrix
+        """
+        r = np.full((len(self.features), len(self.features), self.max_lag - self.min_lag + 1), '', dtype=object)
+        # r = [np.full((len(self.features), len(self.features)), '', dtype=object) for _ in range(self.min_lag, self.max_lag + 1)]
+        for l in range(self.min_lag, self.max_lag + 1):
+            for t in self.g.keys():
+                for s, info in self.g[t].sources.items():
+                    if s[1] == l: r[self.features.index(t), self.features.index(s[0])][l - self.min_lag] = info[TYPE]
         return np.array(r)
