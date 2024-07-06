@@ -128,6 +128,7 @@ if __name__ == '__main__':
     
     for n in nfeature:
         for nr in range(nrun):
+            if n == 7 and nr <= 2:continue
             #########################################################################################################################
             # DATA
             while True:
@@ -245,25 +246,25 @@ if __name__ == '__main__':
                     gc.collect()
                     
                     
-                    #########################################################################################################################
-                    # LPCMCI
-                    lpcmci = LPCMCI(deepcopy(d_obs),
-                                    min_lag = min_lag, 
-                                    max_lag = max_lag, 
-                                    val_condtest = GPDC(significance = 'analytic'),
-                                    verbosity = CPLevel.INFO,
-                                    alpha = alpha, 
-                                    neglect_only_autodep = False,
-                                    resfolder = resfolder + "/lpcmci")
+                    # #########################################################################################################################
+                    # # LPCMCI
+                    # lpcmci = LPCMCI(deepcopy(d_obs),
+                    #                 min_lag = min_lag, 
+                    #                 max_lag = max_lag, 
+                    #                 val_condtest = GPDC(significance = 'analytic'),
+                    #                 verbosity = CPLevel.INFO,
+                    #                 alpha = alpha, 
+                    #                 neglect_only_autodep = False,
+                    #                 resfolder = resfolder + "/lpcmci")
                     
-                    new_start = time()
-                    lpcmci_cm = lpcmci.run()
-                    elapsed_lpcmci = time() - new_start
-                    lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
-                    print(lpcmci_time)
-                    lpcmci.timeseries_dag()
-                    lpcmci.save()
-                    gc.collect()
+                    # new_start = time()
+                    # lpcmci_cm = lpcmci.run()
+                    # elapsed_lpcmci = time() - new_start
+                    # lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
+                    # print(lpcmci_time)
+                    # lpcmci.timeseries_dag()
+                    # lpcmci.save()
+                    # gc.collect()
                     
                     
                     #########################################################################################################################
