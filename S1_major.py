@@ -160,7 +160,7 @@ if __name__ == '__main__':
     
     for n in nfeature:
         for nr in range(nrun):
-            nr = str(nr)
+            if n == 7 and nr <= 2:continue
             #########################################################################################################################
             # DATA
             while True:
@@ -416,16 +416,16 @@ if __name__ == '__main__':
                     continue
 
 
-            # #########################################################################################################################
-            # # SAVE
-            # res = {
-            #     Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
-            #     Algo.PCMCIplus: {"time":pcmciplus_time, "scm":get_correct_SCM(GT, pcmciplus_cm.get_SCM())},
-            #     # Algo.LPCMCI: {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())},
-            #     Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
-            #     Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
-            # }
-            # save_result(res)
+            #########################################################################################################################
+            # SAVE
+            res = {
+                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
+                Algo.PCMCIplus: {"time":pcmciplus_time, "scm":get_correct_SCM(GT, pcmciplus_cm.get_SCM())},
+                Algo.LPCMCI: {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())},
+                Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
+                Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
+            }
+            save_result(res)
             
             # # Check if the file exists
             # Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
