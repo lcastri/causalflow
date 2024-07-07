@@ -32,12 +32,16 @@ class Metric(Enum):
     FN = "fn"
     FP = "fp"
     TP = "tp"
+    TN = "tn"
     TIME = 'time'
     F1SCORE = 'f1_score'
     PREC = 'precision'
     RECA = 'recall'
     SHD = "shd"
     FPR = "fpr"
+    TPR = "tpr"
+    FNR = "fnr"
+    TNR = "tnr"
     N_ESPU = 'N_SpuriousLinks'
     N_EqDAG = 'N_EquiDAG'
 

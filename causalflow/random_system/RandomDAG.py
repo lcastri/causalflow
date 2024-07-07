@@ -884,4 +884,52 @@ class RandomDAG:
         tn = self.get_TN(cm)
         if tn + fp == 0: return 0
         return fp / (tn + fp)
+    
+    
+    def TPR(self, cm):
+        """
+        Computes True Positive Rate between ground-truth causal graph and the estimated one
+
+        Args:
+            cm (dict): estimated SCM
+
+        Returns:
+            float: true positive rate
+        """
+        tp = self.get_TP(cm)
+        fn = self.get_FN(cm)
+        if tp + fn == 0: return 0
+        return tp / (tp + fn)
+
+
+    def TNR(self, cm):
+        """
+        Computes True Negative Rate between ground-truth causal graph and the estimated one
+
+        Args:
+            cm (dict): estimated SCM
+
+        Returns:
+            float: true negative rate
+        """
+        tn = self.get_TN(cm)
+        fp = self.get_FP(cm)
+        if tn + fp == 0: return 0
+        return tn / (tn + fp)
+
+
+    def FNR(self, cm):
+        """
+        Computes False Negative Rate between ground-truth causal graph and the estimated one
+
+        Args:
+            cm (dict): estimated SCM
+
+        Returns:
+            float: false negative rate
+        """
+        fn = self.get_FN(cm)
+        tp = self.get_TP(cm)
+        if tp + fn == 0: return 0
+        return fn / (tp + fn)
 

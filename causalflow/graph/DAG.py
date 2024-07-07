@@ -362,24 +362,6 @@ class DAG():
         return scm
     
     
-    # def make_pretty(self) -> dict:
-    #     """
-    #     Makes variables' names pretty, i.e. $ varname $
-
-    #     Returns:
-    #         dict: pretty DAG
-    #     """
-    #     pretty = dict()
-    #     for t in self.g:
-    #         p_t = '$' + t + '$'
-    #         pretty[p_t] = copy.deepcopy(self.g[t])
-    #         pretty[p_t].name = p_t
-    #         pretty[p_t].children = ['$' + c + '$' for c in self.g[t].children]
-    #         for s in self.g[t].sources:
-    #             del pretty[p_t].sources[s]
-    #             p_s = '$' + s[0] + '$'
-    #             pretty[p_t].sources[(p_s, s[1])] = {SCORE: self.g[t].sources[s][SCORE], PVAL: self.g[t].sources[s][PVAL], TYPE: self.g[t].sources[s][TYPE]}
-    #     return pretty
     def make_pretty(self) -> dict:
         """
         Makes variables' names pretty, i.e. $ varname $ with '{' after '_' and '}' at the end of the string.
