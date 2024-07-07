@@ -177,50 +177,52 @@ if __name__ == '__main__':
                         # File does not exist, create a new dictionary
                         data = {}
                         data[nr] = deepcopy(EMPTY_RES)
-                    
-                    min_lag = random.randint(0, 1)
-                    max_lag = random.randint(2, 5)
-                    resfolder = 'results/' + resdir + '/' + str(n) + '/' + nr
-                    os.makedirs(resfolder, exist_ok = True)
-                    # res_tmp = deepcopy(EMPTY_RES)
-                    
-                    # Noise params 
-                    noise_param = random.uniform(0.5, 2)
-                    noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
-                    noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-                    RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
-                                   link_density = link_density, coeff_range = (min_c, max_c), max_exp = max_exp, 
-                                   min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
-                                   functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders)
-                    RS.gen_equations()
-                    RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
-                    RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
+                        
+                        
+                        # FIXME: add this also in the if and load data from the csv files  
+                        min_lag = random.randint(0, 1)
+                        max_lag = random.randint(2, 5)
+                        resfolder = 'results/' + resdir + '/' + str(n) + '/' + nr
+                        os.makedirs(resfolder, exist_ok = True)
+                        # res_tmp = deepcopy(EMPTY_RES)
+                        
+                        # Noise params 
+                        noise_param = random.uniform(0.5, 2)
+                        noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
+                        noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
+                        RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
+                                    link_density = link_density, coeff_range = (min_c, max_c), max_exp = max_exp, 
+                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
+                                    functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders)
+                        RS.gen_equations()
+                        RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
+                        RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
 
-                    d_obs = RS.gen_obs_ts()
-                    d_obs.plot_timeseries(resfolder + '/obs_data.png')
-                    d_obs.save_csv(resfolder + '/obs_data.csv')
-                    
-                    # This strategy allows to pick one variable for each confounder
-                    # (1) if the confounder is lagged then it takes the only available option
-                    # (2) if the confounder is contemporaneous then, if exists, it takes a variable that has been already chosen in the step (1)
-                    # (3) if a variable that has been already chosen in the step (1) does not exist, random choice among available options
-                    d_int = dict()
-                    intvars = [RS.potentialIntervention[h]['vars'][0] for h in RS.potentialIntervention if RS.potentialIntervention[h]['type'] == 'lagged']
-                    for h in RS.potentialIntervention:
-                        if RS.potentialIntervention[h]['type'] == 'contemporaneous':
-                            varFound = False
-                            for v in RS.potentialIntervention[h]['vars']:
-                                if v in intvars: 
-                                    varFound = True
-                                    break
-                            if not varFound: intvars.append(random.choice(RS.potentialIntervention[h]['vars']))
-                    for intvar in intvars:
-                        i = RS.intervene(intvar, nsample_int, random.uniform(5, 10))
-                        d_int[intvar] = i[intvar]
-                        d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
-                        d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
+                        d_obs = RS.gen_obs_ts()
+                        d_obs.plot_timeseries(resfolder + '/obs_data.png')
+                        d_obs.save_csv(resfolder + '/obs_data.csv')
+                        
+                        # This strategy allows to pick one variable for each confounder
+                        # (1) if the confounder is lagged then it takes the only available option
+                        # (2) if the confounder is contemporaneous then, if exists, it takes a variable that has been already chosen in the step (1)
+                        # (3) if a variable that has been already chosen in the step (1) does not exist, random choice among available options
+                        d_int = dict()
+                        intvars = [RS.potentialIntervention[h]['vars'][0] for h in RS.potentialIntervention if RS.potentialIntervention[h]['type'] == 'lagged']
+                        for h in RS.potentialIntervention:
+                            if RS.potentialIntervention[h]['type'] == 'contemporaneous':
+                                varFound = False
+                                for v in RS.potentialIntervention[h]['vars']:
+                                    if v in intvars: 
+                                        varFound = True
+                                        break
+                                if not varFound: intvars.append(random.choice(RS.potentialIntervention[h]['vars']))
+                        for intvar in intvars:
+                            i = RS.intervene(intvar, nsample_int, random.uniform(5, 10))
+                            d_int[intvar] = i[intvar]
+                            d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
+                            d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
 
-                    GT = RS.get_SCM()
+                        GT = RS.get_SCM()
                     
                     #########################################################################################################################
                     # FPCMCI
