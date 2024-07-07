@@ -3,9 +3,12 @@ from enum import Enum
 import math
 import random
 import numpy as np
+from causalflow.basics.constants import ImageExt
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 import networkx as nx
+
+NO_CYCLES_THRESHOLD = 10
 
 
 class NoiseType(Enum):
@@ -179,7 +182,8 @@ class RandomDAG:
 
         Returns:
             list: equation (list of tuple)
-        """        
+        """
+        no_cycles_attempt = 0
         equation = []
         n_parents = random.randint(1, self.link_density)
         while len(equation) < n_parents:
@@ -201,13 +205,14 @@ class RandomDAG:
                 else:
                     term = (operator, coefficient, function, variable, lag)
                 equation.append(term)
+            else:
+                no_cycles_attempt += 1
+                if no_cycles_attempt >= NO_CYCLES_THRESHOLD:
+                    raise("Cycle configuration impossible to be avoided!")
                 
-                # # Update dependency graph
-                # self.dependency_graph[target_var].add((variable, lag))
         return equation
     
     
-    # FIXME: first option
     def __creates_cycle(self, target_var_lag, variable_lag):
         """
         Checks if adding an edge from variable_lag to target_var_lag would create a cycle
@@ -262,6 +267,7 @@ class RandomDAG:
         """
         Adds confounder links to a predefined causal model
         """
+        no_cycles_attempt = 0
         self.expected_spurious_links = list()
         firstvar_choice = copy.deepcopy(self.obsVar)
         for hid in self.hiddenVar:
@@ -306,6 +312,10 @@ class RandomDAG:
                         self.equations[variable].append(term)
                     
                         self.confounders[hid].append((variable, lag))
+                    else:
+                        no_cycles_attempt += 1
+                        if no_cycles_attempt >= NO_CYCLES_THRESHOLD:
+                            raise("Impossible to avoid the cycle configuration!")
                 for source in confVar:
                     tmp = copy.deepcopy(confVar)
                     tmp.remove(source)
@@ -357,6 +367,10 @@ class RandomDAG:
                         self.equations[variable].append(term)
                     
                         self.confounders[hid].append((variable, lag))
+                    else:
+                        no_cycles_attempt += 1
+                        if no_cycles_attempt >= NO_CYCLES_THRESHOLD:
+                            raise("Cycle configuration impossible to be avoided!")
                 for v in targets:
                     if not (source, v[1] - sourceLag) in self.get_SCM()[v[0]]:
                         self.expected_spurious_links.append({'s':source, 't':v[0], 'lag':v[1] - sourceLag})
@@ -596,6 +610,13 @@ class RandomDAG:
     
     
     def ts_dag(self, withHidden = False, save_name = None):
+        """
+        Draws a Time-seris DAG
+
+        Args:
+            withHidden (bool, optional): bit to decide whether to output the SCM including the hidden variables or not. Defaults to False.
+            save_name (str, optional): figure path. Defaults to None.
+        """
         gt = self.get_SCM(withHidden)
         var = self.variables if withHidden else self.obsVar
         g = DAG(var, self.min_lag, self.max_lag, False, gt)
@@ -635,7 +656,64 @@ class RandomDAG:
                         s_lag -= 1
                         t_lag -= 1
                         
-        g.ts_dag(self.max_lag, save_name = save_name, node_color = node_color, edge_color = edge_color)
+        g.ts_dag(save_name = save_name, node_color = node_color, edge_color = edge_color)
+    
+    
+    # def ts_dag(self, withHidden = False, save_name = None, img_extention = ImageExt.PNG):
+    #     gt = self.get_SCM(withHidden)
+    #     var = self.variables if withHidden else self.obsVar
+    #     g = DAG(var, self.min_lag, self.max_lag, False, gt)
+        
+    #     node_color = 'orange'
+    #     # node_c = ['tab:blue', 'tab:orange', 'tab:green']
+    #     edge_color = 'grey'
+    #     if withHidden:
+            
+    #         # Nodes color definition
+    #         node_color = dict()
+    #         for v in var:
+    #             if v in self.hiddenVar:
+    #                 color = 'peachpuff'
+    #                 # for l in range(self.max_lag + 1):
+    #                 #     node_color[(var.index(v, -l))] = 'peachpuff'
+    #             else:
+    #                 color = 'orange'
+    #                 # for l in range(self.max_lag + 1):
+    #                 #     node_color[(var.index(v, -l))] = 'orange'
+    #             for l in range(self.max_lag + 1):
+    #                 node_color[(var.index(v), -l)] = color
+    #         # tmpG = nx.grid_2d_graph(self.max_lag + 1, len(g.g.keys()))
+    #         # for n in tmpG.nodes():
+    #         #     if var[abs(n[1] - (self.N - 1))] in self.hiddenVar:
+    #         #         node_color[n] = 'peachpuff'
+    #         #     else:
+    #         #         # node_color[n] = node_c[abs(n[1] - (self.N - 1))]
+    #         #         node_color[n] = 'orange'
+                    
+    #         # Edges color definition
+    #         edge_color = dict()
+    #         for t in g.g:
+    #             for s in g.g[t].sources:
+    #                 s_index = len(g.g.keys())-1 - list(g.g.keys()).index(s[0])
+    #                 t_index = len(g.g.keys())-1 - list(g.g.keys()).index(t)
+                    
+    #                 s_lag = self.max_lag - s[1]
+    #                 t_lag = self.max_lag
+    #                 while s_lag >= 0:
+    #                     s_node = (s_lag, s_index)
+    #                     t_node = (t_lag, t_index)
+    #                     if s[0] in self.hiddenVar:
+    #                         edge_color[(s_node, t_node)] = 'gainsboro'
+    #                     else:
+    #                         edge_color[(s_node, t_node)] = 'gray'
+                            
+    #                     s_lag -= 1
+    #                     t_lag -= 1
+                        
+    #     g.ts_dag(node_color = node_color, 
+    #              edge_color = edge_color, 
+    #              save_name = save_name, 
+    #              img_extention = img_extention)
         
         
     def get_TP(self, cm):

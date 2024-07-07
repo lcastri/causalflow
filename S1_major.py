@@ -5,6 +5,7 @@ import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
+from causalflow.basics.constants import ImageExt
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     resdir = "S1_major"
     f_alpha = 0.5
     alpha = 0.05
-    nfeature = range(7, 15)
+    nfeature = range(7, 12)
     nrun = 25
     
     # RandomDAG params 
@@ -128,11 +129,10 @@ if __name__ == '__main__':
     
     for n in nfeature:
         for nr in range(nrun):
-            if n == 7 and nr <= 2:continue
             #########################################################################################################################
             # DATA
             while True:
-                # try:
+                try:
                     min_lag = random.randint(0, 1)
                     max_lag = random.randint(2, 5)
                     resfolder = 'results/' + resdir + '/' + str(n) + '/' + str(nr)
@@ -195,7 +195,7 @@ if __name__ == '__main__':
                     elapsed_fpcmci = time() - new_start
                     fpcmci_time = str(timedelta(seconds = elapsed_fpcmci))
                     print(fpcmci_time)
-                    fpcmci.timeseries_dag()
+                    fpcmci_cm.ts_dag(save_name = fpcmci.ts_dag_path, img_extention = ImageExt.PNG)
                     gc.collect()
             
                     if len(get_spurious_links(fpcmci_cm.get_SCM())) == 0: 
@@ -220,7 +220,7 @@ if __name__ == '__main__':
                     elapsed_pcmci = time() - new_start
                     pcmci_time = str(timedelta(seconds = elapsed_pcmci))
                     print(pcmci_time)
-                    pcmci.timeseries_dag()
+                    pcmci_cm.ts_dag(save_name = pcmci.ts_dag_path, img_extention = ImageExt.PNG)
                     pcmci.save()
                     gc.collect()
                     
@@ -241,7 +241,7 @@ if __name__ == '__main__':
                     elapsed_pcmciplus = time() - new_start
                     pcmciplus_time = str(timedelta(seconds = elapsed_pcmciplus))
                     print(pcmciplus_time)
-                    pcmciplus.timeseries_dag()
+                    pcmciplus_cm.ts_dag(save_name = pcmciplus.ts_dag_path, img_extention = ImageExt.PNG)
                     pcmciplus.save()
                     gc.collect()
                     
@@ -262,7 +262,7 @@ if __name__ == '__main__':
                     # elapsed_lpcmci = time() - new_start
                     # lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
                     # print(lpcmci_time)
-                    # lpcmci.timeseries_dag()
+                    # lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG)
                     # lpcmci.save()
                     # gc.collect()
                     
@@ -290,18 +290,18 @@ if __name__ == '__main__':
                     elapsed_candoit = time() - new_start
                     candoit_time = str(timedelta(seconds = elapsed_candoit))
                     print(candoit_time)
-                    candoit.timeseries_dag()
+                    candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
                     gc.collect()
                     
                     break
                     
-                # except Exception as e:
-                #     traceback_info = traceback.format_exc()
-                #     with open(os.getcwd() + "/" + 'results/' + resdir + '/error.txt', 'a') as f:
-                #         f.write("Exception occurred: " + str(e) + "\n")
-                #         f.write("Traceback:\n" + traceback_info + "\n")
-                #     remove_directory(os.getcwd() + "/" + resfolder)
-                #     continue
+                except Exception as e:
+                    traceback_info = traceback.format_exc()
+                    with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
+                        f.write("Exception occurred: " + str(e) + "\n")
+                        f.write("Traceback:\n" + traceback_info + "\n")
+                    remove_directory(os.getcwd() + "/" + resfolder)
+                    continue
 
 
             #########################################################################################################################
@@ -309,7 +309,7 @@ if __name__ == '__main__':
             res = {
                 Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
                 Algo.PCMCIplus: {"time":pcmciplus_time, "scm":get_correct_SCM(GT, pcmciplus_cm.get_SCM())},
-                Algo.LPCMCI: {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())},
+                # Algo.LPCMCI: {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())},
                 Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
                 Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
             }
