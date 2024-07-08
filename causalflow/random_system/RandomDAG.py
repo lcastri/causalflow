@@ -208,7 +208,7 @@ class RandomDAG:
             else:
                 no_cycles_attempt += 1
                 if no_cycles_attempt >= NO_CYCLES_THRESHOLD:
-                    raise("Cycle configuration impossible to be avoided!")
+                    raise ValueError("Cycle configuration impossible to be avoided!")
                 
         return equation
     
@@ -315,7 +315,7 @@ class RandomDAG:
                     else:
                         no_cycles_attempt += 1
                         if no_cycles_attempt >= NO_CYCLES_THRESHOLD:
-                            raise("Impossible to avoid the cycle configuration!")
+                            raise ValueError("Impossible to avoid the cycle configuration!")
                 for source in confVar:
                     tmp = copy.deepcopy(confVar)
                     tmp.remove(source)
@@ -370,7 +370,7 @@ class RandomDAG:
                     else:
                         no_cycles_attempt += 1
                         if no_cycles_attempt >= NO_CYCLES_THRESHOLD:
-                            raise("Cycle configuration impossible to be avoided!")
+                            raise ValueError("Cycle configuration impossible to be avoided!")
                 for v in targets:
                     if not (source, v[1] - sourceLag) in self.get_SCM()[v[0]]:
                         self.expected_spurious_links.append({'s':source, 't':v[0], 'lag':v[1] - sourceLag})
