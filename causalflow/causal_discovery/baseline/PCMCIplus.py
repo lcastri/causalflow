@@ -7,7 +7,7 @@ from causalflow.basics.constants import *
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
-
+from tigramite.plotting import plot_time_series_graph
 
 class PCMCIplus(CausalDiscoveryMethod):
     """
@@ -67,6 +67,8 @@ class PCMCIplus(CausalDiscoveryMethod):
                                                tau_min = self.min_lag,
                                                pc_alpha = self.pc_alpha)
         
+        
+        plot_time_series_graph(self.result['graph'], self.result['val_matrix'], self.pcmci.var_names)
         self.CM = self._to_DAG()
         
         if self.resfolder is not None: self.logger.close()
@@ -88,14 +90,41 @@ class PCMCIplus(CausalDiscoveryMethod):
             for t in range(N):
                 for lag in range(lags):
                     if self.result['graph'][s][t,lag] != '':
-                        if (self.result['graph'][s][t,lag] == LinkType.Bidirected.value and 
-                            (vars[s], abs(lag)) in tmp_dag.g[vars[t]].sources and 
-                            tmp_dag.g[t].sources[(vars[s], abs(lag))][TYPE] == LinkType.Bidirected.value):
-                            continue
-                        tmp_dag.add_source(vars[t], 
-                                        vars[s],
-                                        self.result['val_matrix'][s][t,lag],
-                                        self.result['p_matrix'][s][t,lag],
-                                        lag,
-                                        self.result['graph'][s][t,lag])
+                        arrowtype = self.result['graph'][s][t,lag]
+                        # print(f'({self.data.features[s]}, -{lag}) {arrowtype} {self.data.features[t]}')
+                        
+                        if arrowtype == LinkType.Bidirected.value:
+                            if ((vars[s], abs(lag)) in tmp_dag.g[vars[t]].sources and 
+                                tmp_dag.g[t].sources[(vars[s], abs(lag))][TYPE] == LinkType.Bidirected.value):
+                                continue
+                            else:
+                                tmp_dag.add_source(vars[t], 
+                                                vars[s],
+                                                self.result['val_matrix'][s][t,lag],
+                                                self.result['p_matrix'][s][t,lag],
+                                                lag,
+                                                arrowtype)
+                                
+                        
+                        elif arrowtype == LinkType.Uncertain.value:
+                            if ((vars[t], abs(lag)) in tmp_dag.g[vars[s]].sources and 
+                                tmp_dag.g[vars[s]].sources[(vars[t], abs(lag))][TYPE] == LinkType.Uncertain.value):
+                                continue
+                            else:
+                                tmp_dag.add_source(vars[t], 
+                                                vars[s],
+                                                self.result['val_matrix'][s][t,lag],
+                                                self.result['p_matrix'][s][t,lag],
+                                                lag,
+                                                arrowtype)
+                                
+                        
+                        elif (arrowtype == LinkType.Directed.value or
+                              arrowtype == LinkType.HalfUncertain.value):
+                            tmp_dag.add_source(vars[t], 
+                                            vars[s],
+                                            self.result['val_matrix'][s][t,lag],
+                                            self.result['p_matrix'][s][t,lag],
+                                            lag,
+                                            arrowtype)
         return tmp_dag

@@ -532,19 +532,23 @@ class DAG():
         edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
         
         if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
-            arrows[(s_node, t_node)] = {'h':True, 't':''}
+            arrows[(s_node, t_node)] = {'h':'>', 't':''}
             
         elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
             edges.append((t_node, s_node))
             edge_width[(t_node, s_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
-            arrows[(t_node, s_node)] = {'h':True, 't':''}
-            arrows[(s_node, t_node)] = {'h':True, 't':''}
+            arrows[(t_node, s_node)] = {'h':'>', 't':''}
+            arrows[(s_node, t_node)] = {'h':'>', 't':''}
             
         elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
-            arrows[(s_node, t_node)] = {'h':True, 't':'o'}
+            arrows[(s_node, t_node)] = {'h':'>', 't':'o'}
             
         elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
-            arrows[(s_node, t_node)] = {'h':False, 't':'o'}
+            arrows[(s_node, t_node)] = {'h':'o', 't':'o'}
+        
+        else:
+            raise ValueError(f"{r.g[t].sources[s][TYPE]} not included in LinkType")
+            
  
    
     def ts_dag(self,

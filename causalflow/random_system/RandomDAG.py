@@ -715,8 +715,9 @@ class RandomDAG:
     #              save_name = save_name, 
     #              img_extention = img_extention)
         
-        
-    def get_TP(self, cm):
+    
+    @staticmethod  
+    def get_TP(gt, cm):
         """
         True positive number:
         edge present in the causal model 
@@ -728,7 +729,6 @@ class RandomDAG:
         Returns:
             int: true positive
         """
-        gt = self.get_SCM()
         counter = 0
         for node in cm.keys():
             for edge in cm[node]:
@@ -736,7 +736,8 @@ class RandomDAG:
         return counter
 
 
-    def get_TN(self, cm):
+    @staticmethod 
+    def get_TN(gt, min_lag, max_lag, cm):
         """
         True negative number:
         edge absent in the groundtruth 
@@ -748,10 +749,9 @@ class RandomDAG:
         Returns:
             int: true negative
         """
-        fullg = DAG(self.obsVar, self.min_lag, self.max_lag, False)
+        fullg = DAG(list(gt.keys()), min_lag, max_lag, False)
         fullg.fully_connected_dag()
         fullscm = fullg.get_SCM()
-        gt = self.get_SCM()
         gt_TN = copy.deepcopy(fullscm)
         
         # Build the True Negative graph [complementary graph of the ground-truth]
@@ -767,7 +767,8 @@ class RandomDAG:
         return counter
     
     
-    def get_FP(self, cm):
+    @staticmethod 
+    def get_FP(gt, cm):
         """
         False positive number:
         edge present in the causal model 
@@ -779,7 +780,6 @@ class RandomDAG:
         Returns:
             int: false positive
         """
-        gt = self.get_SCM()
         counter = 0
         for node in cm.keys():
             for edge in cm[node]:
@@ -787,7 +787,8 @@ class RandomDAG:
         return counter
 
 
-    def get_FN(self, cm):
+    @staticmethod 
+    def get_FN(gt, cm):
         """
         False negative number:
         edge present in the groundtruth 
@@ -799,7 +800,6 @@ class RandomDAG:
         Returns:
             int: false negative
         """
-        gt = self.get_SCM()
         counter = 0
         for node in gt.keys():
             for edge in gt[node]:
@@ -807,7 +807,8 @@ class RandomDAG:
         return counter
     
     
-    def shd(self, cm):
+    @staticmethod 
+    def shd(gt, cm):
         """
         Computes Structural Hamming Distance between ground-truth causal graph and the estimated one
 
@@ -817,12 +818,13 @@ class RandomDAG:
         Returns:
             int: shd
         """
-        fn = self.get_FN(cm)
-        fp = self.get_FP(cm)
+        fn = RandomDAG.get_FN(gt, cm)
+        fp = RandomDAG.get_FP(gt, cm)
         return fn + fp
 
 
-    def precision(self, cm):
+    @staticmethod 
+    def precision(gt, cm):
         """
         Computes Precision between ground-truth causal graph and the estimated one
 
@@ -832,13 +834,14 @@ class RandomDAG:
         Returns:
             float: precision
         """
-        tp = self.get_TP(cm)
-        fp = self.get_FP(cm)
+        tp = RandomDAG.get_TP(gt, cm)
+        fp = RandomDAG.get_FP(gt, cm)
         if tp + fp == 0: return 0
         return tp/(tp + fp)
 
         
-    def recall(self, cm):
+    @staticmethod 
+    def recall(gt, cm):
         """
         Computes Recall between ground-truth causal graph and the estimated one
 
@@ -848,13 +851,14 @@ class RandomDAG:
         Returns:
             float: recall
         """
-        tp = self.get_TP(cm)
-        fn = self.get_FN(cm)
+        tp = RandomDAG.get_TP(gt, cm)
+        fn = RandomDAG.get_FN(gt, cm)
         if tp + fn == 0: return 0
         return tp/(tp + fn)
 
 
-    def f1_score(self, cm):
+    @staticmethod 
+    def f1_score(gt, cm):
         """
         Computes F1-score between ground-truth causal graph and the estimated one
 
@@ -864,13 +868,14 @@ class RandomDAG:
         Returns:
             float: f1-score
         """
-        p = self.precision(cm)
-        r = self.recall(cm)
+        p = RandomDAG.precision(gt, cm)
+        r = RandomDAG.recall(gt, cm)
         if p + r == 0: return 0
         return (2 * p * r) / (p + r)
     
     
-    def FPR(self, cm):
+    @staticmethod 
+    def FPR(gt, min_lag, max_lag, cm):
         """
         Computes False Positve Rate between ground-truth causal graph and the estimated one
 
@@ -880,13 +885,14 @@ class RandomDAG:
         Returns:
             float: false positive rate
         """
-        fp = self.get_FP(cm)
-        tn = self.get_TN(cm)
+        fp = RandomDAG.get_FP(gt, cm)
+        tn = RandomDAG.get_TN(gt, min_lag, max_lag, cm)
         if tn + fp == 0: return 0
         return fp / (tn + fp)
     
     
-    def TPR(self, cm):
+    @staticmethod 
+    def TPR(gt, cm):
         """
         Computes True Positive Rate between ground-truth causal graph and the estimated one
 
@@ -896,13 +902,14 @@ class RandomDAG:
         Returns:
             float: true positive rate
         """
-        tp = self.get_TP(cm)
-        fn = self.get_FN(cm)
+        tp = RandomDAG.get_TP(gt, cm)
+        fn = RandomDAG.get_FN(gt, cm)
         if tp + fn == 0: return 0
         return tp / (tp + fn)
 
 
-    def TNR(self, cm):
+    @staticmethod 
+    def TNR(gt, min_lag, max_lag, cm):
         """
         Computes True Negative Rate between ground-truth causal graph and the estimated one
 
@@ -912,13 +919,14 @@ class RandomDAG:
         Returns:
             float: true negative rate
         """
-        tn = self.get_TN(cm)
-        fp = self.get_FP(cm)
+        tn = RandomDAG.get_TN(gt, min_lag, max_lag, cm)
+        fp = RandomDAG.get_FP(gt, cm)
         if tn + fp == 0: return 0
         return tn / (tn + fp)
 
 
-    def FNR(self, cm):
+    @staticmethod 
+    def FNR(gt, cm):
         """
         Computes False Negative Rate between ground-truth causal graph and the estimated one
 
@@ -928,8 +936,8 @@ class RandomDAG:
         Returns:
             float: false negative rate
         """
-        fn = self.get_FN(cm)
-        tp = self.get_TP(cm)
+        fn = RandomDAG.get_FN(gt, cm)
+        tp = RandomDAG.get_TP(gt, cm)
         if tp + fn == 0: return 0
         return fn / (tp + fn)
 

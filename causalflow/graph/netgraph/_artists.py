@@ -376,114 +376,7 @@ class EdgeArtist(PathPatchDataUnits):
         self._update_path()
 
 
-# class EdgeArtist(PathPatch):
-#     def __init__(self, midline,
-#                  width=0.05,
-#                  head_width=0.10,
-#                  head_length=0.15,
-#                  head_offset=0.,
-#                  tail_offset=0.,
-#                  tail_marker=None,  # New parameter for tail marker
-#                  shape='full',
-#                  curved=False,
-#                  *args, **kwargs):
-
-#         self.midline = midline
-#         self.width = width
-#         self.head_width = head_width
-#         self.head_length = head_length
-#         self.head_offset = head_offset
-#         self.tail_offset = tail_offset
-#         self.tail_marker = tail_marker  # Store tail marker type
-#         self.shape = shape
-#         self.curved = curved
-
-#         self._update_path()
-#         super().__init__(self._path, *args, **kwargs)
-
-#     def _update_path(self):
-#         # Determine the actual start (and hence midline) of the arrow given the tail offsets
-#         arrow_midline = _shorten_spline_by(self.midline[::-1], self.tail_offset)[::-1]
-
-#         # Determine the actual endpoint (and hence midline) of the arrow given the offsets
-#         arrow_midline = _shorten_spline_by(arrow_midline, self.head_offset)
-#         arrow_tail_midline = _shorten_spline_by(arrow_midline, self.head_length)
-
-#         head_vertex_tip = arrow_midline[-1]
-#         head_vertex_base = arrow_tail_midline[-1]
-#         (dx, dy), = _get_orthogonal_unit_vector(np.atleast_2d(head_vertex_tip - head_vertex_base)) * self.head_width / 2.
-
-#         if self.shape == 'full':
-#             tail_vertices_right = _get_parallel_line(arrow_tail_midline, -self.width / 2.)
-#             tail_vertices_left = _get_parallel_line(arrow_tail_midline, self.width / 2.)
-#             head_vertex_right = head_vertex_base - np.array([dx, dy])
-#             head_vertex_left = head_vertex_base + np.array([dx, dy])
-
-#             vertices = np.concatenate([
-#                 tail_vertices_right[::-1],
-#                 tail_vertices_left,
-#                 head_vertex_left[np.newaxis, :],
-#                 head_vertex_tip[np.newaxis, :],
-#                 head_vertex_right[np.newaxis, :],
-#                 tail_vertices_right[np.newaxis, -1],
-#             ])
-#             codes = np.concatenate([
-#                 [Path.MOVETO] + [Path.LINETO for _ in tail_vertices_right[1:]],
-#                 [Path.LINETO for _ in tail_vertices_left],
-#                 [Path.LINETO],  # head_vertex_left
-#                 [Path.LINETO],  # head_vertex_tip
-#                 [Path.LINETO],  # head_vertex_right
-#                 [Path.CLOSEPOLY],  # tail_vertices_right[-1]
-#             ])
-
-#         elif self.shape == 'right':
-#             tail_vertices_right = _get_parallel_line(arrow_tail_midline, -0.6 * self.width)
-#             arrow_tail_midline = _get_parallel_line(arrow_tail_midline, -0.1 * self.width)
-#             head_vertex_right = head_vertex_base - np.array([dx, dy])
-
-#             vertices = np.concatenate([
-#                 tail_vertices_right[::-1],
-#                 arrow_tail_midline,
-#                 head_vertex_tip[np.newaxis, :],
-#                 head_vertex_right[np.newaxis, :],
-#                 tail_vertices_right[np.newaxis, -1],
-#             ])
-#             codes = np.concatenate([
-#                 [Path.MOVETO] + [Path.LINETO for _ in tail_vertices_right[1:]],
-#                 [Path.LINETO for _ in arrow_tail_midline],
-#                 [Path.LINETO],  # head_vertex_tip
-#                 [Path.LINETO],  # head_vertex_right
-#                 [Path.CLOSEPOLY],  # tail_vertices_right[-1]
-#             ])
-
-#         elif self.shape == 'left':
-#             tail_vertices_left = _get_parallel_line(arrow_tail_midline, 0.6 * self.width)
-#             arrow_tail_midline = _get_parallel_line(arrow_tail_midline, 0.1 * self.width)
-#             head_vertex_left = head_vertex_base + np.array([dx, dy])
-
-#             vertices = np.concatenate([
-#                 arrow_tail_midline[::-1],
-#                 tail_vertices_left,
-#                 head_vertex_left[np.newaxis, :],
-#                 head_vertex_tip[np.newaxis, :],
-#                 arrow_tail_midline[np.newaxis, -1],
-#             ])
-#             codes = np.concatenate([
-#                 [Path.MOVETO] + [Path.LINETO for _ in arrow_tail_midline[1:]],
-#                 [Path.LINETO for _ in tail_vertices_left],
-#                 [Path.LINETO],  # head_vertex_left
-#                 [Path.LINETO],  # head_vertex_tip
-#                 [Path.CLOSEPOLY],  # arrow_tail_midline[-1]
-#             ])
-
-#         else:
-#             raise ValueError("Argument 'shape' needs to one of: 'left', 'right', 'full', not '{}'.".format(self.shape))
-
-#         self._path = Path(vertices, codes)
-
-
     def draw_tail_marker(self, ax, tail_marker, tail_marker_color, tail_marker_bordercolor, node_radius):
-        # tail_vertex_base = self.midline[0]
         tail_vertex_base = self.midline[0]
         direction_vector = self.midline[1] - self.midline[0]
         direction_vector /= np.linalg.norm(direction_vector)  # Normalize direction vector
@@ -491,22 +384,12 @@ class EdgeArtist(PathPatchDataUnits):
         # Offset tail marker position by node radius in the opposite direction of the arrow
         tail_marker_position = tail_vertex_base + direction_vector * node_radius
         ax.scatter(tail_marker_position[0], tail_marker_position[1], marker=tail_marker, color=tail_marker_color, edgecolors=tail_marker_bordercolor, zorder=1000)
-            
-            
-    # def update_midline(self, midline):
-    #     """Update the midline and recompute the edge path."""
-    #     self.midline = midline
-    #     self._update_path()
+        
+    def draw_head_marker(self, ax, head_marker, head_marker_color, head_marker_bordercolor, node_radius):
+        head_vertex_base = self.midline[-1]
+        direction_vector = self.midline[-1] - self.midline[-2]
+        direction_vector /= np.linalg.norm(direction_vector)  # Normalize direction vector
 
-
-    # def update_width(self, width, arrow=True):
-    #     """
-    #     Adjust the edge width. If arrow is True, the arrow head length and
-    #     width are rescaled by the ratio new width / old width.
-    #     """
-    #     if arrow:
-    #         ratio = width / self.width
-    #         self.head_length *= ratio
-    #         self.head_width *= ratio
-    #     self.width = width
-    #     self._update_path()
+        # Offset tail marker position by node radius in the opposite direction of the arrow
+        head_marker_position = head_vertex_base - direction_vector * node_radius
+        ax.scatter(head_marker_position[0], head_marker_position[1], marker=head_marker, color=head_marker_color, edgecolors=head_marker_bordercolor, zorder=1000)

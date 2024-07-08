@@ -151,4 +151,4 @@ class Data():
         Args:
             csvpath (str): CSV path
         """
-        self.d.to_csv(csvpath)
+        self.d.to_csv(csvpath, index=False)

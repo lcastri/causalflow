@@ -11,6 +11,7 @@ from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT
 from causalflow.causal_discovery.baseline.PCMCI import PCMCI
 from causalflow.causal_discovery.baseline.PCMCIplus import PCMCIplus
+from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path
@@ -21,7 +22,7 @@ from datetime import timedelta
 from res_statistics_new import *
 import gc
 import shutil
-
+import ast
 
 ALGO_RES = {'done': False,
             Metric.TIME.value : None,
@@ -76,7 +77,7 @@ def get_correct_SCM(gt, scm):
 
 def get_spurious_links(scm):
     spurious = list()
-    for exp_s in RS.expected_spurious_links:
+    for exp_s in EXP_SPURIOUS_LINKS:
         if exp_s['t'] in scm and (exp_s['s'], -abs(exp_s['lag'])) in scm[exp_s['t']]:
             spurious.append(exp_s)
             
@@ -120,18 +121,18 @@ def get_spurious_links(scm):
 def fill_res(res, r):
     res['done'] = True
     res[Metric.TIME.value] = r["time"]
-    res[Metric.FN.value] = RS.get_FN(r["scm"])
-    res[Metric.TN.value] = RS.get_TN(r["scm"])
-    res[Metric.FP.value] = RS.get_FP(r["scm"])
-    res[Metric.TP.value] = RS.get_TP(r["scm"])
-    res[Metric.FPR.value] = RS.FPR(r["scm"])
-    res[Metric.TPR.value] = RS.TPR(r["scm"])
-    res[Metric.FNR.value] = RS.FNR(r["scm"])
-    res[Metric.TNR.value] = RS.TNR(r["scm"])
-    res[Metric.PREC.value] = RS.precision(r["scm"])
-    res[Metric.RECA.value] = RS.recall(r["scm"])
-    res[Metric.F1SCORE.value] = RS.f1_score(r["scm"])
-    res[Metric.SHD.value] = RS.shd(r["scm"])
+    res[Metric.FN.value] = RandomDAG.get_FN(GT, r["scm"])
+    res[Metric.TN.value] = RandomDAG.get_TN(GT, min_lag, max_lag, r["scm"])
+    res[Metric.FP.value] = RandomDAG.get_FP(GT, r["scm"])
+    res[Metric.TP.value] = RandomDAG.get_TP(GT, r["scm"])
+    res[Metric.FPR.value] = RandomDAG.FPR(GT, min_lag, max_lag, r["scm"])
+    res[Metric.TPR.value] = RandomDAG.TPR(GT, r["scm"])
+    res[Metric.FNR.value] = RandomDAG.FNR(GT, r["scm"])
+    res[Metric.TNR.value] = RandomDAG.TNR(GT, min_lag, max_lag, r["scm"])
+    res[Metric.PREC.value] = RandomDAG.precision(GT, r["scm"])
+    res[Metric.RECA.value] = RandomDAG.recall(GT, r["scm"])
+    res[Metric.F1SCORE.value] = RandomDAG.f1_score(GT, r["scm"])
+    res[Metric.SHD.value] = RandomDAG.shd(GT, r["scm"])
     res[jWord.SCM.value] = str(r["scm"])
     spurious_links = get_spurious_links(r["scm"])
     res[jWord.SpuriousLinks.value] = str(spurious_links)
@@ -144,7 +145,7 @@ if __name__ == '__main__':
     resdir = "S1_major"
     f_alpha = 0.5
     alpha = 0.05
-    nfeature = range(7, 12)
+    nfeature = range(7, 14)
     nrun = 25
     
     # RandomDAG params 
@@ -160,7 +161,8 @@ if __name__ == '__main__':
     
     for n in nfeature:
         for nr in range(nrun):
-            if n == 7 and nr <= 2:continue
+            nr = str(nr)
+            
             #########################################################################################################################
             # DATA
             while True:
@@ -168,21 +170,34 @@ if __name__ == '__main__':
                     # Check if the file exists
                     Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
                     filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
+                    resfolder = 'results/' + resdir + '/' + str(n) + '/' + nr
                     if os.path.exists(filename):
                         # File exists, load its contents into a dictionary
                         with open(filename, 'r') as file:
                             data = json.load(file)
-                            if data[nr]['done']: break
                     else:
                         # File does not exist, create a new dictionary
                         data = {}
+                    if nr in data and data[nr]['done']: 
+                        break
+                    elif nr in data and not data[nr]['done']:        
+                        min_lag = int(data[nr]['min_lag'])
+                        max_lag = int(data[nr]['max_lag'])
+                        d_obs = Data(os.getcwd() + '/' + resfolder + '/obs_data.csv')
+                        d_int = dict()
+                        # List all files in the folder and filter files that start with 'interv_' and end with '.csv'
+                        intvars = ast.literal_eval(data[nr]['InterventionVariables'])
+                        for v in intvars: d_int[v] = Data(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv')
+                        GT = ast.literal_eval(data[nr]['GT'])
+                        EXP_SPURIOUS_LINKS = ast.literal_eval(data[nr]['ExpectedSpuriousLinks'])
+                    else:
+                        # File does not exist, create a new dictionary
                         data[nr] = deepcopy(EMPTY_RES)
                         
                         
                         # FIXME: add this also in the if and load data from the csv files  
                         min_lag = random.randint(0, 1)
                         max_lag = random.randint(2, 5)
-                        resfolder = 'results/' + resdir + '/' + str(n) + '/' + nr
                         os.makedirs(resfolder, exist_ok = True)
                         # res_tmp = deepcopy(EMPTY_RES)
                         
@@ -223,9 +238,10 @@ if __name__ == '__main__':
                             d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
 
                         GT = RS.get_SCM()
+                        EXP_SPURIOUS_LINKS= RS.expected_spurious_links
                     
                     #########################################################################################################################
-                    # FPCMCI
+                    # FPCMCI+
                     if Algo.FPCMCI.value not in data[nr] or (Algo.FPCMCI.value in data[nr] and not data[nr][Algo.FPCMCI.value]['done']):
                         fpcmci = FPCMCI(deepcopy(d_obs),
                                         f_alpha = f_alpha, 
@@ -254,7 +270,7 @@ if __name__ == '__main__':
                         else:
                             res = deepcopy(ALGO_RES)
                             fill_res(res, {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())})
-                            
+                                
                             data[nr]['done'] = False
                             data[nr]["min_lag"] = str(min_lag)
                             data[nr]["max_lag"] = str(max_lag)
@@ -265,15 +281,15 @@ if __name__ == '__main__':
                             data[nr][jWord.Confounders.value] = str(RS.confounders)
                             data[nr][jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
                             data[nr][jWord.InterventionVariables.value] = str(list(d_int.keys()))
-                            data[nr][jWord.ExpectedSpuriousLinks.value] = str(RS.expected_spurious_links)
-                            data[nr][jWord.N_GSPU.value] = len(RS.expected_spurious_links)
-                            
+                            data[nr][jWord.ExpectedSpuriousLinks.value] = str(EXP_SPURIOUS_LINKS)
+                            data[nr][jWord.N_GSPU.value] = len(EXP_SPURIOUS_LINKS)
+                                
                             data[nr][Algo.FPCMCI.value] = res
-                            
+                                
                             # Save the dictionary back to a JSON file
                             with open(filename, 'w') as file:
                                 json.dump(data, file)
-                    
+                        
                     #########################################################################################################################
                     # PCMCI
                     if Algo.PCMCI.value not in data[nr] or (Algo.PCMCI.value in data[nr] and not data[nr][Algo.PCMCI.value]['done']):
@@ -370,41 +386,45 @@ if __name__ == '__main__':
                     
                     #########################################################################################################################
                     # CAnDOIT
-                    if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
-                        new_d_obs = deepcopy(d_obs)
-                        new_d_obs.d = new_d_obs.d[:-nsample_int]
-                        candoit = CAnDOIT(new_d_obs, 
-                                        deepcopy(d_int),
-                                        f_alpha = f_alpha, 
-                                        alpha = alpha, 
-                                        min_lag = min_lag, 
-                                        max_lag = max_lag, 
-                                        sel_method = TE(TEestimator.Gaussian), 
-                                        val_condtest = GPDC(significance = 'analytic'),
-                                        verbosity = CPLevel.INFO,
-                                        neglect_only_autodep = False,
-                                        resfolder = resfolder + "/candoit",
-                                        plot_data = False,
-                                        exclude_context = True)
+                    # if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
+                    #     new_d_obs = deepcopy(d_obs)
+                    #     new_d_obs.d = new_d_obs.d[:-nsample_int]
+                    #     candoit = CAnDOIT(new_d_obs, 
+                    #                     deepcopy(d_int),
+                    #                     f_alpha = f_alpha, 
+                    #                     alpha = alpha, 
+                    #                     min_lag = min_lag, 
+                    #                     max_lag = max_lag, 
+                    #                     sel_method = TE(TEestimator.Gaussian), 
+                    #                     val_condtest = GPDC(significance = 'analytic'),
+                    #                     verbosity = CPLevel.INFO,
+                    #                     neglect_only_autodep = False,
+                    #                     resfolder = resfolder + "/candoit",
+                    #                     plot_data = False,
+                    #                     exclude_context = True)
                         
-                        new_start = time()
-                        candoit_cm = candoit.run()
-                        elapsed_candoit = time() - new_start
-                        candoit_time = str(timedelta(seconds = elapsed_candoit))
-                        print(candoit_time)
-                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
-                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF)
-                        gc.collect()
+                    #     new_start = time()
+                    #     candoit_cm = candoit.run()
+                    #     elapsed_candoit = time() - new_start
+                    #     candoit_time = str(timedelta(seconds = elapsed_candoit))
+                    #     print(candoit_time)
+                    #     candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
+                    #     candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF)
+                    #     gc.collect()
                     
-                        res = deepcopy(ALGO_RES)
-                        fill_res(res, {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())})
+                    #     res = deepcopy(ALGO_RES)
+                    #     fill_res(res, {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())})
                         
-                        data[nr]['done'] = True
-                        data[nr][Algo.CAnDOIT.value] = res
+                        # data[nr][Algo.CAnDOIT.value] = res
                             
-                        # Save the dictionary back to a JSON file
-                        with open(filename, 'w') as file:
-                            json.dump(data, file)
+                        # # Save the dictionary back to a JSON file
+                        # with open(filename, 'w') as file:
+                        #     json.dump(data, file)
+                            
+                    data[nr]['done'] = True
+                    # Save the dictionary back to a JSON file
+                    with open(filename, 'w') as file:
+                        json.dump(data, file)
                     break
                     
                 except Exception as e:
@@ -413,19 +433,29 @@ if __name__ == '__main__':
                         f.write("Exception occurred: " + str(e) + "\n")
                         f.write("Traceback:\n" + traceback_info + "\n")
                     remove_directory(os.getcwd() + "/" + resfolder)
+                    
+                    filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
+                    if os.path.exists(filename):
+                        with open(filename, 'r') as file:
+                            data = json.load(file)
+                            if nr in data: 
+                                data.pop(nr)
+                                json.dump(data, file)
+
+                    
                     continue
 
 
             #########################################################################################################################
-            # SAVE
-            res = {
-                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
-                Algo.PCMCIplus: {"time":pcmciplus_time, "scm":get_correct_SCM(GT, pcmciplus_cm.get_SCM())},
-                Algo.LPCMCI: {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())},
-                Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
-                Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
-            }
-            save_result(res)
+            # # SAVE
+            # res = {
+            #     Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
+            #     Algo.PCMCIplus: {"time":pcmciplus_time, "scm":get_correct_SCM(GT, pcmciplus_cm.get_SCM())},
+            #     Algo.LPCMCI: {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())},
+            #     Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
+            #     Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
+            # }
+            # save_result(res)
             
             # # Check if the file exists
             # Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
