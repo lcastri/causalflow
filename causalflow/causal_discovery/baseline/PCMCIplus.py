@@ -11,7 +11,7 @@ from tigramite.plotting import plot_time_series_graph
 
 class PCMCIplus(CausalDiscoveryMethod):
     """
-    PCMCI causal discovery method.
+    PCMCI+ causal discovery method.
     """
     def __init__(self, 
                  data: Data, 
@@ -24,7 +24,7 @@ class PCMCIplus(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        PCMCI class constructor
+        PCMCI+ class constructor
 
         Args:
             data (Data): data to analyse

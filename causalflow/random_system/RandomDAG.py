@@ -127,50 +127,50 @@ class RandomDAG:
         return tmp
     
     
-    def __check_cycles(self):
-        def dfs(node, lag, visited, stack, initial_lag_diff, path):
-            """
-            Helper function to perform DFS and check for cycles.
-            """
-            visited.add((node, lag))
-            stack.add((node, lag))
-            path.append((node, lag))
+    # def __check_cycles(self):
+    #     def dfs(node, lag, visited, stack, initial_lag_diff, path):
+    #         """
+    #         Helper function to perform DFS and check for cycles.
+    #         """
+    #         visited.add((node, lag))
+    #         stack.add((node, lag))
+    #         path.append((node, lag))
             
-            for neighbor, neighbor_lag in scm.get(node, []):
-                if (neighbor, neighbor_lag) not in visited:
-                    # If it's the first edge, initialize the lag difference
-                    if initial_lag_diff is None:
-                        new_lag_diff = neighbor_lag - lag
-                    else:
-                        new_lag_diff = initial_lag_diff
+    #         for neighbor, neighbor_lag in scm.get(node, []):
+    #             if (neighbor, neighbor_lag) not in visited:
+    #                 # If it's the first edge, initialize the lag difference
+    #                 if initial_lag_diff is None:
+    #                     new_lag_diff = neighbor_lag - lag
+    #                 else:
+    #                     new_lag_diff = initial_lag_diff
 
-                    # Check for contemporaneous cycles
-                    if initial_lag_diff == 0 and neighbor_lag == 0:
-                        if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
-                            return True
-                    # Check for non-contemporaneous cycles maintaining the same lag difference
-                    elif initial_lag_diff != 0 and (neighbor_lag - lag) == initial_lag_diff:
-                        if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
-                            return True
-                elif (neighbor, neighbor_lag) in stack:
-                    if initial_lag_diff == 0 or (neighbor_lag - lag) == initial_lag_diff:
-                        cycle_path = path[path.index((neighbor, neighbor_lag)):] + [(neighbor, neighbor_lag)]
-                        print(f"Cycle detected: {' -> '.join([f'{n} (lag {l})' for n, l in cycle_path])}")
-                        return True
+    #                 # Check for contemporaneous cycles
+    #                 if initial_lag_diff == 0 and neighbor_lag == 0:
+    #                     if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
+    #                         return True
+    #                 # Check for non-contemporaneous cycles maintaining the same lag difference
+    #                 elif initial_lag_diff != 0 and (neighbor_lag - lag) == initial_lag_diff:
+    #                     if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
+    #                         return True
+    #             elif (neighbor, neighbor_lag) in stack:
+    #                 if initial_lag_diff == 0 or (neighbor_lag - lag) == initial_lag_diff:
+    #                     cycle_path = path[path.index((neighbor, neighbor_lag)):] + [(neighbor, neighbor_lag)]
+    #                     print(f"Cycle detected: {' -> '.join([f'{n} (lag {l})' for n, l in cycle_path])}")
+    #                     return True
             
-            stack.remove((node, lag))
-            path.pop()
-            return False
+    #         stack.remove((node, lag))
+    #         path.pop()
+    #         return False
 
-        scm = self.get_SCM(True)
-        for node in scm:
-            visited = set()
-            stack = set()
-            for neighbor, neighbor_lag in scm[node]:
-                if dfs(neighbor, neighbor_lag, visited, stack, neighbor_lag, [(node, 0)]):
-                    return True
+    #     scm = self.get_SCM(True)
+    #     for node in scm:
+    #         visited = set()
+    #         stack = set()
+    #         for neighbor, neighbor_lag in scm[node]:
+    #             if dfs(neighbor, neighbor_lag, visited, stack, neighbor_lag, [(node, 0)]):
+    #                 return True
         
-        return False
+    #     return False
     
                 
     def __build_equation(self, var_lagged_choice: list, var_contemp_choice: list, target_var):
@@ -258,9 +258,9 @@ class RandomDAG:
             
         self.__add_conf_links()
         
-        # NOTE: this is an extra check once the SCM is built
-        if self.__check_cycles():
-            raise ValueError("RandomDAG contains cycles")
+        # # NOTE: this is an extra check once the SCM is built
+        # if self.__check_cycles():
+        #     raise ValueError("RandomDAG contains cycles")
                
         
     def __add_conf_links(self):

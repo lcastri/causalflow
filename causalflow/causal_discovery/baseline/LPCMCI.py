@@ -18,13 +18,12 @@ class LPCMCI(CausalDiscoveryMethod):
                  min_lag, max_lag, 
                  val_condtest: CondIndTest, 
                  verbosity: CPLevel,
-                 pc_alpha = 0.05, 
                  alpha = 0.05, 
                  resfolder = None, 
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        PCMCI class constructor
+        LPCMCI class constructor
 
         Args:
             data (Data): data to analyse
@@ -32,14 +31,12 @@ class LPCMCI(CausalDiscoveryMethod):
             max_lag (int): maximum time lag
             val_condtest (CondIndTest): validation method
             verbosity (CPLevel): verbosity level
-            pc_alpha (float, optional): PC significance level. Defaults to 0.05.
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             clean_cls (bool): Clean console bit. Default to True.
         """
         super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
-        self.pc_alpha = pc_alpha
         
         # build tigramite dataset
         vector = np.vectorize(float)
@@ -51,7 +48,7 @@ class LPCMCI(CausalDiscoveryMethod):
                            verbosity = verbosity.value)
         
 
-    def run(self) -> DAG:
+    def run(self, link_assumptions) -> DAG:
         """
         Run causal discovery algorithm
 
@@ -62,9 +59,10 @@ class LPCMCI(CausalDiscoveryMethod):
         CP.info('\n')
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
-        self.result = self.lpcmci.run_lpcmci(tau_max = self.max_lag,
-                                           tau_min = self.min_lag,
-                                           pc_alpha = self.pc_alpha)
+        self.result = self.lpcmci.run_lpcmci(link_assumptions = link_assumptions,
+                                             tau_max = self.max_lag,
+                                             tau_min = self.min_lag,
+                                             pc_alpha = self.alpha)
         
         self.CM = self._to_DAG()
     

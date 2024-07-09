@@ -7,9 +7,9 @@ from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.selection_methods.SelectionMethod import SelectionMethod
 from causalflow.CPrinter import CPLevel, CP
 from causalflow.basics.constants import *
-from causalflow.causal_discovery.myPCMCI import myPCMCI
 from causalflow.preprocessing.data import Data 
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
+from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI 
 from causalflow.graph.DAG import DAG
 
 class CAnDOIT(CausalDiscoveryMethod):
@@ -64,7 +64,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         # Create filter and validator data
         self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
         
-        self.validator = myPCMCI(self.alpha, self.min_lag, self.max_lag, self.val_condtest, verbosity, self.CM.sys_context)
+        self.validator = LPCMCI(self.validator_data, self.min_lag, self.max_lag, self.val_condtest, verbosity, alpha)
         
         CP.info("\n")
         CP.info(DASH)
@@ -99,7 +99,7 @@ class CAnDOIT(CausalDiscoveryMethod):
     
     def run_validator(self, link_assumptions = None):
         """
-        Runs Validator (PCMCI)
+        Runs Validator (LPCMCI)
 
         Args:
             link_assumptions (dict, optional): link assumption with context. Defaults to None.
@@ -108,7 +108,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             DAG: causal model with context
         """
         # Run PC algorithm on selected links
-        causal_model = self.validator.run_lpcmci(self.validator_data, link_assumptions)
+        causal_model = self.validator.run(link_assumptions)
         
         # FIXME: I am not sure that this is needed for lpcmci
         # # Auto-dependency Check
