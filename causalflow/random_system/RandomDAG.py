@@ -12,9 +12,9 @@ NO_CYCLES_THRESHOLD = 10
 
 
 class NoiseType(Enum):
-    Uniform = 0
-    Gaussian = 1
-    Weibull = 2
+    Uniform = 'uniform'
+    Gaussian = 'gaussian'
+    Weibull = 'weibull'
     
     
 class PriorityOp(Enum):

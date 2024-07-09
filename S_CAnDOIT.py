@@ -8,7 +8,7 @@ from causalflow.CPrinter import CPLevel
 from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.causal_discovery.CAnDOIT import CAnDOIT
 from causalflow.causal_discovery.CAnDOIT_lagged import CAnDOIT as CAnDOIT_lagged
-from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOIT_cont
+from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOIT_cont
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
 from pathlib import Path

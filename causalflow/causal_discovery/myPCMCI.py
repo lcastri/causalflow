@@ -1,4 +1,5 @@
 from tigramite.pcmci import PCMCI as VAL
+from tigramite.lpcmci import LPCMCI
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
 import numpy as np
@@ -104,6 +105,45 @@ class myPCMCI():
                               verbosity = self.verbosity)
 
         self.result = self.val_method.run_pcmciplus(link_assumptions = link_assumptions,
+                                                    tau_max = self.max_lag,
+                                                    tau_min = 0,
+                                                    pc_alpha = self.alpha,
+                                                    )
+        
+        self.result['var_names'] = data.features
+        self.result['pretty_var_names'] = data.pretty_features
+        
+        self.CM = self._to_DAG()
+        return self.CM
+    
+    
+    def run_lpcmci(self, data: Data, link_assumptions = None):
+        """
+        Run causal discovery algorithm
+
+        Args:
+            data (Data): Data obj to analyse
+            link_assumptions (dict, optional): prior assumptions on causal model links. Defaults to None.
+
+        Returns:
+            (DAG): estimated causal model
+        """
+        
+        CP.info('\n')
+        CP.info(DASH)
+        CP.info("Running Causal Discovery Algorithm")
+
+        # build tigramite dataset
+        vector = np.vectorize(float)
+        d = vector(data.d)
+        dataframe = pp.DataFrame(data = d, var_names = data.features)
+        
+        # init and run pcmci
+        self.val_method = LPCMCI(dataframe = dataframe,
+                              cond_ind_test = self.val_condtest,
+                              verbosity = self.verbosity)
+
+        self.result = self.val_method.run(link_assumptions = link_assumptions,
                                                     tau_max = self.max_lag,
                                                     tau_min = 0,
                                                     pc_alpha = self.alpha,
@@ -359,6 +399,47 @@ class myPCMCI():
         return tmp_dag
     
     
+    # def _to_DAG(self):
+    #     """
+    #     Re-elaborates the PCMCI result in a new dictionary
+
+    #     Returns:
+    #         (DAG): pcmci result re-elaborated
+    #     """
+    #     vars = self.result['var_names']
+    #     tmp_dag = DAG(vars, self.min_lag, self.max_lag, self.neglect_only_autodep)
+    #     tmp_dag.sys_context = self.sys_context
+    #     N, lags = self.result['graph'][0].shape
+    #     for s in range(len(self.result['graph'])):
+    #         for t in range(N):
+    #             for lag in range(lags):
+    #                 # if self.result['graph'][s][t,lag] == '-->':
+    #                 #     if vars[t] in self.sys_context.keys() and vars[s] == self.sys_context[vars[t]]:
+    #                 #         tmp_dag.g[vars[t]].intervention_node = True
+    #                 #         tmp_dag.g[vars[t]].associated_context = vars[s]
+    #                 #     tmp_dag.add_source(vars[t], 
+    #                 #                        vars[s],
+    #                 #                        self.result['val_matrix'][s][t,lag],
+    #                 #                        self.result['p_matrix'][s][t,lag],
+    #                 #                        lag)
+                        
+                        
+    #                 #         for lag in range(lags):
+    #                 if self.result['graph'][s][t,lag] == LinkType.Directed.value:
+    #                     tmp_dag.add_source(vars[t], 
+    #                                        vars[s],
+    #                                        self.result['val_matrix'][s][t,lag],
+    #                                        self.result['p_matrix'][s][t,lag],
+    #                                        lag)
+    #                 elif self.result['graph'][s][t,lag] == LinkType.Uncertain.value:
+    #                     tmp_dag.add_source(vars[t], 
+    #                                        vars[s],
+    #                                        self.result['val_matrix'][s][t,lag],
+    #                                        self.result['p_matrix'][s][t,lag],
+    #                                        lag,
+    #                                        LinkType.Uncertain.value)
+    #     return tmp_dag
+    
     def _to_DAG(self):
         """
         Re-elaborates the PCMCI result in a new dictionary
@@ -367,35 +448,48 @@ class myPCMCI():
             (DAG): pcmci result re-elaborated
         """
         vars = self.result['var_names']
-        tmp_dag = DAG(vars, self.min_lag, self.max_lag, self.neglect_only_autodep)
-        tmp_dag.sys_context = self.sys_context
+        tmp_dag = DAG(vars, self.min_lag, self.max_lag)
+        tmp_dag.sys_context = dict()
         N, lags = self.result['graph'][0].shape
         for s in range(len(self.result['graph'])):
             for t in range(N):
                 for lag in range(lags):
-                    # if self.result['graph'][s][t,lag] == '-->':
-                    #     if vars[t] in self.sys_context.keys() and vars[s] == self.sys_context[vars[t]]:
-                    #         tmp_dag.g[vars[t]].intervention_node = True
-                    #         tmp_dag.g[vars[t]].associated_context = vars[s]
-                    #     tmp_dag.add_source(vars[t], 
-                    #                        vars[s],
-                    #                        self.result['val_matrix'][s][t,lag],
-                    #                        self.result['p_matrix'][s][t,lag],
-                    #                        lag)
+                    if self.result['graph'][s][t,lag] != '':
+                        arrowtype = self.result['graph'][s][t,lag]
+                        # print(f'({self.data.features[s]}, -{lag}) {arrowtype} {self.data.features[t]}')
                         
+                        if arrowtype == LinkType.Bidirected.value:
+                            if ((vars[s], abs(lag)) in tmp_dag.g[vars[t]].sources and 
+                                tmp_dag.g[t].sources[(vars[s], abs(lag))][TYPE] == LinkType.Bidirected.value):
+                                continue
+                            else:
+                                tmp_dag.add_source(vars[t], 
+                                                vars[s],
+                                                self.result['val_matrix'][s][t,lag],
+                                                self.result['p_matrix'][s][t,lag],
+                                                lag,
+                                                arrowtype)
+                                
                         
-                    #         for lag in range(lags):
-                    if self.result['graph'][s][t,lag] == LinkType.Directed.value:
-                        tmp_dag.add_source(vars[t], 
-                                           vars[s],
-                                           self.result['val_matrix'][s][t,lag],
-                                           self.result['p_matrix'][s][t,lag],
-                                           lag)
-                    elif self.result['graph'][s][t,lag] == LinkType.Uncertain.value:
-                        tmp_dag.add_source(vars[t], 
-                                           vars[s],
-                                           self.result['val_matrix'][s][t,lag],
-                                           self.result['p_matrix'][s][t,lag],
-                                           lag,
-                                           LinkType.Uncertain.value)
-        return tmp_dag
+                        elif arrowtype == LinkType.Uncertain.value:
+                            if ((vars[t], abs(lag)) in tmp_dag.g[vars[s]].sources and 
+                                tmp_dag.g[vars[s]].sources[(vars[t], abs(lag))][TYPE] == LinkType.Uncertain.value):
+                                continue
+                            else:
+                                tmp_dag.add_source(vars[t], 
+                                                vars[s],
+                                                self.result['val_matrix'][s][t,lag],
+                                                self.result['p_matrix'][s][t,lag],
+                                                lag,
+                                                arrowtype)
+                                
+                        
+                        elif (arrowtype == LinkType.Directed.value or
+                              arrowtype == LinkType.HalfUncertain.value):
+                            tmp_dag.add_source(vars[t], 
+                                            vars[s],
+                                            self.result['val_matrix'][s][t,lag],
+                                            self.result['p_matrix'][s][t,lag],
+                                            lag,
+                                            arrowtype)
+        return tmp_dag 

@@ -4,7 +4,7 @@ import os
 import random
 from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from causalflow.CPrinter import CPLevel
-from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOIT_cont
+from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOIT_cont
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.random_system.RandomDAG import NoiseType, RandomDAG

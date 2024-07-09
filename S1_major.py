@@ -8,7 +8,8 @@ from causalflow.CPrinter import CPLevel
 from causalflow.basics.constants import ImageExt
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 from causalflow.causal_discovery.FPCMCI import FPCMCI
-from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT
+from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOIT_pcmciplus
+from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT as CAnDOIT_lpcmci
 from causalflow.causal_discovery.baseline.PCMCI import PCMCI
 from causalflow.causal_discovery.baseline.PCMCIplus import PCMCIplus
 from causalflow.preprocessing.data import Data
@@ -82,40 +83,6 @@ def get_spurious_links(scm):
             spurious.append(exp_s)
             
     return spurious
-
-    
-# def save_result(d):
-    # res_tmp["min_lag"] = str(min_lag)
-    # res_tmp["max_lag"] = str(max_lag)
-    # res_tmp["equations"] = str(RS.print_equations())
-    # res_tmp["coeff_range"] = str(RS.coeff_range)
-    # res_tmp["noise_config"] = str(RS.noise_config)
-    # res_tmp[jWord.GT.value] = str(RS.get_SCM())
-    # res_tmp[jWord.Confounders.value] = str(RS.confounders)
-    # res_tmp[jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
-    # res_tmp[jWord.InterventionVariables.value] = str(list(d_int.keys()))
-    # res_tmp[jWord.ExpectedSpuriousLinks.value] = str(RS.expected_spurious_links)
-    # res_tmp[jWord.N_GSPU.value] = len(RS.expected_spurious_links)
-    
-    # for a, r in d.items():
-    #     res_tmp[a.value][Metric.TIME.value] = r["time"]
-    #     res_tmp[a.value][Metric.FN.value] = RS.get_FN(r["scm"])
-    #     res_tmp[a.value][Metric.TN.value] = RS.get_TN(r["scm"])
-    #     res_tmp[a.value][Metric.FP.value] = RS.get_FP(r["scm"])
-    #     res_tmp[a.value][Metric.TP.value] = RS.get_TP(r["scm"])
-    #     res_tmp[a.value][Metric.FPR.value] = RS.FPR(r["scm"])
-    #     res_tmp[a.value][Metric.TPR.value] = RS.TPR(r["scm"])
-    #     res_tmp[a.value][Metric.FNR.value] = RS.FNR(r["scm"])
-    #     res_tmp[a.value][Metric.TNR.value] = RS.TNR(r["scm"])
-    #     res_tmp[a.value][Metric.PREC.value] = RS.precision(r["scm"])
-    #     res_tmp[a.value][Metric.RECA.value] = RS.recall(r["scm"])
-    #     res_tmp[a.value][Metric.F1SCORE.value] = RS.f1_score(r["scm"])
-    #     res_tmp[a.value][Metric.SHD.value] = RS.shd(r["scm"])
-    #     res_tmp[a.value][jWord.SCM.value] = str(r["scm"])
-    #     spurious_links = get_spurious_links(r["scm"])
-    #     res_tmp[a.value][jWord.SpuriousLinks.value] = str(spurious_links)
-    #     res_tmp[a.value][Metric.N_ESPU.value] = len(spurious_links)
-    #     res_tmp[a.value][Metric.N_EqDAG.value] = 2**len(spurious_links)
         
         
 def fill_res(res, r):
@@ -142,10 +109,10 @@ def fill_res(res, r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "S1_major"
+    resdir = "S1_major_newFPCMCI"
     f_alpha = 0.5
     alpha = 0.05
-    nfeature = range(7, 14)
+    nfeature = range(10, 11)
     nrun = 25
     
     # RandomDAG params 
@@ -188,7 +155,14 @@ if __name__ == '__main__':
                         # List all files in the folder and filter files that start with 'interv_' and end with '.csv'
                         intvars = ast.literal_eval(data[nr]['InterventionVariables'])
                         for v in intvars: d_int[v] = Data(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv')
+                        
+                        EQUATIONS = data[nr]["equations"]
+                        COEFF_RANGE = ast.literal_eval(data[nr]["coeff_range"])
+                        NOISE_CONF = data[nr]["noise_config"]
                         GT = ast.literal_eval(data[nr]['GT'])
+                        CONFOUNDERS = ast.literal_eval(data[nr][jWord.Confounders.value])
+                        HIDDEN_CONFOUNDERS = ast.literal_eval(data[nr][jWord.HiddenConfounders.value])
+                        INT_VARS = list(d_int.keys())
                         EXP_SPURIOUS_LINKS = ast.literal_eval(data[nr]['ExpectedSpuriousLinks'])
                     else:
                         # File does not exist, create a new dictionary
@@ -236,8 +210,14 @@ if __name__ == '__main__':
                             d_int[intvar] = i[intvar]
                             d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
                             d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
-
+                        
+                        EQUATIONS = RS.print_equations()
+                        COEFF_RANGE = RS.coeff_range 
+                        NOISE_CONF = (RS.noise_config[0].value, RS.noise_config[1], RS.noise_config[2])
                         GT = RS.get_SCM()
+                        CONFOUNDERS = RS.confounders
+                        HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
+                        INT_VARS = list(d_int.keys())
                         EXP_SPURIOUS_LINKS= RS.expected_spurious_links
                     
                     #########################################################################################################################
@@ -268,19 +248,20 @@ if __name__ == '__main__':
                             remove_directory(os.getcwd() + '/' + resfolder)
                             continue
                         else:
+                            print(f"N:{n} - R:{nr}")
                             res = deepcopy(ALGO_RES)
                             fill_res(res, {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())})
                                 
                             data[nr]['done'] = False
                             data[nr]["min_lag"] = str(min_lag)
                             data[nr]["max_lag"] = str(max_lag)
-                            data[nr]["equations"] = str(RS.print_equations())
-                            data[nr]["coeff_range"] = str(RS.coeff_range)
-                            data[nr]["noise_config"] = str(RS.noise_config)
-                            data[nr][jWord.GT.value] = str(RS.get_SCM())
-                            data[nr][jWord.Confounders.value] = str(RS.confounders)
-                            data[nr][jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
-                            data[nr][jWord.InterventionVariables.value] = str(list(d_int.keys()))
+                            data[nr]["equations"] = str(EQUATIONS)
+                            data[nr]["coeff_range"] = str(COEFF_RANGE)
+                            data[nr]["noise_config"] = str(NOISE_CONF)
+                            data[nr][jWord.GT.value] = str(GT)
+                            data[nr][jWord.Confounders.value] = str(CONFOUNDERS)
+                            data[nr][jWord.HiddenConfounders.value] = str(HIDDEN_CONFOUNDERS)
+                            data[nr][jWord.InterventionVariables.value] = str(INT_VARS)
                             data[nr][jWord.ExpectedSpuriousLinks.value] = str(EXP_SPURIOUS_LINKS)
                             data[nr][jWord.N_GSPU.value] = len(EXP_SPURIOUS_LINKS)
                                 
@@ -440,38 +421,5 @@ if __name__ == '__main__':
                             data = json.load(file)
                             if nr in data: 
                                 data.pop(nr)
-                                json.dump(data, file)
-
-                    
+                                json.dump(data, file)           
                     continue
-
-
-            #########################################################################################################################
-            # # SAVE
-            # res = {
-            #     Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
-            #     Algo.PCMCIplus: {"time":pcmciplus_time, "scm":get_correct_SCM(GT, pcmciplus_cm.get_SCM())},
-            #     Algo.LPCMCI: {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())},
-            #     Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
-            #     Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
-            # }
-            # save_result(res)
-            
-            # # Check if the file exists
-            # Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
-            # filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
-            # if os.path.exists(filename):
-            #     # File exists, load its contents into a dictionary
-            #     with open(filename, 'r') as file:
-            #         data = json.load(file)
-            # else:
-            #     # File does not exist, create a new dictionary
-            #     data = {}
-
-            # # Modify the dictionary
-            # data[nr] = res_tmp
-
-            # # Save the dictionary back to a JSON file
-            # with open(filename, 'w') as file:
-            #     json.dump(data, file)
-            # res_tmp.clear()

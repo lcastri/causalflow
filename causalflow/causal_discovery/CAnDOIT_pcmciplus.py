@@ -110,19 +110,20 @@ class CAnDOIT(CausalDiscoveryMethod):
         # Run PC algorithm on selected links
         causal_model = self.validator.run_plus(self.validator_data, link_assumptions)
         
-        # Auto-dependency Check
-        if causal_model.autodep_nodes:
+        # FIXME: I am not sure that this is needed for pcmci+
+        # # Auto-dependency Check
+        # if causal_model.autodep_nodes:
         
-            # Remove context from parents
-            causal_model.remove_context_cont()
+        #     # Remove context from parents
+        #     causal_model.remove_context_cont()
             
-            tmp_link_assumptions = causal_model.get_link_assumptions_cont()
+        #     tmp_link_assumptions = causal_model.get_link_assumptions_cont()
             
-            # Auto-dependency Check
-            causal_model = self.validator.check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
+        #     # Auto-dependency Check
+        #     causal_model = self.validator.check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
             
-            # Add again context for final MCI test on obs and inter data
-            causal_model.add_context_cont()
+        #     # Add again context for final MCI test on obs and inter data
+        #     causal_model.add_context_cont()
  
         return causal_model
     
@@ -295,7 +296,6 @@ class CAnDOIT(CausalDiscoveryMethod):
             
             # Create context variable data
             context_data = int_data.d[int_var]
-            # FIXME: context_start = len(validator_data) - 1
             context_start = len(validator_data)
             context_end = context_start + len(context_data)
             context_vars[context_varname] = {'data': context_data, 'start': context_start, 'end': context_end}

@@ -6,7 +6,7 @@ from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 # from tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
 from causalflow.causal_discovery.CAnDOIT import CAnDOIT
-from causalflow.causal_discovery.CAnDOIT_cont import CAnDOIT as CAnDOITCont
+from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOITCont
 from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.causal_discovery.baseline.DYNOTEARS import DYNOTEARS
 from causalflow.causal_discovery.baseline.PCMCI import PCMCI
