@@ -219,7 +219,7 @@ if __name__ == '__main__':
                         CONFOUNDERS = RS.confounders
                         HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
                         INT_VARS = list(d_int.keys())
-                        EXP_SPURIOUS_LINKS= RS.expected_spurious_links
+                        EXP_SPURIOUS_LINKS= RS.expected_bidirected_links
                     
                                 
                     #########################################################################################################################

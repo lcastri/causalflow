@@ -671,9 +671,9 @@ class BaseGraph(object):
                 )
                 self.ax.add_patch(edge_artist)
                 if arrows[edge]['h'] != '' and arrows[edge]['h'] != '>':
-                    edge_artist.draw_marker(self.ax, 'h', arrows[edge]['t'], edge_width[edge], tail_color, tail_color, node_artists[source].size)
+                    edge_artist.draw_marker(self.ax, 'h', arrows[edge]['t']/2, edge_width[edge], tail_color, tail_color, node_artists[source].size)
                 if arrows[edge]['t'] != '':
-                    edge_artist.draw_marker(self.ax, 't', arrows[edge]['t'], edge_width[edge], tail_color, tail_color, node_artists[source].size)
+                    edge_artist.draw_marker(self.ax, 't', arrows[edge]['t']/2, edge_width[edge], tail_color, tail_color, node_artists[source].size)
 
                 if edge in self.edge_artists:
                     self.edge_artists[edge].remove()

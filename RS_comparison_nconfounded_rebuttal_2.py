@@ -86,7 +86,7 @@ def get_correct_SCM(gt, scm):
 
 def get_spurious_links(scm):
     spurious = list()
-    exp_spurious = RS.expected_spurious_links
+    exp_spurious = RS.expected_bidirected_links
     for exp_s in exp_spurious:
         if exp_s[1] in scm and (exp_s[0], -1) in scm[exp_s[1]]:
             spurious.append(exp_s)
@@ -106,8 +106,8 @@ def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm
     res_tmp["Confounders"] = str(RS.confounders)
     res_tmp["HiddenConfounders"] = str(list(RS.confounders.keys()))
     res_tmp["InterventionVariables"] = str(list(d_int.keys()))
-    res_tmp["ExpectedSpuriousLinks"] = str(RS.expected_spurious_links)
-    res_tmp["N_ExpectedSpuriousLinks"] = len(RS.expected_spurious_links)
+    res_tmp["ExpectedSpuriousLinks"] = str(RS.expected_bidirected_links)
+    res_tmp["N_ExpectedSpuriousLinks"] = len(RS.expected_bidirected_links)
     
     for algo, scm, t in zip([sta._PCMCI, sta._FPCMCI, sta._CAnDOIT], [pcmci_scm, fpcmci_scm, candoit_scm], [pcmci_t, fpcmci_t, candoit_t]):
         res_tmp[algo][sta._TIME] = t

@@ -1,13 +1,20 @@
-from tigramite.lpcmci import LPCMCI as T_LPCMCI
-from tigramite.independence_tests.parcorr import ParCorr
-from tigramite import plotting as tp
-from tigramite.toymodels import structural_causal_processes as toys
-from tigramite import data_processing as pp
-from matplotlib import pyplot as plt
 import numpy as np
+
+from matplotlib import pyplot as plt    
+from tigramite import data_processing as pp
+from tigramite.toymodels import structural_causal_processes as toys
+from tigramite import plotting as tp
+from tigramite.lpcmci import LPCMCI
+from tigramite.pcmci import PCMCI
+from tigramite.independence_tests.parcorr import ParCorr
 from causalflow.CPrinter import CPLevel
-from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
-from causalflow.preprocessing.data import Data
+from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
+from causalflow.selection_methods.TE import TE, TEestimator
+# from tigramite.independence_tests.gpdc import GPDC
+# from tigramite.independence_tests.cmiknn import CMIknn
+# from tigramite.independence_tests.cmisymb import CMIsymb
+
+
 # Set a seed for reproducibility
 seed = 19
 
@@ -40,22 +47,13 @@ data_obs = data_full[:, [0, 2, 3]]
 N = data_obs.shape[1]
 
 # Initialize dataframe object, specify variable names
-var_names = [r'$X_{%d}$' % j for j in range(N)]
+var_names = [r'$X^{%d}$' % j for j in range(N)]
 dataframe = pp.DataFrame(data_obs, var_names=var_names)
-
-
-
-
-
-
-
-
-
 
 # Create a LPCMCI object, passing the dataframe and (conditional)
 # independence test objects.
 parcorr = ParCorr(significance='analytic')
-lpcmci = T_LPCMCI(dataframe=dataframe, 
+lpcmci = LPCMCI(dataframe=dataframe, 
                 cond_ind_test=parcorr,
                 verbosity=1)
 
@@ -67,29 +65,33 @@ pc_alpha = 0.01
 results = lpcmci.run_lpcmci(tau_max=tau_max,
                             pc_alpha=pc_alpha)
 
-var_names = [r'X_{%d}' % j for j in range(N)]
-df = Data(data_obs, vars = var_names)
-ahah = LPCMCI(df,
-                min_lag = 0, 
-                max_lag = tau_max, 
-                val_condtest = parcorr,
-                verbosity = CPLevel.INFO,
-                alpha = pc_alpha, 
-                neglect_only_autodep = False)
-ahah_res = ahah.run()
-                    
-
-
 # Plot the learned time series DPAG
-# tp.plot_time_series_graph(graph=results['graph'],
-#                           val_matrix=results['val_matrix'])
-# plt.show()
-ahah.CM.g['X_{1}'].sources[('X_{2}', 2)]["type"] = 'o->'
-# ahah.timeseries_dag()
+tp.plot_time_series_graph(graph=results['graph'],
+                          val_matrix=results['val_matrix'])
+plt.show()
 
 
-# Plot the learned time series DPAG
-tp.plot_graph(graph=results['graph'],
-              val_matrix=results['val_matrix'])
-# plt.show()
-ahah.dag(node_layout="circular")
+
+
+
+
+
+
+
+
+
+candoit_lpcmci = CAnDOIT(data_obs, 
+                         d_int,
+                         f_alpha = 0.5, 
+                         alpha = pc_alpha, 
+                         min_lag = 0, 
+                         max_lag = tau_max, 
+                         sel_method = TE(TEestimator.Gaussian), 
+                         val_condtest = parcorr,
+                         verbosity = CPLevel.DEBUG,
+                         neglect_only_autodep = True,
+                         plot_data = False,
+                         exclude_context = True)
+    
+candoit_lpcmci_cm = candoit_lpcmci.run(nofilter=True)
+candoit_lpcmci_cm.ts_dag(min_width=3, max_width=5)

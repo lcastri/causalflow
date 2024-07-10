@@ -3,7 +3,7 @@ from enum import Enum
 import math
 import random
 import numpy as np
-from causalflow.basics.constants import ImageExt
+from causalflow.basics.constants import ImageExt, LinkType
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 import networkx as nx
@@ -125,53 +125,7 @@ class RandomDAG:
         tmp = copy.deepcopy(self.equations)
         for h in self.hiddenVar: del tmp[h]
         return tmp
-    
-    
-    # def __check_cycles(self):
-    #     def dfs(node, lag, visited, stack, initial_lag_diff, path):
-    #         """
-    #         Helper function to perform DFS and check for cycles.
-    #         """
-    #         visited.add((node, lag))
-    #         stack.add((node, lag))
-    #         path.append((node, lag))
-            
-    #         for neighbor, neighbor_lag in scm.get(node, []):
-    #             if (neighbor, neighbor_lag) not in visited:
-    #                 # If it's the first edge, initialize the lag difference
-    #                 if initial_lag_diff is None:
-    #                     new_lag_diff = neighbor_lag - lag
-    #                 else:
-    #                     new_lag_diff = initial_lag_diff
-
-    #                 # Check for contemporaneous cycles
-    #                 if initial_lag_diff == 0 and neighbor_lag == 0:
-    #                     if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
-    #                         return True
-    #                 # Check for non-contemporaneous cycles maintaining the same lag difference
-    #                 elif initial_lag_diff != 0 and (neighbor_lag - lag) == initial_lag_diff:
-    #                     if dfs(neighbor, neighbor_lag, visited, stack, new_lag_diff, path):
-    #                         return True
-    #             elif (neighbor, neighbor_lag) in stack:
-    #                 if initial_lag_diff == 0 or (neighbor_lag - lag) == initial_lag_diff:
-    #                     cycle_path = path[path.index((neighbor, neighbor_lag)):] + [(neighbor, neighbor_lag)]
-    #                     print(f"Cycle detected: {' -> '.join([f'{n} (lag {l})' for n, l in cycle_path])}")
-    #                     return True
-            
-    #         stack.remove((node, lag))
-    #         path.pop()
-    #         return False
-
-    #     scm = self.get_SCM(True)
-    #     for node in scm:
-    #         visited = set()
-    #         stack = set()
-    #         for neighbor, neighbor_lag in scm[node]:
-    #             if dfs(neighbor, neighbor_lag, visited, stack, neighbor_lag, [(node, 0)]):
-    #                 return True
-        
-    #     return False
-    
+       
                 
     def __build_equation(self, var_lagged_choice: list, var_contemp_choice: list, target_var):
         """
@@ -257,10 +211,6 @@ class RandomDAG:
             self.equations[hid] = self.__build_equation(var_lagged_choice, var_contemp_choice, hid)
             
         self.__add_conf_links()
-        
-        # # NOTE: this is an extra check once the SCM is built
-        # if self.__check_cycles():
-        #     raise ValueError("RandomDAG contains cycles")
                
         
     def __add_conf_links(self):
@@ -268,7 +218,7 @@ class RandomDAG:
         Adds confounder links to a predefined causal model
         """
         no_cycles_attempt = 0
-        self.expected_spurious_links = list()
+        self.expected_bidirected_links = list()
         firstvar_choice = copy.deepcopy(self.obsVar)
         for hid in self.hiddenVar:
             tmp_n_confounded = 0
@@ -321,7 +271,7 @@ class RandomDAG:
                     tmp.remove(source)
                     for target in tmp:
                         if not (source, 0) in self.get_SCM()[target]:
-                            self.expected_spurious_links.append({'s':source, 't':target, 'lag':0})
+                            self.expected_bidirected_links.append({target: (source, 0)})
             else:    
                 self.potentialIntervention[hid]['type'] = 'lagged'  
                 var_choice = copy.deepcopy(self.obsVar)
@@ -371,9 +321,18 @@ class RandomDAG:
                         no_cycles_attempt += 1
                         if no_cycles_attempt >= NO_CYCLES_THRESHOLD:
                             raise ValueError("Cycle configuration impossible to be avoided!")
+                        
+                # Lagged bidirected links
                 for v in targets:
                     if not (source, v[1] - sourceLag) in self.get_SCM()[v[0]]:
-                        self.expected_spurious_links.append({'s':source, 't':v[0], 'lag':v[1] - sourceLag})
+                        self.expected_bidirected_links.append({v[0]: (source, v[1] - sourceLag)})
+                # Contemporaneous bidirected links
+                for source in targets:
+                    tmp = copy.deepcopy(targets)
+                    tmp.remove(source)
+                    for target in tmp:
+                        if not (source, 0) in self.get_SCM()[target[0]]:
+                            self.expected_bidirected_links.append({target[0]: (source[0], 0)})
 
 
     def print_equations(self):
@@ -566,6 +525,21 @@ class RandomDAG:
         return int_data
     
     
+    def get_PAG(self):
+        """
+        Outputs the Structural Causal Model
+
+        Returns:
+            dict: scm
+        """
+        scm = self.get_SCM()
+        for bidirected_edge in self.expected_bidirected_links:
+            target = list(bidirected_edge.keys())[0]
+            source, lag = list(bidirected_edge.values())[0]
+            scm[target].append((source, -abs(lag), LinkType.Bidirected.value))
+        return scm
+    
+    
     def get_SCM(self, withHidden = False):
         """
         Outputs the Structural Causal Model
@@ -617,7 +591,7 @@ class RandomDAG:
             withHidden (bool, optional): bit to decide whether to output the SCM including the hidden variables or not. Defaults to False.
             save_name (str, optional): figure path. Defaults to None.
         """
-        gt = self.get_SCM(withHidden)
+        gt = self.get_SCM(withHidden) if withHidden else self.get_PAG()
         var = self.variables if withHidden else self.obsVar
         g = DAG(var, self.min_lag, self.max_lag, False, gt)
         

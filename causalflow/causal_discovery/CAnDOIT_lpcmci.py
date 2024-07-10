@@ -64,7 +64,6 @@ class CAnDOIT(CausalDiscoveryMethod):
         # Create filter and validator data
         self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
         
-        self.validator = LPCMCI(self.validator_data, self.min_lag, self.max_lag, self.val_condtest, verbosity, alpha)
         
         CP.info("\n")
         CP.info(DASH)
@@ -107,26 +106,12 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             DAG: causal model with context
         """
-        # Run PC algorithm on selected links
+        self.validator = LPCMCI(self.validator_data, self.min_lag, self.max_lag, self.val_condtest, CP.verbosity, self.alpha)
         causal_model = self.validator.run(link_assumptions)
-        
-        # FIXME: I am not sure that this is needed for lpcmci
-        # # Auto-dependency Check
-        # if causal_model.autodep_nodes:
-        
-        #     # Remove context from parents
-        #     causal_model.remove_context_cont()
-            
-        #     tmp_link_assumptions = causal_model.get_link_assumptions_cont()
-            
-        #     # Auto-dependency Check
-        #     causal_model = self.validator.check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
-            
-        #     # Add again context for final MCI test on obs and inter data
-        #     causal_model.add_context_cont()
+        causal_model.sys_context = self.CM.sys_context      
  
         return causal_model
-    
+     
     
     def _change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
         for t in dest_cm.g:
@@ -157,7 +142,7 @@ class CAnDOIT(CausalDiscoveryMethod):
                             self.alpha,
                             self.resfolder,
                             self.neglect_only_autodep)
-            self.CM = fpcmci.run()
+            self.CM = fpcmci.run(remove_unneeded, nofilter)
             
         else:
         
@@ -181,9 +166,15 @@ class CAnDOIT(CausalDiscoveryMethod):
 
                 # shrink dataframe d by using the filter result
                 self.validator_data.shrink(self.CM.features)
-                
+                    
                 # selected links to check by the validator
                 link_assumptions = self.CM.get_link_assumptions_cont()
+                
+            else:
+                fullg = DAG(self.validator_data.features, self.min_lag, self.max_lag, False)
+                fullg.sys_context = self.CM.sys_context
+                link_assumptions = fullg.build_link_assumptions()
+                # link_assumptions = fullg.dummy_link_assumptions()
             
             # calculate dependencies on selected links
             self.CM = self.run_validator(link_assumptions)

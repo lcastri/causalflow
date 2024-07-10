@@ -8,7 +8,6 @@ from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 
-
 class LPCMCI(CausalDiscoveryMethod):
     """
     LPCMCI causal discovery method.

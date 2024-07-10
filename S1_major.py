@@ -109,10 +109,10 @@ def fill_res(res, r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "S1_major_main"
+    resdir = "S1_major"
     f_alpha = 0.5
     alpha = 0.05
-    nfeature = range(7, 15)
+    nfeature = range(11, 12)
     nrun = 25
     
     # RandomDAG params 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
             #########################################################################################################################
             # DATA
             while True:
-                try:
+                # try:
                     # Check if the file exists
                     Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
                     filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
@@ -218,7 +218,7 @@ if __name__ == '__main__':
                         CONFOUNDERS = RS.confounders
                         HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
                         INT_VARS = list(d_int.keys())
-                        EXP_SPURIOUS_LINKS= RS.expected_spurious_links
+                        EXP_SPURIOUS_LINKS= RS.expected_bidirected_links
                     
                     #########################################################################################################################
                     # FPCMCI+
@@ -336,71 +336,71 @@ if __name__ == '__main__':
                     
                     #########################################################################################################################
                     # LPCMCI
-                    if Algo.LPCMCI.value not in data[nr] or (Algo.LPCMCI.value in data[nr] and not data[nr][Algo.LPCMCI.value]['done']):
-                        lpcmci = LPCMCI(deepcopy(d_obs),
-                                        min_lag = min_lag, 
-                                        max_lag = max_lag, 
-                                        val_condtest = GPDC(significance = 'analytic'),
-                                        verbosity = CPLevel.INFO,
-                                        alpha = alpha, 
-                                        neglect_only_autodep = False,
-                                        resfolder = resfolder + "/lpcmci")
+                    # if Algo.LPCMCI.value not in data[nr] or (Algo.LPCMCI.value in data[nr] and not data[nr][Algo.LPCMCI.value]['done']):
+                    #     lpcmci = LPCMCI(deepcopy(d_obs),
+                    #                     min_lag = min_lag, 
+                    #                     max_lag = max_lag, 
+                    #                     val_condtest = GPDC(significance = 'analytic'),
+                    #                     verbosity = CPLevel.INFO,
+                    #                     alpha = alpha, 
+                    #                     neglect_only_autodep = False,
+                    #                     resfolder = resfolder + "/lpcmci")
+                        
+                    #     new_start = time()
+                    #     lpcmci_cm = lpcmci.run()
+                    #     elapsed_lpcmci = time() - new_start
+                    #     lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
+                    #     print(lpcmci_time)
+                    #     lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG)
+                    #     lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF)
+                    #     lpcmci.save()
+                    #     gc.collect()
+                    
+                    #     res = deepcopy(ALGO_RES)
+                    #     fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())})
+                            
+                    #     data[nr][Algo.LPCMCI.value] = res
+                            
+                    #     # Save the dictionary back to a JSON file
+                    #     with open(filename, 'w') as file:
+                    #         json.dump(data, file)
+                    
+                    ########################################################################################################################
+                    # CAnDOIT
+                    if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
+                        new_d_obs = deepcopy(d_obs)
+                        new_d_obs.d = new_d_obs.d[:-nsample_int]
+                        candoit = CAnDOIT_pcmciplus(new_d_obs, 
+                                                    deepcopy(d_int),
+                                                    f_alpha = f_alpha, 
+                                                    alpha = alpha, 
+                                                    min_lag = min_lag, 
+                                                    max_lag = max_lag, 
+                                                    sel_method = TE(TEestimator.Gaussian), 
+                                                    val_condtest = GPDC(significance = 'analytic'),
+                                                    verbosity = CPLevel.INFO,
+                                                    neglect_only_autodep = False,
+                                                    resfolder = resfolder + "/candoit",
+                                                    plot_data = False,
+                                                    exclude_context = True)
                         
                         new_start = time()
-                        lpcmci_cm = lpcmci.run()
-                        elapsed_lpcmci = time() - new_start
-                        lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
-                        print(lpcmci_time)
-                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG)
-                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF)
-                        lpcmci.save()
+                        candoit_cm = candoit.run()
+                        elapsed_candoit = time() - new_start
+                        candoit_time = str(timedelta(seconds = elapsed_candoit))
+                        print(candoit_time)
+                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
+                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF)
                         gc.collect()
                     
                         res = deepcopy(ALGO_RES)
-                        fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())})
-                            
-                        data[nr][Algo.LPCMCI.value] = res
+                        fill_res(res, {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())})
+                        
+                        data[nr][Algo.CAnDOIT.value] = res
                             
                         # Save the dictionary back to a JSON file
                         with open(filename, 'w') as file:
                             json.dump(data, file)
-                    
-                    #########################################################################################################################
-                    # CAnDOIT
-                    # if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
-                    #     new_d_obs = deepcopy(d_obs)
-                    #     new_d_obs.d = new_d_obs.d[:-nsample_int]
-                    #     candoit = CAnDOIT(new_d_obs, 
-                    #                     deepcopy(d_int),
-                    #                     f_alpha = f_alpha, 
-                    #                     alpha = alpha, 
-                    #                     min_lag = min_lag, 
-                    #                     max_lag = max_lag, 
-                    #                     sel_method = TE(TEestimator.Gaussian), 
-                    #                     val_condtest = GPDC(significance = 'analytic'),
-                    #                     verbosity = CPLevel.INFO,
-                    #                     neglect_only_autodep = False,
-                    #                     resfolder = resfolder + "/candoit",
-                    #                     plot_data = False,
-                    #                     exclude_context = True)
-                        
-                    #     new_start = time()
-                    #     candoit_cm = candoit.run()
-                    #     elapsed_candoit = time() - new_start
-                    #     candoit_time = str(timedelta(seconds = elapsed_candoit))
-                    #     print(candoit_time)
-                    #     candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
-                    #     candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF)
-                    #     gc.collect()
-                    
-                    #     res = deepcopy(ALGO_RES)
-                    #     fill_res(res, {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())})
-                        
-                        # data[nr][Algo.CAnDOIT.value] = res
-                            
-                        # # Save the dictionary back to a JSON file
-                        # with open(filename, 'w') as file:
-                        #     json.dump(data, file)
                             
                     data[nr]['done'] = True
                     # Save the dictionary back to a JSON file
@@ -408,18 +408,18 @@ if __name__ == '__main__':
                         json.dump(data, file)
                     break
                     
-                except Exception as e:
-                    traceback_info = traceback.format_exc()
-                    with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
-                        f.write("Exception occurred: " + str(e) + "\n")
-                        f.write("Traceback:\n" + traceback_info + "\n")
-                    remove_directory(os.getcwd() + "/" + resfolder)
+                # except Exception as e:
+                #     traceback_info = traceback.format_exc()
+                #     with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
+                #         f.write("Exception occurred: " + str(e) + "\n")
+                #         f.write("Traceback:\n" + traceback_info + "\n")
+                #     remove_directory(os.getcwd() + "/" + resfolder)
                     
-                    filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
-                    if os.path.exists(filename):
-                        with open(filename, 'r') as file:
-                            data = json.load(file)
-                            if nr in data: 
-                                data.pop(nr)
-                                json.dump(data, file)           
-                    continue
+                #     filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
+                #     if os.path.exists(filename):
+                #         with open(filename, 'r') as file:
+                #             data = json.load(file)
+                #             if nr in data: 
+                #                 data.pop(nr)
+                #                 json.dump(data, file)           
+                #     continue

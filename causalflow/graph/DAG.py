@@ -27,7 +27,11 @@ class DAG():
         
         if scm is not None:
             for t in scm:
-                for s in scm[t]: self.add_source(t, s[0], 0.3, 0, s[1])
+                    for s in scm[t]: 
+                        if len(s) == 2:
+                            self.add_source(t, s[0], 0.3, 0, s[1])
+                        elif len(s) == 3:
+                            self.add_source(t, s[0], 0.3, 0, s[1], s[2])
 
 
     @property
@@ -91,6 +95,85 @@ class DAG():
         for t in self.g:
             for s in self.g:
                 for l in range(1, self.max_lag + 1): self.add_source(t, s, 1, 0, l)
+                
+    
+    
+    def build_link_assumptions(self):
+
+        # This describes what I know about my system
+        knowledge = {}
+        
+        # link between context and system variables
+        for sys, context in self.sys_context.items():
+            knowledge[self.features.index(sys)] = {(self.features.index(context), 0): '-->'}
+            knowledge[self.features.index(context)] = {(self.features.index(sys), 0): '<--'}
+            
+        # link between context variables
+        for context_i in self.sys_context.values():
+            tmp = list(self.sys_context.values())
+            tmp.remove(context_i)
+            for context_j in tmp:
+                knowledge[self.features.index(context_i)] = {(self.features.index(context_j), 0): 'o-o'}
+
+        # no link between context and other system variables
+        for sys, context in self.sys_context.items():
+            for j in range(len(self.features)):
+                if self.features[j] != sys:
+                    for tau_i in range(0, self.max_lag+1):
+                        knowledge[self.features.index(context)] = {(j, -tau_i): ''}
+                
+                
+        # for t in self.g:
+        #     for s in self.g:
+        #         if t in self.sys_context.keys() and s[0] == self.sys_context[t]:
+        #             knowledge[self.features.index(t)][(self.features.index(s[0]), 0)] = '-->'
+        #             knowledge[self.features.index(s[0])][(self.features.index(t), 0)] = '<--'
+                    
+        #         elif t in self.sys_context.keys() and s[0] != self.sys_context[t]:
+        #             knowledge[self.features.index(t)][(self.features.index(s[0]), 0)] = ''
+                            
+        #         elif t in self.sys_context.values() and s[0] in self.sys_context.values():
+        #             knowledge[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
+        
+        
+        
+        out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
+            for i in range(len(self.features)) for tau_i in range(0, self.max_lag+1)
+            if (tau_i > 0 or i != j)} for j in range(len(self.features))}
+
+        for j, links_j in knowledge.items():
+            for (i, lag_i), link_ij in links_j.items():
+                if link_ij == "": 
+                    del out[j][(i, lag_i)]
+                else:
+                    out[j][(i, lag_i)] = link_ij
+        return out
+    
+            
+    def dummy_link_assumptions(self):
+        """
+        Build a fully connected DAG
+        """
+        
+        # System variables
+        link_assump = {self.features.index(f): dict() for f in self.features}
+        for t in self.g:
+            for s in self.g:
+                for l in range(0, self.max_lag + 1): 
+                    if t not in list(self.sys_context.values()):
+                        if s not in list(self.sys_context.values()):
+                            if s == t and l == 0: continue                 
+                            if l == 0:
+                                link_assump[self.features.index(t)][(self.features.index(s), 0)] = 'o?o'
+                            else:
+                                link_assump[self.features.index(t)][(self.features.index(s), -l)] = '-?>'
+                        elif t in self.sys_context.keys() and s == self.sys_context[t]:
+                            if l == 0:
+                                link_assump[self.features.index(t)][(self.features.index(s), 0)] = '-->'
+                                link_assump[self.features.index(s)][(self.features.index(t), 0)] = '<--'
+        # Context variables
+                                            
+        return link_assump
     
     
     def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):

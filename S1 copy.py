@@ -71,7 +71,7 @@ def get_correct_SCM(gt, scm):
 
 def get_spurious_links(scm):
     spurious = list()
-    exp_spurious = RS.expected_spurious_links
+    exp_spurious = RS.expected_bidirected_links
     for exp_s in exp_spurious:
         if exp_s[1] in scm and (exp_s[0], -1) in scm[exp_s[1]]:
             spurious.append(exp_s)
@@ -87,8 +87,8 @@ def save_result(d):
     res_tmp[jWord.Confounders.value] = str(RS.confounders)
     res_tmp[jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
     res_tmp[jWord.InterventionVariables.value] = str(list(d_int.keys()))
-    res_tmp[jWord.ExpectedSpuriousLinks.value] = str(RS.expected_spurious_links)
-    res_tmp[jWord.N_GSPU.value] = len(RS.expected_spurious_links)
+    res_tmp[jWord.ExpectedSpuriousLinks.value] = str(RS.expected_bidirected_links)
+    res_tmp[jWord.N_GSPU.value] = len(RS.expected_bidirected_links)
     
     for a, r in d.items():
         res_tmp[a.value][Metric.TIME.value] = r["time"]
