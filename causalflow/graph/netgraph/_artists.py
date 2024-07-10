@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch, transforms
 from scipy.optimize import minimize_scalar
+from matplotlib.patches import Circle
 
 from ._utils import (
     _get_parallel_line,
@@ -376,20 +377,48 @@ class EdgeArtist(PathPatchDataUnits):
         self._update_path()
 
 
-    def draw_tail_marker(self, ax, tail_marker, tail_marker_color, tail_marker_bordercolor, node_radius):
-        tail_vertex_base = self.midline[0]
-        direction_vector = self.midline[1] - self.midline[0]
-        direction_vector /= np.linalg.norm(direction_vector)  # Normalize direction vector
+    # def draw_tail_marker(self, ax, tail_marker, tails_size, tail_marker_color, tail_marker_bordercolor, node_radius):
+    #     tail_vertex_base = self.midline[0]
+    #     direction_vector = self.midline[1] - self.midline[0]
+    #     direction_vector /= np.linalg.norm(direction_vector)  # Normalize direction vector
 
-        # Offset tail marker position by node radius in the opposite direction of the arrow
-        tail_marker_position = tail_vertex_base + direction_vector * node_radius
-        ax.scatter(tail_marker_position[0], tail_marker_position[1], marker=tail_marker, color=tail_marker_color, edgecolors=tail_marker_bordercolor, zorder=1000)
+    #     # Offset tail marker position by node radius in the opposite direction of the arrow
+    #     tail_marker_position = tail_vertex_base + direction_vector * node_radius
+    #     # ax.scatter(tail_marker_position[0], tail_marker_position[1], marker=tail_marker, color=tail_marker_color, edgecolors=tail_marker_bordercolor, s=tails_size, zorder=1000)
+    #     circle = Circle(tail_marker_position, tails_size, facecolor=tail_marker_color, edgecolor=tail_marker_bordercolor, zorder=1000)
+    #     ax.add_patch(circle)
         
-    def draw_head_marker(self, ax, head_marker, head_marker_color, head_marker_bordercolor, node_radius):
-        head_vertex_base = self.midline[-1]
-        direction_vector = self.midline[-1] - self.midline[-2]
-        direction_vector /= np.linalg.norm(direction_vector)  # Normalize direction vector
+    # def draw_head_marker(self, ax, head_marker, head_size, head_marker_color, head_marker_bordercolor, node_radius):
+    #     head_vertex_base = self.midline[-1]
+    #     direction_vector = self.midline[-1] - self.midline[-2]
+    #     direction_vector /= np.linalg.norm(direction_vector)  # Normalize direction vector
 
-        # Offset tail marker position by node radius in the opposite direction of the arrow
-        head_marker_position = head_vertex_base - direction_vector * node_radius
-        ax.scatter(head_marker_position[0], head_marker_position[1], marker=head_marker, color=head_marker_color, edgecolors=head_marker_bordercolor, zorder=1000)
+    #     # Offset tail marker position by node radius in the opposite direction of the arrow
+    #     head_marker_position = head_vertex_base - direction_vector * node_radius
+    #     # ax.scatter(head_marker_position[0], head_marker_position[1], marker=head_marker, color=head_marker_color, edgecolors=head_marker_bordercolor, s=head_size, zorder=1000)
+    #     circle = Circle(head_marker_position, head_size, facecolor=head_marker_color, edgecolor=head_marker_bordercolor, zorder=1000)
+    #     ax.add_patch(circle)
+        
+    def draw_marker(self, ax, marker_type, marker, marker_size, marker_color, marker_edgecolor, node_radius):
+        if marker_type == 'h':
+            vertex_base = self.midline[-1]
+            direction_vector = self.midline[-1] - self.midline[-2]
+            direction_vector /= np.linalg.norm(direction_vector)
+            marker_position = vertex_base - direction_vector * node_radius
+        else:
+            vertex_base = self.midline[0]
+            direction_vector = self.midline[1] - self.midline[0]
+            direction_vector /= np.linalg.norm(direction_vector)
+            marker_position = vertex_base + direction_vector * node_radius
+            
+        
+        if marker == 'o':
+            # ax.scatter(head_marker_position[0], head_marker_position[1], marker=head_marker, color=head_marker_color, edgecolors=head_marker_bordercolor, s=head_size, zorder=1000)
+            circle = Circle(marker_position, marker_size, facecolor=marker_color, edgecolor=marker_edgecolor, zorder=1000)
+            ax.add_patch(circle)
+        elif marker == 'x':
+            ax.scatter(marker_position[0], marker_position[1], marker='x', color=marker_color, edgecolors=marker_edgecolor, s=10, zorder=1000)
+        else:
+            raise ValueError("Unsupported marker type. Use 'o' or 'x'")
+
+            
