@@ -244,32 +244,32 @@ if __name__ == '__main__':
                         lpcmci.save()
                         gc.collect()
                         
-                        if len(get_ambiguous_link(lpcmci_cm.get_SCM())) == 0: 
-                            gc.collect()
-                            remove_directory(os.getcwd() + '/' + resfolder)
-                            continue
-                        else:
-                            res = deepcopy(ALGO_RES)
-                            fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())})
+                        # if len(get_ambiguous_link(lpcmci_cm.get_SCM())) == 0: 
+                        #     gc.collect()
+                        #     remove_directory(os.getcwd() + '/' + resfolder)
+                        #     continue
+                        # else:
+                        res = deepcopy(ALGO_RES)
+                        fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())})
                                 
-                            data[nr]['done'] = False
-                            data[nr]["min_lag"] = str(min_lag)
-                            data[nr]["max_lag"] = str(max_lag)
-                            data[nr]["equations"] = str(EQUATIONS)
-                            data[nr]["coeff_range"] = str(COEFF_RANGE)
-                            data[nr]["noise_config"] = str(NOISE_CONF)
-                            data[nr][jWord.GT.value] = str(GT)
-                            data[nr][jWord.Confounders.value] = str(CONFOUNDERS)
-                            data[nr][jWord.HiddenConfounders.value] = str(HIDDEN_CONFOUNDERS)
-                            data[nr][jWord.InterventionVariables.value] = str(INT_VARS)
-                            data[nr][jWord.ExpectedSpuriousLinks.value] = str(EXP_SPURIOUS_LINKS)
-                            data[nr][jWord.N_GSPU.value] = len(EXP_SPURIOUS_LINKS)
-                                
-                            data[nr][Algo.LPCMCI.value] = res
-                                
-                            # Save the dictionary back to a JSON file
-                            with open(filename, 'w') as file:
-                                json.dump(data, file)
+                        data[nr]['done'] = False
+                        data[nr]["min_lag"] = str(min_lag)
+                        data[nr]["max_lag"] = str(max_lag)
+                        data[nr]["equations"] = str(EQUATIONS)
+                        data[nr]["coeff_range"] = str(COEFF_RANGE)
+                        data[nr]["noise_config"] = str(NOISE_CONF)
+                        data[nr][jWord.GT.value] = str(GT)
+                        data[nr][jWord.Confounders.value] = str(CONFOUNDERS)
+                        data[nr][jWord.HiddenConfounders.value] = str(HIDDEN_CONFOUNDERS)
+                        data[nr][jWord.InterventionVariables.value] = str(INT_VARS)
+                        data[nr][jWord.ExpectedSpuriousLinks.value] = str(EXP_SPURIOUS_LINKS)
+                        data[nr][jWord.N_GSPU.value] = len(EXP_SPURIOUS_LINKS)
+                            
+                        data[nr][Algo.LPCMCI.value] = res
+                            
+                        # Save the dictionary back to a JSON file
+                        with open(filename, 'w') as file:
+                            json.dump(data, file)
             
                     
                     #########################################################################################################################

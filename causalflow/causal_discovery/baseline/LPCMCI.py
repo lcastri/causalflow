@@ -48,7 +48,7 @@ class LPCMCI(CausalDiscoveryMethod):
                            verbosity = verbosity.value)
         
 
-    def run(self, link_assumptions) -> DAG:
+    def run(self, link_assumptions = None) -> DAG:
         """
         Run causal discovery algorithm
 

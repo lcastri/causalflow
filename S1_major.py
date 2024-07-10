@@ -109,7 +109,7 @@ def fill_res(res, r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "S1_major_newFPCMCI"
+    resdir = "S1_major_main"
     f_alpha = 0.5
     alpha = 0.05
     nfeature = range(7, 15)
@@ -334,36 +334,36 @@ if __name__ == '__main__':
                         with open(filename, 'w') as file:
                             json.dump(data, file)
                     
-                    # #########################################################################################################################
-                    # # LPCMCI
-                    # if Algo.LPCMCI.value not in data[nr] or (Algo.LPCMCI.value in data[nr] and not data[nr][Algo.LPCMCI.value]['done']):
-                        # lpcmci = LPCMCI(deepcopy(d_obs),
-                        #                 min_lag = min_lag, 
-                        #                 max_lag = max_lag, 
-                        #                 val_condtest = GPDC(significance = 'analytic'),
-                        #                 verbosity = CPLevel.INFO,
-                        #                 alpha = alpha, 
-                        #                 neglect_only_autodep = False,
-                        #                 resfolder = resfolder + "/lpcmci")
+                    #########################################################################################################################
+                    # LPCMCI
+                    if Algo.LPCMCI.value not in data[nr] or (Algo.LPCMCI.value in data[nr] and not data[nr][Algo.LPCMCI.value]['done']):
+                        lpcmci = LPCMCI(deepcopy(d_obs),
+                                        min_lag = min_lag, 
+                                        max_lag = max_lag, 
+                                        val_condtest = GPDC(significance = 'analytic'),
+                                        verbosity = CPLevel.INFO,
+                                        alpha = alpha, 
+                                        neglect_only_autodep = False,
+                                        resfolder = resfolder + "/lpcmci")
                         
-                        # new_start = time()
-                        # lpcmci_cm = lpcmci.run()
-                        # elapsed_lpcmci = time() - new_start
-                        # lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
-                        # print(lpcmci_time)
-                        # lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG)
-                        # lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF)
-                        # lpcmci.save()
-                        # gc.collect()
+                        new_start = time()
+                        lpcmci_cm = lpcmci.run()
+                        elapsed_lpcmci = time() - new_start
+                        lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
+                        print(lpcmci_time)
+                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG)
+                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF)
+                        lpcmci.save()
+                        gc.collect()
                     
-                        # res = deepcopy(ALGO_RES)
-                        # fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())})
+                        res = deepcopy(ALGO_RES)
+                        fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())})
                             
-                        # data[nr][Algo.LPCMCI.value] = res
+                        data[nr][Algo.LPCMCI.value] = res
                             
-                        # # Save the dictionary back to a JSON file
-                        # with open(filename, 'w') as file:
-                        #     json.dump(data, file)
+                        # Save the dictionary back to a JSON file
+                        with open(filename, 'w') as file:
+                            json.dump(data, file)
                     
                     #########################################################################################################################
                     # CAnDOIT
