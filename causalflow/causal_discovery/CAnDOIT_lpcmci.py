@@ -11,6 +11,8 @@ from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI 
 from causalflow.graph.DAG import DAG
+from tigramite.pcmci import PCMCI
+import tigramite.data_processing as pp
 
 class CAnDOIT(CausalDiscoveryMethod):
     """
@@ -110,6 +112,20 @@ class CAnDOIT(CausalDiscoveryMethod):
         causal_model = self.validator.run(link_assumptions)
         causal_model.sys_context = self.CM.sys_context      
  
+        # Auto-dependency Check
+        if causal_model.autodep_nodes:
+        
+            # Remove context from parents
+            causal_model.remove_context_cont()
+            
+            tmp_link_assumptions = causal_model.get_link_assumptions_cont()
+            
+            # Auto-dependency Check
+            causal_model = self._check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
+            
+            # Add again context for final MCI test on obs and inter data
+            causal_model.add_context_cont()
+ 
         return causal_model
      
     
@@ -182,9 +198,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             # list of selected features based on validator dependencies
             if remove_unneeded: self.CM.remove_unneeded_features()
             if self.exclude_context: self.CM.remove_context_cont()
-            
-            # Print and save final causal model
-            if not nofilter: self.__print_differences(f_dag, self.CM)
+
             self.save()
             
         return self.CM
@@ -223,37 +237,6 @@ class CAnDOIT(CausalDiscoveryMethod):
                     pickle.dump(res, resfile)
             else:
                 CP.warning("Causal model impossible to save")
-     
-
-    def __print_differences(self, old_dag : DAG, new_dag : DAG):
-        """
-        Print difference between old and new dependencies
-
-        Args:
-            old_dep (DAG): old dag
-            new_dep (DAG): new dag
-        """
-        # Check difference(s) between validator and filter dependencies
-        list_diffs = list()
-        tmp = copy.deepcopy(old_dag)
-        for t in tmp.g:
-            if t not in new_dag.g:
-                list_diffs.append(t)
-                continue
-                
-            for s in tmp.g[t].sources:
-                if s not in new_dag.g[t].sources:
-                    list_diffs.append((s[0], s[1], t))
-        
-        if list_diffs:
-            CP.info("\n")
-            CP.info(DASH)
-            CP.info("Difference(s):")
-            for diff in list_diffs: 
-                if type(diff) is tuple:
-                    CP.info("Removed (" + str(diff[0]) + " -" + str(diff[1]) +") --> (" + str(diff[2]) + ")")
-                else:
-                    CP.info(diff + " removed")
                 
                 
     def _prepare_data(self, obser_data, inter_data, plot_data):
@@ -302,3 +285,62 @@ class CAnDOIT(CausalDiscoveryMethod):
         
         if plot_data: validator_data.plot_timeseries()
         return filter_data, validator_data
+    
+    
+    def _check_autodependency(self, data: Data, dag: DAG, link_assumptions, min_lag) -> DAG:
+        """
+        Run MCI test on observational data using the causal structure computed by the validator 
+
+        Args:
+            data (Data): Data obj to analyse
+            dag (DAG): causal model
+            link_assumptions (dict): prior assumptions on causal model links. Defaults to None.
+
+        Returns:
+            (DAG): estimated causal model
+        """
+        
+        CP.info("\n##")
+        CP.info("## Auto-dependency check on observational data")
+        CP.info("##")
+        
+        # build tigramite dataset
+        vector = np.vectorize(float)
+        d = vector(data.d)
+        dataframe = pp.DataFrame(data = d, var_names = data.features)
+        
+        # init and run pcmci
+        self.val_method = PCMCI(dataframe = dataframe,
+                              cond_ind_test = self.val_condtest,
+                              verbosity = 0)
+        
+        _int_link_assumptions = self.val_method._set_link_assumptions(link_assumptions, min_lag, self.max_lag)
+
+        # Set the maximum condition dimension for Y and X
+        max_conds_py = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
+        max_conds_px = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
+        
+        # Get the parents that will be checked
+        _int_parents = self.val_method._get_int_parents(dag.get_SCM(indexed = True))
+
+        # Get the conditions as implied by the input arguments
+        links_tocheck = self.val_method._iter_indep_conds(_int_parents, _int_link_assumptions, max_conds_py, max_conds_px)
+        for j, i, tau, Z in links_tocheck:
+            if data.features[j] not in dag.autodep_nodes or j != i: continue
+            else:
+                # Set X and Y (for clarity of code)
+                X = [(i, tau)]
+                Y = [(j, 0)]
+                
+                CP.info("\tlink: (" + data.features[i] + " " + str(tau) + ") -?> (" + data.features[j] + "):")
+                # Run the independence tests and record the results
+                val, pval = self.val_method.cond_ind_test.run_test(X, Y, Z = Z, tau_max = self.max_lag)
+                if pval > self.alpha:
+                    dag.del_source(data.features[j], data.features[j], abs(tau))
+                    CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- removed")
+                else:
+                    dag.g[data.features[j]].sources[(data.features[i], abs(tau))][SCORE] = val
+                    dag.g[data.features[j]].sources[(data.features[i], abs(tau))][PVAL] = pval
+                    CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- ok")
+                
+        return dag

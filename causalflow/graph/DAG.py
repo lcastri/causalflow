@@ -101,40 +101,39 @@ class DAG():
     def build_link_assumptions(self):
 
         # This describes what I know about my system
-        knowledge = {}
+        knowledge = {self.features.index(f): dict() for f in self.features}
         
-        # link between context and system variables
+        # link context --> system variables
         for sys, context in self.sys_context.items():
-            knowledge[self.features.index(sys)] = {(self.features.index(context), 0): '-->'}
-            knowledge[self.features.index(context)] = {(self.features.index(sys), 0): '<--'}
+            for tau_i in range(0, self.max_lag + 1):
+                if tau_i == 0:
+                    knowledge[self.features.index(sys)][(self.features.index(context), 0)] = '-->'
+                    knowledge[self.features.index(context)][(self.features.index(sys), 0)] = '<--'
+                else:
+                    knowledge[self.features.index(sys)][(self.features.index(context), -tau_i)] = ''
             
-        # link between context variables
+        # NO link context/system --> context variables for any time lag
+        for sys, context in self.sys_context.items():
+            for tau_i in range(0, self.max_lag + 1):
+                for v in self.features:
+                    if v == context and tau_i == 0: continue
+                    elif v == sys and tau_i == 0: continue
+                    knowledge[self.features.index(context)][(self.features.index(v), -tau_i)] = ''
+                    
+            
+        # NO link context --> other system variables for any time lag
+        for sys, context in self.sys_context.items():
+            for j in range(len(self.features)):
+                if self.features[j] != sys and self.features[j] != context:
+                    for tau_i in range(0, self.max_lag+1):
+                        knowledge[j][(self.features.index(context), -tau_i)] = ''
+                        
+        # link between context variables o-o
         for context_i in self.sys_context.values():
             tmp = list(self.sys_context.values())
             tmp.remove(context_i)
             for context_j in tmp:
-                knowledge[self.features.index(context_i)] = {(self.features.index(context_j), 0): 'o-o'}
-
-        # no link between context and other system variables
-        for sys, context in self.sys_context.items():
-            for j in range(len(self.features)):
-                if self.features[j] != sys:
-                    for tau_i in range(0, self.max_lag+1):
-                        knowledge[self.features.index(context)] = {(j, -tau_i): ''}
-                
-                
-        # for t in self.g:
-        #     for s in self.g:
-        #         if t in self.sys_context.keys() and s[0] == self.sys_context[t]:
-        #             knowledge[self.features.index(t)][(self.features.index(s[0]), 0)] = '-->'
-        #             knowledge[self.features.index(s[0])][(self.features.index(t), 0)] = '<--'
-                    
-        #         elif t in self.sys_context.keys() and s[0] != self.sys_context[t]:
-        #             knowledge[self.features.index(t)][(self.features.index(s[0]), 0)] = ''
-                            
-        #         elif t in self.sys_context.values() and s[0] in self.sys_context.values():
-        #             knowledge[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
-        
+                knowledge[self.features.index(context_i)][(self.features.index(context_j), 0)] = 'o-o'        
         
         
         out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")

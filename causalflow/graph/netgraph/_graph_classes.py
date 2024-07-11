@@ -646,40 +646,37 @@ class BaseGraph(object):
                     shape = 'full'
             else:
                 shape = 'full'
-            try:
-                if arrows[edge]['h'] == '>':
-                    head_length = RELATIVE_ARROW_HEAD_LENGTH * edge_width[edge]
-                    head_width = RELATIVE_ARROW_HEAD_WIDTH * edge_width[edge]
-                else:
-                    head_length = 0
-                    head_width = 0
+            if arrows[edge]['h'] == '>':
+                head_length = RELATIVE_ARROW_HEAD_LENGTH * edge_width[edge]
+                head_width = RELATIVE_ARROW_HEAD_WIDTH * edge_width[edge]
+            else:
+                head_length = 0
+                head_width = 0
 
-                edge_artist = EdgeArtist(
-                    midline     = edge_path[edge],
-                    width       = edge_width[edge],
-                    facecolor   = edge_color[edge],
-                    alpha       = edge_alpha[edge],
-                    head_length = head_length,
-                    head_width  = head_width,
-                    edgecolor   = 'none',
-                    linewidth   = 0.,
-                    head_offset = node_artists[target].get_head_offset(edge_path[edge]),
-                    tail_offset = node_artists[source].get_tail_offset(edge_path[edge]),
-                    shape       = shape,
-                    curved      = curved,
-                    zorder      = edge_zorder[edge],
-                )
-                self.ax.add_patch(edge_artist)
-                if arrows[edge]['h'] != '' and arrows[edge]['h'] != '>':
-                    edge_artist.draw_marker(self.ax, 'h', arrows[edge]['t']/2, edge_width[edge], tail_color, tail_color, node_artists[source].size)
-                if arrows[edge]['t'] != '':
-                    edge_artist.draw_marker(self.ax, 't', arrows[edge]['t']/2, edge_width[edge], tail_color, tail_color, node_artists[source].size)
+            edge_artist = EdgeArtist(
+                midline     = edge_path[edge],
+                width       = edge_width[edge],
+                facecolor   = edge_color[edge],
+                alpha       = edge_alpha[edge],
+                head_length = head_length,
+                head_width  = head_width,
+                edgecolor   = 'none',
+                linewidth   = 0.,
+                head_offset = node_artists[target].get_head_offset(edge_path[edge]),
+                tail_offset = node_artists[source].get_tail_offset(edge_path[edge]),
+                shape       = shape,
+                curved      = curved,
+                zorder      = edge_zorder[edge],
+            )
+            self.ax.add_patch(edge_artist)
+            if arrows[edge]['h'] != '' and arrows[edge]['h'] != '>':
+                edge_artist.draw_marker(self.ax, 'h', arrows[edge]['t'], edge_width[edge]/2, tail_color, tail_color, node_artists[source].size)
+            if arrows[edge]['t'] != '':
+                edge_artist.draw_marker(self.ax, 't', arrows[edge]['t'], edge_width[edge]/2, tail_color, tail_color, node_artists[source].size)
 
-                if edge in self.edge_artists:
-                    self.edge_artists[edge].remove()
-                self.edge_artists[edge] = edge_artist
-            except Exception as e:
-                print("Exception occurred: " + str(e) + "\n")
+            if edge in self.edge_artists:
+                self.edge_artists[edge].remove()
+            self.edge_artists[edge] = edge_artist
             
 
     def _update_edge_artists(self, edge_paths=None):

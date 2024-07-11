@@ -19,12 +19,16 @@ if __name__ == '__main__':
     resfolder = 'results/CAnDOIT'
     Path(os.getcwd() + '/' + resfolder).mkdir(parents=True, exist_ok=True)
            
-    min_lag = random.randint(0, 1)
-    max_lag = random.randint(2, 5)
+    min_lag = 0
+    max_lag = 2
+    # min_lag = random.randint(0, 1)
+    # max_lag = random.randint(2, 5)
     nsample_obs = 1250
     nsample_int = 250
-    functions = ['', 'sin', 'cos', 'abs']
-    operators = ['+', '-', '*']
+    functions = ['']
+    operators = ['+', '-']
+    # functions = ['', 'sin', 'cos', 'abs']
+    # operators = ['+', '-', '*']
     
     # Noise params 
     noise_param = random.uniform(0.5, 2)
@@ -63,38 +67,38 @@ if __name__ == '__main__':
         d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
                         
     
-    # pcmciplus = PCMCIplus(d_obs, 
-    #                       min_lag = min_lag, 
-    #                       max_lag = max_lag, 
-    #                       val_condtest = GPDC(significance = 'analytic'),
-    #                       verbosity = CPLevel.DEBUG,
-    #                       alpha = 0.05, 
-    #                       resfolder = resfolder + "/pcmciplus",
-    #                       neglect_only_autodep = True)
+    pcmciplus = PCMCIplus(d_obs, 
+                          min_lag = min_lag, 
+                          max_lag = max_lag, 
+                          val_condtest = GPDC(significance = 'analytic'),
+                          verbosity = CPLevel.DEBUG,
+                          alpha = 0.05, 
+                          resfolder = resfolder + "/pcmciplus",
+                          neglect_only_autodep = True)
     
-    # new_start = time()
-    # pcmciplus_cm = pcmciplus.run()
-    # elapsed_newFPCMCI = time() - new_start
-    # print(str(timedelta(seconds = elapsed_newFPCMCI)))
-    # pcmciplus_cm.ts_dag(save_name = pcmciplus.ts_dag_path, img_extention = ImageExt.PNG, min_width=3, max_width=5)
-    # pcmciplus_cm.ts_dag(save_name = pcmciplus.ts_dag_path, img_extention = ImageExt.PDF, min_width=3, max_width=5)
+    new_start = time()
+    pcmciplus_cm = pcmciplus.run()
+    elapsed_newFPCMCI = time() - new_start
+    print(str(timedelta(seconds = elapsed_newFPCMCI)))
+    pcmciplus_cm.ts_dag(save_name = pcmciplus.ts_dag_path, img_extention = ImageExt.PNG, min_width=3, max_width=5)
+    pcmciplus_cm.ts_dag(save_name = pcmciplus.ts_dag_path, img_extention = ImageExt.PDF, min_width=3, max_width=5)
     
     
-    # lpcmci = LPCMCI(d_obs, 
-    #                 min_lag = min_lag, 
-    #                 max_lag = max_lag, 
-    #                 val_condtest = GPDC(significance = 'analytic'),
-    #                 verbosity = CPLevel.DEBUG,
-    #                 alpha = 0.05, 
-    #                 resfolder = resfolder + "/lpcmci",
-    #                 neglect_only_autodep = True)
+    lpcmci = LPCMCI(d_obs, 
+                    min_lag = min_lag, 
+                    max_lag = max_lag, 
+                    val_condtest = GPDC(significance = 'analytic'),
+                    verbosity = CPLevel.DEBUG,
+                    alpha = 0.05, 
+                    resfolder = resfolder + "/lpcmci",
+                    neglect_only_autodep = True)
     
-    # new_start = time()
-    # lpcmci_cm = lpcmci.run()
-    # elapsed_newFPCMCI = time() - new_start
-    # print(str(timedelta(seconds = elapsed_newFPCMCI)))
-    # lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, min_width=3, max_width=5)
-    # lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, min_width=3, max_width=5)
+    new_start = time()
+    lpcmci_cm = lpcmci.run()
+    elapsed_newFPCMCI = time() - new_start
+    print(str(timedelta(seconds = elapsed_newFPCMCI)))
+    lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, min_width=3, max_width=5)
+    lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, min_width=3, max_width=5)
     
     candoit_pcmciplus = CAnDOIT_pcmciplus(d_obs, 
                       d_int,
