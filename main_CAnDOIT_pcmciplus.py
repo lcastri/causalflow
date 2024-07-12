@@ -34,8 +34,8 @@ if __name__ == '__main__':
     noise_param = random.uniform(0.5, 2)
     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-    RS = RandomDAG(nvars = 3, nsamples = nsample_obs + nsample_int, 
-                link_density = 3, coeff_range = (0.1, 0.5), max_exp = 2, 
+    RS = RandomDAG(nvars = 4, nsamples = nsample_obs + nsample_int, 
+                link_density = 2, coeff_range = (0.1, 0.5), max_exp = 2, 
                 min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                 functions = functions, operators = operators, n_hidden_confounders = 1)
     RS.gen_equations()

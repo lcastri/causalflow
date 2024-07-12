@@ -122,11 +122,11 @@ class DAG():
                     
             
         # NO link context --> other system variables for any time lag
-        for sys, context in self.sys_context.items():
-            for j in range(len(self.features)):
-                if self.features[j] != sys and self.features[j] != context:
-                    for tau_i in range(0, self.max_lag+1):
-                        knowledge[j][(self.features.index(context), -tau_i)] = ''
+        # for sys, context in self.sys_context.items():
+        #     for j in range(len(self.features)):
+        #         if self.features[j] != sys and self.features[j] != context:
+        #             for tau_i in range(0, self.max_lag+1):
+        #                 knowledge[j][(self.features.index(context), -tau_i)] = ''
                         
         # link between context variables o-o
         for context_i in self.sys_context.values():

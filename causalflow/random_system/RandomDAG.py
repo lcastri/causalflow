@@ -5,6 +5,7 @@ import random
 import numpy as np
 from causalflow.basics.constants import ImageExt, LinkType
 from causalflow.graph.DAG import DAG
+from causalflow.graph.PAG import PAG
 from causalflow.preprocessing.data import Data
 import networkx as nx
 
@@ -525,19 +526,16 @@ class RandomDAG:
         return int_data
     
     
-    def get_PAG(self):
+    def get_DPAG(self):
         """
-        Outputs the Structural Causal Model
+        Outputs the PAG starting from a DAG
 
         Returns:
             dict: scm
         """
-        scm = self.get_SCM()
-        for bidirected_edge in self.expected_bidirected_links:
-            target = list(bidirected_edge.keys())[0]
-            source, lag = list(bidirected_edge.values())[0]
-            scm[target].append((source, -abs(lag), LinkType.Bidirected.value))
-        return scm
+        scm = self.get_SCM(withHidden=True)
+        p = PAG(scm, self.max_lag, self.hiddenVar)
+        return p.pag
     
     
     def get_SCM(self, withHidden = False):
@@ -591,7 +589,7 @@ class RandomDAG:
             withHidden (bool, optional): bit to decide whether to output the SCM including the hidden variables or not. Defaults to False.
             save_name (str, optional): figure path. Defaults to None.
         """
-        gt = self.get_SCM(withHidden) if withHidden else self.get_PAG()
+        gt = self.get_SCM(withHidden) if withHidden else self.get_DPAG()
         var = self.variables if withHidden else self.obsVar
         g = DAG(var, self.min_lag, self.max_lag, False, gt)
         

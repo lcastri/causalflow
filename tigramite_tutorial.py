@@ -9,6 +9,7 @@ from tigramite.pcmci import PCMCI
 from tigramite.independence_tests.parcorr import ParCorr
 from causalflow.CPrinter import CPLevel
 from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
+from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
 # from tigramite.independence_tests.gpdc import GPDC
 # from tigramite.independence_tests.cmiknn import CMIknn
@@ -16,32 +17,47 @@ from causalflow.selection_methods.TE import TE, TEestimator
 
 
 # Set a seed for reproducibility
-seed = 19
+# seed = 19
 
 # Choose the time series length
-T = 500
+# T = 500
 
-# Specify the model (note that here, unlike in the typed equations, variables
-# are indexed starting from 0)
-def lin(x): return x
+# # Specify the model (note that here, unlike in the typed equations, variables
+# # are indexed starting from 0)
+# def lin(x): return x
 
-links = {0: [((0, -1), 0.9, lin), ((1, 0), 0.6, lin)],
-         1: [],
-         2: [((2, -1), 0.9, lin), ((1, -1), 0.4, lin)],
-         3: [((3, -1), 0.9, lin), ((2, -2), -0.5, lin)]                                    
-        }
+# links = {0: [((0, -1), 0.9, lin), ((1, 0), 0.6, lin)],
+#          1: [],
+#          2: [((2, -1), 0.9, lin), ((1, -1), 0.4, lin)],
+#          3: [((3, -1), 0.9, lin), ((2, -2), -0.5, lin)]                                    
+#         }
+
+
+min_lag = 1
+max_lag = 2
+np.random.seed(19)
+nsample = 500
+nfeature = 4
+
+d = np.random.random(size = (nsample, nfeature))
+for t in range(max_lag, nsample):
+  d[t, 0] += 0.9 * d[t-1, 0] + 0.6 * d[t, 1]
+  d[t, 2] += 0.9 * d[t-1, 2] + 0.4 * d[t-1, 1]
+  d[t, 3] += 0.9 * d[t-1, 3] -0.5 * d[t-2, 2]
+
+
+
 
 # Specify dynamical noise term distributions, here unit variance Gaussians
-random_state = np.random.RandomState(seed)
-noises = noises = [random_state.randn for j in links.keys()]
+# random_state = np.random.RandomState(seed)
+# noises = noises = [random_state.randn for j in links.keys()]
 
 # Generate data according to the full structural causal process
-data_full, nonstationarity_indicator = toys.structural_causal_process(
-    links=links, T=T, noises=noises, seed=seed)
-assert not nonstationarity_indicator
+# data_full, nonstationarity_indicator = toys.structural_causal_process(links=links, T=T, noises=noises, seed=seed)
+# assert not nonstationarity_indicator
 
 # Remove the unobserved component time series
-data_obs = data_full[:, [0, 2, 3]]
+data_obs = d[:, [0, 2, 3]]
 
 # Number of observed variables
 N = data_obs.shape[1]
@@ -58,7 +74,7 @@ lpcmci = LPCMCI(dataframe=dataframe,
                 verbosity=1)
 
 # Define the analysis parameters.
-tau_max = 5
+tau_max = 2
 pc_alpha = 0.01
 
 # Run LPCMCI
@@ -72,16 +88,30 @@ plt.show()
 
 
 
+######################################################## INTERVENTION ########################################################
+# I want to do an intervention on X_1. So, I create a context variable CX_1 which models the intervention
+# CX_1 does not have any parent and it is connected ONLY to X_1 @ time t-1
+int_data = dict()
+    
+# X_0
+d_int0 = np.random.random(size = (100, nfeature))
+d_int0[:, 2] = 3 * np.ones(shape = (100,)) 
+for t in range(max_lag, 100):
+    d_int0[t, 0] += 0.9 * d_int0[t-1, 0] + 0.6 * d_int0[t, 1]
+    # d_int0[t, 2] += 0.9 * d_int0[t-1, 2] + 0.4 * d_int0[t-1, 1]
+    d_int0[t, 3] += 0.9 * d_int0[t-1, 3] -0.5 * d_int0[t-2, 2]
+        
+data_int = d_int0[:, [0, 2, 3]]
+df_int = Data(data_int, vars = ['X_0', 'X_2', 'X_3'])
+int_data['X_2'] =  df_int
+# int_data = {}
 
 
 
+ 
 
-
-
-
-
-candoit_lpcmci = CAnDOIT(data_obs, 
-                         d_int,
+candoit_lpcmci = CAnDOIT(Data(data_obs, vars = ['X_0', 'X_2', 'X_3']), 
+                         int_data,
                          f_alpha = 0.5, 
                          alpha = pc_alpha, 
                          min_lag = 0, 
@@ -94,4 +124,4 @@ candoit_lpcmci = CAnDOIT(data_obs,
                          exclude_context = True)
     
 candoit_lpcmci_cm = candoit_lpcmci.run(nofilter=True)
-candoit_lpcmci_cm.ts_dag(min_width=3, max_width=5)
+candoit_lpcmci_cm.ts_dag(min_width=3, max_width=5, x_disp=0.5)

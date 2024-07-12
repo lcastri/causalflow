@@ -146,60 +146,61 @@ class CAnDOIT(CausalDiscoveryMethod):
             DAG: causal model
         """
         
-        if not self.isThereInterv:
+        # if False:
+        # # if not self.isThereInterv:
             
-            fpcmci = FPCMCI(self.obs_data,
-                            self.min_lag,
-                            self.max_lag,
-                            self.sel_method,
-                            self.val_condtest,
-                            CP.verbosity,
-                            self.f_alpha,
-                            self.alpha,
-                            self.resfolder,
-                            self.neglect_only_autodep)
-            self.CM = fpcmci.run(remove_unneeded, nofilter)
+        #     fpcmci = FPCMCI(self.obs_data,
+        #                     self.min_lag,
+        #                     self.max_lag,
+        #                     self.sel_method,
+        #                     self.val_condtest,
+        #                     CP.verbosity,
+        #                     self.f_alpha,
+        #                     self.alpha,
+        #                     self.resfolder,
+        #                     self.neglect_only_autodep)
+        #     self.CM = fpcmci.run(remove_unneeded, nofilter)
             
-        else:
+        # else:
         
-            link_assumptions = None
+        link_assumptions = None
             
-            if not nofilter:
-                ## 1. FILTER
-                self.run_filter()
+        if not nofilter:
+            ## 1. FILTER
+            self.run_filter()
+        
+            # list of selected features based on filter dependencies
+            self.CM.remove_unneeded_features()
+            if not self.CM.features: return None, None
             
-                # list of selected features based on filter dependencies
-                self.CM.remove_unneeded_features()
-                if not self.CM.features: return None, None
-                
-                self.obs_data.shrink(self.CM.features)
-                f_dag = copy.deepcopy(self.CM)
-            
-                ## 2. VALIDATOR
-                # Add dependencies corresponding to the context variables 
-                # ONLY if the the related system variable is still present
-                self.CM.add_context_cont() 
+            self.obs_data.shrink(self.CM.features)
+            f_dag = copy.deepcopy(self.CM)
+        
+            ## 2. VALIDATOR
+            # Add dependencies corresponding to the context variables 
+            # ONLY if the the related system variable is still present
+            self.CM.add_context_cont() 
 
-                # shrink dataframe d by using the filter result
-                self.validator_data.shrink(self.CM.features)
+            # shrink dataframe d by using the filter result
+            self.validator_data.shrink(self.CM.features)
                     
-                # selected links to check by the validator
-                link_assumptions = self.CM.get_link_assumptions_cont()
+            # selected links to check by the validator
+            link_assumptions = self.CM.get_link_assumptions_cont()
                 
-            else:
-                fullg = DAG(self.validator_data.features, self.min_lag, self.max_lag, False)
-                fullg.sys_context = self.CM.sys_context
-                link_assumptions = fullg.build_link_assumptions()
-                # link_assumptions = fullg.dummy_link_assumptions()
+        else:
+            fullg = DAG(self.validator_data.features, self.min_lag, self.max_lag, False)
+            fullg.sys_context = self.CM.sys_context
+            link_assumptions = fullg.build_link_assumptions()
+            # link_assumptions = fullg.dummy_link_assumptions()
             
-            # calculate dependencies on selected links
-            self.CM = self.run_validator(link_assumptions)
-                   
-            # list of selected features based on validator dependencies
-            if remove_unneeded: self.CM.remove_unneeded_features()
-            if self.exclude_context: self.CM.remove_context_cont()
+        # calculate dependencies on selected links
+        self.CM = self.run_validator(link_assumptions)
+               
+        # list of selected features based on validator dependencies
+        if remove_unneeded: self.CM.remove_unneeded_features()
+        if self.exclude_context: self.CM.remove_context_cont()
 
-            self.save()
+        self.save()
             
         return self.CM
             
