@@ -1,47 +1,50 @@
-import copy
 from pgmpy.models import BayesianNetwork
-
-
-
-
 
 def convert_to_dpag(link_assumptions, latent):
     out = {t: [(s[0], s[1], '-->') for s in link_assumptions[t]] for t in link_assumptions.keys() }
     
     dag = createDAG(link_assumptions, tau_max)
-    Hdag = createDAG(link_assumptions, tau_max, latent)
     
     # colliders = list(set([c for p1, c, p2 in find_colliders(dag)]))
     
     for target in dag.nodes():
-        print(f"Target {target}")
-        # tmp = [n for n in list(dag.nodes()) if n[0] != target[0] or n[1] != target[1]]
+        if target[0] in latent: continue
         tmp = []
         for n in list(dag.nodes()):
             if n[1] > target[1]: continue
             elif n[0] != target[0] or n[1] != target[1]:
                 tmp.append(n)
-        print(f"Others {tmp}")
+        for p in dag.predecessors(target):
+            if p in tmp: tmp.remove(p)
+        for p in dag.successors(target): 
+            if p in tmp: tmp.remove(p)
         for source in tmp:
-            if source not in link_assumptions[target[0]] and any(node[0] in latent for node in dag.minimal_dseparator(source, target)):
-                out[target[0]].append((source[0], source[1], '?'))
-
+            if any(node[0] in latent for node in dag.minimal_dseparator(source, target)):
+                out[target[0]].append((source[0], source[1], 'o-o'))
+                
+    # TODO: Spurious link identified. Now I need to orient it!
+    # TODO: (1) Identify and orient the colliders:
+    # TODO:     for any path X – Z – Y where there is no edge between
+    # TODO:     X and Y and, Z was never included in the conditioning set ==> X → Z ← Y collider
+    # TODO: (2) Orient the non-colliders edges (orientation propagation)
+    # TODO:     any edge Z – Y part of a partially directed path X → Z – Y,
+    # TODO:     where there is no edge between X and Y can be oriented as Z → Y
+    # TODO: (3) Check if cycles are present
 
 def createDAG(link_assumptions, tau_max, latent = None):
     BN = BayesianNetwork()
+    BN.add_nodes_from([(t, -l) for t in link_assumptions.keys() for l in range(0, tau_max)])
+
     # Edges
     edges = []
     for t in link_assumptions.keys():
         for s, l in link_assumptions[t]:
             edges.append(((s, l), (t, 0)))
+    BN.add_edges_from(edges)
             
-    # Net
-    # tmp = BayesianNetwork(edges)
-    if latent is not None:
-        tmp = BayesianNetwork(edges, latents = set([(latent, -tau) for tau in range(0, tau_max + 1)]))
-    else:
-        tmp = BayesianNetwork(edges)
-    return tmp
+            
+    if latent is not None: BN.latents = latent
+    return BN
 
 
 def find_colliders(bayesian_model):
