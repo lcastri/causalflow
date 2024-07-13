@@ -57,6 +57,14 @@ class CAnDOIT(CausalDiscoveryMethod):
         """
         
         self.obs_data = observation_data
+        self.systems = observation_data.features
+        self.contexts = []
+        self.sys_context = {}
+        for k in intervention_data.keys():
+            self.contexts.append("C_" + k)
+            self.sys_context[k] = "C_" + k
+        self.vars = self.systems + self.contexts
+        
         self.f_alpha = f_alpha
         self.sel_method = sel_method
         self.val_condtest = val_condtest
@@ -76,7 +84,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         CP.info("Filter significance level: " + str(f_alpha))
         CP.info("PCMCI significance level: " + str(alpha))
         CP.info("Selection method: " + sel_method.name)
-    
+        
+            
     @property    
     def isThereInterv(self):
         """
@@ -85,8 +94,62 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             bool: flag to identify if an intervention is present or not
         """
-        return len(list(self.CM.sys_context.keys())) > 0
+        return len(list(self.sys_context.keys())) > 0
+    
+    
+    def JCI_assumptions(self):
+        # ! JCI Assmpution 1: No system variable causes any context variable
+        # ! JCI Assmpution 2: No context variable is confounded with a system variable
+        # ! JCI Assmpution 3: The context distribution contains no (conditional) independences
+
+        knowledge = {self.vars.index(f): dict() for f in self.vars}
         
+        # ! JCI Assmpution 1
+        for k in self.contexts:
+            for x in self.systems:
+                for tau_i in range(0, self.max_lag + 1):
+                    knowledge[self.vars.index(k)][(self.vars.index(x), -tau_i)] = ''
+            
+        # ! JCI Assmpution 2
+        for k in self.contexts:
+            for x in self.systems:
+                for tau_i in range(0, self.max_lag + 1):
+                    knowledge[self.vars.index(x)][(self.vars.index(k), -tau_i)] = ''
+        
+        # ! JCI Assmpution 3
+        for k in self.contexts:
+            for tau_i in range(1, self.max_lag + 1):
+                knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '<->'
+                # knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = ''
+        for k1 in self.contexts:
+            tmp = copy.deepcopy(self.contexts)
+            tmp.remove(k1)
+            for k2 in tmp:
+                for tau_i in range(0, self.max_lag + 1):
+                    knowledge[self.vars.index(k)][(self.vars.index(k2), -tau_i)] = '<->'
+                                 
+        # link context --> system variales
+        for x, k in self.sys_context.items():
+            knowledge[self.vars.index(x)][(self.vars.index(k), 0)] = '-->'
+            knowledge[self.vars.index(k)][(self.vars.index(x), 0)] = '<--'  
+             
+        # ! Removing Autocorrelation of the interventional variables
+        # for x, _ in self.sys_context.items():
+        #     for tau_i in range(1, self.max_lag + 1):
+        #         knowledge[self.vars.index(x)][(self.vars.index(x), -tau_i)] = ''
+        
+        out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
+            for i in range(len(self.vars)) for tau_i in range(0, self.max_lag+1)
+            if (tau_i > 0 or i != j)} for j in range(len(self.vars))}
+
+        for j, links_j in knowledge.items():
+            for (i, lag_i), link_ij in links_j.items():
+                if link_ij == "": 
+                    del out[j][(i, lag_i)]
+                else:
+                    out[j][(i, lag_i)] = link_ij
+        return out
+    
 
     def run_filter(self):
         """
@@ -110,21 +173,22 @@ class CAnDOIT(CausalDiscoveryMethod):
         """
         self.validator = LPCMCI(self.validator_data, self.min_lag, self.max_lag, self.val_condtest, CP.verbosity, self.alpha)
         causal_model = self.validator.run(link_assumptions)
+        # causal_model = self.validator.run()
         causal_model.sys_context = self.CM.sys_context      
  
         # Auto-dependency Check
-        if causal_model.autodep_nodes:
+        # if causal_model.autodep_nodes:
         
-            # Remove context from parents
-            causal_model.remove_context_cont()
+        #     # Remove context from parents
+        #     # causal_model.remove_context_cont()
             
-            tmp_link_assumptions = causal_model.get_link_assumptions_cont()
+        #     tmp_link_assumptions = causal_model.get_link_assumptions_cont()
             
-            # Auto-dependency Check
-            causal_model = self._check_autodependency(self.obs_data, causal_model, tmp_link_assumptions, 0)
+        #     # Auto-dependency Check
+        #     causal_model = self._check_autodependency(self.obs_data, causal_model, self.JCI_assumptions(), 0)
             
-            # Add again context for final MCI test on obs and inter data
-            causal_model.add_context_cont()
+        #     # Add again context for final MCI test on obs and inter data
+        #     # causal_model.add_context_cont()
  
         return causal_model
      
@@ -145,24 +209,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             DAG: causal model
         """
-        
-        # if False:
-        # # if not self.isThereInterv:
-            
-        #     fpcmci = FPCMCI(self.obs_data,
-        #                     self.min_lag,
-        #                     self.max_lag,
-        #                     self.sel_method,
-        #                     self.val_condtest,
-        #                     CP.verbosity,
-        #                     self.f_alpha,
-        #                     self.alpha,
-        #                     self.resfolder,
-        #                     self.neglect_only_autodep)
-        #     self.CM = fpcmci.run(remove_unneeded, nofilter)
-            
-        # else:
-        
+               
         link_assumptions = None
             
         if not nofilter:
@@ -188,10 +235,9 @@ class CAnDOIT(CausalDiscoveryMethod):
             link_assumptions = self.CM.get_link_assumptions_cont()
                 
         else:
-            fullg = DAG(self.validator_data.features, self.min_lag, self.max_lag, False)
-            fullg.sys_context = self.CM.sys_context
-            link_assumptions = fullg.build_link_assumptions()
-            # link_assumptions = fullg.dummy_link_assumptions()
+            # fullg = DAG(self.validator_data.features, self.min_lag, self.max_lag, False)
+            # fullg.sys_context = self.CM.sys_context
+            link_assumptions = self.JCI_assumptions()
             
         # calculate dependencies on selected links
         self.CM = self.run_validator(link_assumptions)
@@ -315,7 +361,7 @@ class CAnDOIT(CausalDiscoveryMethod):
                               cond_ind_test = self.val_condtest,
                               verbosity = 0)
         
-        _int_link_assumptions = self.val_method._set_link_assumptions(link_assumptions, min_lag, self.max_lag)
+        # _int_link_assumptions = self.val_method._set_link_assumptions(link_assumptions, min_lag, self.max_lag)
 
         # Set the maximum condition dimension for Y and X
         max_conds_py = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
@@ -325,7 +371,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         _int_parents = self.val_method._get_int_parents(dag.get_SCM(indexed = True))
 
         # Get the conditions as implied by the input arguments
-        links_tocheck = self.val_method._iter_indep_conds(_int_parents, _int_link_assumptions, max_conds_py, max_conds_px)
+        links_tocheck = self.val_method._iter_indep_conds(_int_parents, link_assumptions, max_conds_py, max_conds_px)
         for j, i, tau, Z in links_tocheck:
             if data.features[j] not in dag.autodep_nodes or j != i: continue
             else:

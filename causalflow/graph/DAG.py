@@ -98,55 +98,110 @@ class DAG():
                 
     
     
-    def build_link_assumptions(self):
+    # def build_link_assumptions(self):
 
-        # This describes what I know about my system
-        knowledge = {self.features.index(f): dict() for f in self.features}
+    #     # This describes what I know about my system
+    #     knowledge = {self.features.index(f): dict() for f in self.features}
         
-        # link context --> system variables
-        for sys, context in self.sys_context.items():
-            for tau_i in range(0, self.max_lag + 1):
-                if tau_i == 0:
-                    knowledge[self.features.index(sys)][(self.features.index(context), 0)] = '-->'
-                    knowledge[self.features.index(context)][(self.features.index(sys), 0)] = '<--'
-                else:
-                    knowledge[self.features.index(sys)][(self.features.index(context), -tau_i)] = ''
+    #     # link context --> system variables
+    #     for sys, context in self.sys_context.items():
+    #         for tau_i in range(0, self.max_lag + 1):
+    #             if tau_i == 0:
+    #                 knowledge[self.features.index(sys)][(self.features.index(context), 0)] = '-->'
+    #                 knowledge[self.features.index(context)][(self.features.index(sys), 0)] = '<--'
+    #             else:
+    #                 knowledge[self.features.index(sys)][(self.features.index(context), -tau_i)] = ''
             
-        # NO link context/system --> context variables for any time lag
-        for sys, context in self.sys_context.items():
-            for tau_i in range(0, self.max_lag + 1):
-                for v in self.features:
-                    if v == context and tau_i == 0: continue
-                    elif v == sys and tau_i == 0: continue
-                    knowledge[self.features.index(context)][(self.features.index(v), -tau_i)] = ''
+    #     # NO link context/system --> context variables for any time lag
+    #     for sys, context in self.sys_context.items():
+    #         for tau_i in range(0, self.max_lag + 1):
+    #             for v in self.features:
+    #                 if v == context and tau_i == 0: continue
+    #                 elif v == sys and tau_i == 0: continue
+    #                 knowledge[self.features.index(context)][(self.features.index(v), -tau_i)] = ''
                     
             
-        # NO link context --> other system variables for any time lag
-        # for sys, context in self.sys_context.items():
-        #     for j in range(len(self.features)):
-        #         if self.features[j] != sys and self.features[j] != context:
-        #             for tau_i in range(0, self.max_lag+1):
-        #                 knowledge[j][(self.features.index(context), -tau_i)] = ''
+    #     # NO link context --> other system variables for any time lag
+    #     # for sys, context in self.sys_context.items():
+    #     #     for j in range(len(self.features)):
+    #     #         if self.features[j] != sys and self.features[j] != context:
+    #     #             for tau_i in range(0, self.max_lag+1):
+    #     #                 knowledge[j][(self.features.index(context), -tau_i)] = ''
                         
-        # link between context variables o-o
-        for context_i in self.sys_context.values():
-            tmp = list(self.sys_context.values())
-            tmp.remove(context_i)
-            for context_j in tmp:
-                knowledge[self.features.index(context_i)][(self.features.index(context_j), 0)] = 'o-o'        
+    #     # link between context variables o-o
+    #     for context_i in self.sys_context.values():
+    #         tmp = list(self.sys_context.values())
+    #         tmp.remove(context_i)
+    #         for context_j in tmp:
+    #             knowledge[self.features.index(context_i)][(self.features.index(context_j), 0)] = 'o-o'        
         
         
-        out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
-            for i in range(len(self.features)) for tau_i in range(0, self.max_lag+1)
-            if (tau_i > 0 or i != j)} for j in range(len(self.features))}
+    #     out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
+    #         for i in range(len(self.features)) for tau_i in range(0, self.max_lag+1)
+    #         if (tau_i > 0 or i != j)} for j in range(len(self.features))}
 
-        for j, links_j in knowledge.items():
-            for (i, lag_i), link_ij in links_j.items():
-                if link_ij == "": 
-                    del out[j][(i, lag_i)]
-                else:
-                    out[j][(i, lag_i)] = link_ij
-        return out
+    #     for j, links_j in knowledge.items():
+    #         for (i, lag_i), link_ij in links_j.items():
+    #             if link_ij == "": 
+    #                 del out[j][(i, lag_i)]
+    #             else:
+    #                 out[j][(i, lag_i)] = link_ij
+    #     return out
+    
+    # def JCI_assumptions(self):
+
+    #     knowledge = {self.features.index(f): dict() for f in self.features}
+        
+    #     # ! JCI Assmpution 1: No system variable causes any context variable
+    #     for self.features
+    #     # ! JCI Assmpution 2: No context variable is confounded with a system variable
+        
+    #     # ! JCI Assmpution 3: The context distribution contains no (conditional) independences
+        
+    #     # link context --> system variales
+    #     for sys, context in self.sys_context.items():
+    #         for tau_i in range(0, self.max_lag + 1):
+    #             if tau_i == 0:
+    #                 knowledge[self.features.index(sys)][(self.features.index(context), 0)] = '-->'
+    #                 knowledge[self.features.index(context)][(self.features.index(sys), 0)] = '<--'
+    #             else:
+    #                 knowledge[self.features.index(sys)][(self.features.index(context), -tau_i)] = ''
+            
+    #     # NO link context/system --> context variables for any time lag
+    #     for sys, context in self.sys_context.items():
+    #         for tau_i in range(0, self.max_lag + 1):
+    #             for v in self.features:
+    #                 if v == context and tau_i == 0: continue
+    #                 elif v == sys and tau_i == 0: continue
+    #                 knowledge[self.features.index(context)][(self.features.index(v), -tau_i)] = ''
+                    
+            
+    #     # NO link context --> other system variables for any time lag
+    #     # for sys, context in self.sys_context.items():
+    #     #     for j in range(len(self.features)):
+    #     #         if self.features[j] != sys and self.features[j] != context:
+    #     #             for tau_i in range(0, self.max_lag+1):
+    #     #                 knowledge[j][(self.features.index(context), -tau_i)] = ''
+                        
+    #     # link between context variables o-o
+    #     for context_i in self.sys_context.values():
+    #         tmp = list(self.sys_context.values())
+    #         tmp.remove(context_i)
+    #         for context_j in tmp:
+    #             knowledge[self.features.index(context_i)][(self.features.index(context_j), 0)] = 'o-o'        
+        
+        
+    #     out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
+    #         for i in range(len(self.features)) for tau_i in range(0, self.max_lag+1)
+    #         if (tau_i > 0 or i != j)} for j in range(len(self.features))}
+
+    #     for j, links_j in knowledge.items():
+    #         for (i, lag_i), link_ij in links_j.items():
+    #             if link_ij == "": 
+    #                 del out[j][(i, lag_i)]
+    #             else:
+    #                 out[j][(i, lag_i)] = link_ij
+    #     return out
     
             
     def dummy_link_assumptions(self):
@@ -538,23 +593,6 @@ class DAG():
                     self.__add_edge(min_width, max_width, min_score, max_score, 
                                     edges, edge_width, arrows, r, t, s, 
                                     s[0], t)
-                    # edges.append((s[0], t))
-                    # edge_width[(s[0], t)] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
-                    
-                    # if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
-                    #     arrows[(s[0], t)] = {'h': True, 't': ''}
-                        
-                    # elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
-                    #     edges.append((t, s[0]))
-                    #     edge_width[(t, s[0])] = max(self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score), 0)
-                    #     arrows[(t, s[0])] = {'h': True, 't': ''}
-                    #     arrows[(s[0], t)] = {'h': True, 't': ''}
-                        
-                    # elif r.g[t].sources[s][TYPE] == LinkType.HalfUncertain.value:
-                    #     arrows[(s[0], t)] = {'h': True, 't': 'o'}
-                        
-                    # elif r.g[t].sources[s][TYPE] == LinkType.Uncertain.value:
-                    #     arrows[(s[0], t)] = {'h': False, 't': 'o'}
 
         G.add_edges_from(edges)
                 
@@ -587,7 +625,7 @@ class DAG():
                     node_alpha = 1,
                     
                     arrows = arrows,
-                    edge_layout = 'curved',
+                    edge_layout = 'arc',
                     edge_label = label_type != LabelType.NoLabels,
                     edge_labels = edge_label,
                     edge_label_fontdict = dict(size=font_size),
@@ -611,14 +649,15 @@ class DAG():
             
     def __add_edge(self, min_width, max_width, min_score, max_score, edges, edge_width, arrows, r, t, s, s_node, t_node):
         edges.append((s_node, t_node))
-        edge_width[(s_node, t_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+        score = r.g[t].sources[s][SCORE] if r.g[t].sources[s][SCORE] != float('inf') else 1
+        edge_width[(s_node, t_node)] = self.__scale(score, min_width, max_width, min_score, max_score)
         
         if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
             arrows[(s_node, t_node)] = {'h':'>', 't':''}
             
         elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
             edges.append((t_node, s_node))
-            edge_width[(t_node, s_node)] = self.__scale(r.g[t].sources[s][SCORE], min_width, max_width, min_score, max_score)
+            edge_width[(t_node, s_node)] = self.__scale(score, min_width, max_width, min_score, max_score)
             arrows[(t_node, s_node)] = {'h':'>', 't':''}
             arrows[(s_node, t_node)] = {'h':'>', 't':''}
             

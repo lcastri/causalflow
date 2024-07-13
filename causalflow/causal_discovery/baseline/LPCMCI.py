@@ -1,4 +1,5 @@
-from tigramite.lpcmci import LPCMCI as lpcmci
+# from tigramite.lpcmci import LPCMCI as lpcmci
+from causalflow.causal_discovery.tigramite.lpcmci import LPCMCI as lpcmci
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
 import numpy as np
@@ -7,6 +8,7 @@ from causalflow.basics.constants import *
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
+from tigramite.plotting import plot_time_series_graph
 
 class LPCMCI(CausalDiscoveryMethod):
     """
@@ -64,6 +66,8 @@ class LPCMCI(CausalDiscoveryMethod):
                                              pc_alpha = self.alpha)
         
         self.CM = self._to_DAG()
+        
+        plot_time_series_graph(self.result['graph'])
     
         if self.resfolder is not None: self.logger.close()
         return self.CM
