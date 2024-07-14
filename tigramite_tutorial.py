@@ -7,6 +7,7 @@ from tigramite import plotting as tp
 from tigramite.lpcmci import LPCMCI
 # from causalflow.causal_discovery.tigramite.lpcmci import LPCMCI
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
+from causalflow.causal_discovery.tigramite.independence_tests.parcorr import ParCorr as myParCorr
 from tigramite.independence_tests.parcorr import ParCorr
 from causalflow.CPrinter import CPLevel
 from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
@@ -16,6 +17,27 @@ from causalflow.selection_methods.TE import TE, TEestimator
 # from tigramite.independence_tests.gpdc import GPDC
 # from tigramite.independence_tests.cmiknn import CMIknn
 # from tigramite.independence_tests.cmisymb import CMIsymb
+
+
+
+def JCI_assumptions(N, tau_max):
+        
+  knowledge = {f: dict() for f in range(N)}
+  knowledge[0][(0, -1)] = '-->'             
+                                        
+  out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
+       for i in range(N) for tau_i in range(0, tau_max+1)
+       if (tau_i > 0 or i != j)} for j in range(N)}
+
+  for j, links_j in knowledge.items():
+      for (i, lag_i), link_ij in links_j.items():
+          if link_ij == "": 
+              del out[j][(i, lag_i)]
+          else:
+              out[j][(i, lag_i)] = link_ij
+  return out
+
+
 
 
 # Set a seed for reproducibility
@@ -87,6 +109,7 @@ lpcmci = LPCMCI(Data(data_obs, vars = var_names),
 
 # Run LPCMCI
 results = lpcmci.run()
+# results = lpcmci.run(link_assumptions=JCI_assumptions(N, tau_max))
 
 # Plot the learned time series DPAG
 # tp.plot_time_series_graph(graph=results['graph'],
@@ -141,7 +164,7 @@ candoit_lpcmci = CAnDOIT(Data(data_obs, vars = ['X_0', 'X_2', 'X_3']),
                          min_lag = 0, 
                          max_lag = tau_max, 
                          sel_method = TE(TEestimator.Gaussian), 
-                         val_condtest = parcorr,
+                         val_condtest = myParCorr(significance='analytic'),
                          verbosity = CPLevel.DEBUG,
                          neglect_only_autodep = True,
                          plot_data = False,

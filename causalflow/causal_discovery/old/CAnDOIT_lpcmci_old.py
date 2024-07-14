@@ -2,16 +2,14 @@ import copy
 import pickle
 import numpy as np
 import pandas as pd
-# from tigramite.independence_tests.independence_tests_base import CondIndTest
-from causalflow.causal_discovery.tigramite.independence_tests.independence_tests_base import CondIndTest
+from tigramite.independence_tests.independence_tests_base import CondIndTest
 from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.selection_methods.SelectionMethod import SelectionMethod
 from causalflow.CPrinter import CPLevel, CP
 from causalflow.basics.constants import *
-from causalflow.basics.utils import *
 from causalflow.preprocessing.data import Data 
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
-from causalflow.causal_discovery.myLPCMCI import LPCMCI
+from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI 
 from causalflow.graph.DAG import DAG
 from tigramite.pcmci import PCMCI
 import tigramite.data_processing as pp
@@ -63,8 +61,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         self.contexts = []
         self.sys_context = {}
         for k in intervention_data.keys():
-            self.contexts.append("C" + k)
-            self.sys_context[k] = "C" + k
+            self.contexts.append("C_" + k)
+            self.sys_context[k] = "C_" + k
         self.vars = self.systems + self.contexts
         
         self.f_alpha = f_alpha
@@ -103,7 +101,6 @@ class CAnDOIT(CausalDiscoveryMethod):
         # ! JCI Assmpution 1: No system variable causes any context variable
         # ! JCI Assmpution 2: No context variable is confounded with a system variable
         # ! JCI Assmpution 3: The context distribution contains no (conditional) independences
-        # ! Assmpution 4: context variables do not cause itself
 
         knowledge = {self.vars.index(f): dict() for f in self.vars}
         
@@ -116,49 +113,40 @@ class CAnDOIT(CausalDiscoveryMethod):
         # ! JCI Assmpution 2
         for k in self.contexts:
             for x in self.systems:
-                if x not in self.sys_context: 
-                    knowledge[self.vars.index(x)][(self.vars.index(k), '*')] = ''
-                else:
-                    knowledge[self.vars.index(x)][(self.vars.index(k), '*')] = '-->'
+                for tau_i in range(0, self.max_lag + 1):
+                    knowledge[self.vars.index(x)][(self.vars.index(k), -tau_i)] = ''
         
         # ! JCI Assmpution 3
+        # for k in self.contexts:
+        #     for tau_i in range(1, self.max_lag + 1):
+        #         knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '<->'
+                # knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = ''
         for k1 in self.contexts:
-            for k2 in remove_from_list(self.contexts, k1):
-                knowledge[self.vars.index(k)][(self.vars.index(k2), '*')] = '<->'
-        
-        # ! Assmpution 4
-        for k in self.contexts:
-            knowledge[self.vars.index(k)][(self.vars.index(k), '*')] = ''
-                          
-                          
-                                              
-        out = {}
-        for j in range(len(self.vars)):
-            inner_dict = {} 
-            
-            for i in range(len(self.systems)):
+            tmp = copy.deepcopy(self.contexts)
+            tmp.remove(k1)
+            for k2 in tmp:
                 for tau_i in range(0, self.max_lag + 1):
-                    if tau_i > 0 or i != j:
-                        value = "o?>" if tau_i > 0 else "o?o"
-                        inner_dict[(i, -tau_i)] = value
-                       
-            # if self.vars[j] in self.sys_context.keys():
-            for i in range(len(self.contexts)):
-                inner_dict[(len(self.systems) + i, '*')] = "o?>"
-            
-            out[j] = inner_dict
+                    knowledge[self.vars.index(k)][(self.vars.index(k2), -tau_i)] = '<->'
+                                 
+        # link context --> system variales
+        for x, k in self.sys_context.items():
+            knowledge[self.vars.index(x)][(self.vars.index(k), 0)] = '-->'
+            knowledge[self.vars.index(k)][(self.vars.index(x), 0)] = '<--'  
+             
+        # ! Removing Autocorrelation of the interventional variables
+        # for x, _ in self.sys_context.items():
+        #     for tau_i in range(1, self.max_lag + 1):
+        #         knowledge[self.vars.index(x)][(self.vars.index(x), -tau_i)] = ''
+        
+        out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
+            for i in range(len(self.vars)) for tau_i in range(0, self.max_lag+1)
+            if (tau_i > 0 or i != j)} for j in range(len(self.vars))}
 
         for j, links_j in knowledge.items():
             for (i, lag_i), link_ij in links_j.items():
-            # for s in links_j.items():
-                # if isinstance(s[0], int):
-                #     i, link_ij = s
-                # else:
-                #     (i, lag_i), link_ij = s
-                #     i = (i, lag_i)
-                if link_ij == "":
+                if link_ij == "": 
                     del out[j][(i, lag_i)]
-                else: 
+                else:
                     out[j][(i, lag_i)] = link_ij
         return out
     
@@ -183,8 +171,9 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             DAG: causal model with context
         """
-        self.validator = LPCMCI(self.validator_data, self.systems, self.contexts, self.min_lag, self.max_lag, self.val_condtest, CP.verbosity, self.alpha)
+        self.validator = LPCMCI(self.validator_data, self.min_lag, self.max_lag, self.val_condtest, CP.verbosity, self.alpha)
         causal_model = self.validator.run(link_assumptions)
+        # causal_model = self.validator.run()
         causal_model.sys_context = self.CM.sys_context      
  
         # Auto-dependency Check

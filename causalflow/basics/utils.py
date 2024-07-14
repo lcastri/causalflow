@@ -1,3 +1,4 @@
+import copy
 import os
 from pathlib import Path
 from causalflow.basics.constants import *
@@ -29,3 +30,9 @@ def create_results_folder(resfolder):
     Creates results folder if doesn't exist
     """
     Path(resfolder).mkdir(parents=True, exist_ok=True)
+    
+    
+def remove_from_list(list: list(), item) -> list():
+    tmp = copy.deepcopy(list)
+    tmp.remove(item)
+    return tmp

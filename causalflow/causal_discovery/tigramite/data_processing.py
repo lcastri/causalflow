@@ -675,7 +675,10 @@ class DataFrame():
             vectorized_var = []
             for (var, lag) in varlag:
                 for (vector_var, vector_lag) in self.vector_vars[var]:
-                    vectorized_var.append((vector_var, vector_lag + lag))
+                    if lag != '*':
+                        vectorized_var.append((vector_var, vector_lag + lag))
+                    else:
+                        vectorized_var.append((vector_var, vector_lag))
             return vectorized_var
 
 
