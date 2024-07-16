@@ -15,8 +15,9 @@ class LPCMCI(CausalDiscoveryMethod):
     LPCMCI causal discovery method.
     """
     def __init__(self, 
-                 data: Data, 
+                 data: Data,
                  min_lag, max_lag, 
+                 sys_context,
                  val_condtest: CondIndTest, 
                  verbosity: CPLevel,
                  alpha = 0.05, 
@@ -45,8 +46,9 @@ class LPCMCI(CausalDiscoveryMethod):
         
         # init pcmci
         self.lpcmci = lpcmci(dataframe = pp.DataFrame(data = d, var_names = data.features),
-                           cond_ind_test = val_condtest,
-                           verbosity = verbosity.value)
+                             sys_context = sys_context,
+                             cond_ind_test = val_condtest,
+                             verbosity = verbosity.value)
         
 
     def run(self, link_assumptions = None) -> DAG:

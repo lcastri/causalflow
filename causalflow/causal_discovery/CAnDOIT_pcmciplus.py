@@ -61,8 +61,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         self.contexts = []
         self.sys_context = {}
         for k in intervention_data.keys():
-            self.contexts.append("C_" + k)
-            self.sys_context[k] = "C_" + k
+            self.contexts.append("C" + k)
+            self.sys_context[k] = "C" + k
         self.vars = self.systems + self.contexts
         
         self.f_alpha = f_alpha

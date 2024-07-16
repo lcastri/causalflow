@@ -1,6 +1,7 @@
 import numpy as np
 from itertools import product, combinations
 from copy import deepcopy
+from itertools import combinations
 
 from .pcmci_base import PCMCIbase
 
@@ -170,7 +171,7 @@ class LPCMCI(PCMCIbase):
     as '+'.
     """
 
-    def __init__(self, dataframe, cond_ind_test, verbosity = 0):
+    def __init__(self, dataframe, sys_context, cond_ind_test, verbosity = 0):
         """Class constructor. Store:
                 i)      data
                 ii)     conditional independence test object
@@ -180,6 +181,8 @@ class LPCMCI(PCMCIbase):
         PCMCIbase.__init__(self, dataframe=dataframe, 
                         cond_ind_test=cond_ind_test,
                         verbosity=verbosity)
+        self.sys_context = sys_context
+
 
     def run_lpcmci(self,
                     link_assumptions = None,
@@ -700,6 +703,56 @@ class LPCMCI(PCMCIbase):
                     self.pval_max[j][(i, lag_i)] = np.inf
                     self.pval_max_val[j][(i, lag_i)] = -np.inf
                     self.pval_max_card[j][(i, lag_i)] = np.inf
+                    
+    # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
+    def _test_context(self, X, Y, Z, S_pc, S_default):
+        if self.verbosity > 1:
+            print(f"\tcontext test")
+    
+        S_context = [(s, -tau_i) for s in self.sys_context.keys() for tau_i in range(0, self.tau_max + 1) if (self.var_names.index(s), -tau_i) != X and (self.var_names.index(s), -tau_i) != Y]
+        max_attempt = len(S_context)
+        for r in range(0, max_attempt):
+            for combo in combinations(S_context, r+1):
+                Z_s = set()
+                Z_c = set()
+                newS_pc = deepcopy(S_pc)
+                for s in combo:
+                    s_idx = (self.var_names.index(s[0]), s[1])
+                    c_idx = (self.var_names.index(self.sys_context[s[0]]), s[1])
+                    if s_idx == X or s_idx == Y: continue
+                    if s_idx in Z: continue
+                    Z_s.add(s_idx)
+                    Z_c.add(c_idx)
+                    newS_pc = newS_pc + (s_idx,)
+                    newS_pc = newS_pc + (c_idx,)
+                    
+                    newZ = Z.union(Z_s).union(Z_c)
+                
+                if len(Z_s) == 0 and len(Z_c) == 0: continue
+                
+                # Test conditional independence of X and Y given Z
+                val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(newZ), 
+                    tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
+
+                if self.verbosity >= 2:
+                    Xp = (self.var_names[X[0]], X[1])
+                    Yp = (self.var_names[Y[0]], Y[1])
+                    S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default])
+
+                    S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in newS_pc])
+                    print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
+                    print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
+                    if not dependent: print(f"\t  independent")
+
+                # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
+                # values and conditioning set cardinalities
+                self._update_pval_val_card_dicts(X, Y, pval, val, len(Z))
+
+                # Check whether test result was significant
+                if not dependent and self.break_once_separated: # pval > self.pc_alpha:
+                    return False, newZ
+        return True, None
+    # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
 
     def _run_ancestral_removal_phase(self, prelim = False):
         """Run an ancestral edge removal phase, this is Algorithm S2"""
@@ -779,7 +832,9 @@ class LPCMCI(PCMCIbase):
                     # Get the current link
                     link = self._get_link(X, Y)
                     if self.verbosity > 1:
-                        print(f"\nLink {X} {link} {Y} ")
+                        Xp = (self.var_names[X[0]], X[1])
+                        Yp = (self.var_names[Y[0]], Y[1])
+                        print(f"\nLink {Xp} {link} {Yp} ")
 
                     # Moreover exclude the current link if ...
                     # ... X and Y are not adjacent anymore
@@ -852,7 +907,7 @@ class LPCMCI(PCMCIbase):
                             S_search_YX = self._sort_search_set(S_search_YX, Y)
                         if test_X:
                             S_search_XY = self._sort_search_set(S_search_XY, X)
-
+                            
                     # Run through all cardinality p_pc subsets of S_search_YX
                     if test_Y:
 
@@ -866,14 +921,30 @@ class LPCMCI(PCMCIbase):
                             # Build the full conditioning set
                             Z = set(S_pc)
                             Z = Z.union(S_default_YX)
+                            
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # FIXME:  whenever there is a intervention (system) variable
+                            # FIXME:  add to the conditioning set also its intervention (context) variable
+                            Zadd = set()
+                            for z in Z:
+                                if self.var_names[z[0]] in self.sys_context:
+                                    c = self.sys_context[self.var_names[z[0]]]
+                                    Zadd.add((self.var_names.index(c), z[1]))
+                                    S_pc = S_pc + ((self.var_names.index(c), z[1]),)
+                            Z = Z.union(Zadd)
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
                             # Test conditional independence of X and Y given Z
                             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z), 
                                 tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                             if self.verbosity >= 2:
-                                # print(f"\t- is {X} ANC({Y})?\n\t  {X} ⊥ {Y} | S_def = {' '.join([str(z) for z in S_default_YX]) if len(S_default_YX) > 0 else str({})}, S_pc = {' '.join([str(z) for z in S_pc]) if len(S_pc) > 0 else str({})}\n\t  val = {round(val,2)} / pval = {round(pval,4)}")
-                                print(f"\t- {X} ⊥ {Y} | S_def = {str('{')}{' '.join([str(z) for z in S_default_YX])}{str('}')} U S_pc = {str('{')}{' '.join([str(z) for z in S_pc])}{str('}')}")
+                                Xp = (self.var_names[X[0]], X[1])
+                                Yp = (self.var_names[Y[0]], Y[1])
+                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default_YX])
+                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_pc])
+                                print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
                                 print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
                                 if not dependent: print(f"\t  independent")
 
@@ -894,6 +965,16 @@ class LPCMCI(PCMCIbase):
 
                                 if self.break_once_separated:
                                     break
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            else:
+                                if self.sys_context != []:
+                                    dependent, z = self._test_context(X, Y, Z, S_pc, S_default_YX)
+                                    if not dependent:
+                                        # Mark the edge from X to Y for removal and save sepset
+                                        to_remove[Y[0]][X] = True
+                                        self._save_sepset(X, Y, (frozenset(z), "wm"))
+                                        break
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
 
                     # Run through all cardinality p_pc subsets of S_search_XY
                     if test_X:
@@ -908,13 +989,30 @@ class LPCMCI(PCMCIbase):
                             # Build the full conditioning set
                             Z = set(S_pc)
                             Z = Z.union(S_default_XY)
+                            
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # FIXME:  whenever there is a intervention (system) variable
+                            # FIXME:  add to the conditioning set also its intervention (context) variable
+                            Zadd = set()
+                            for z in Z:
+                                if self.var_names[z[0]] in self.sys_context:
+                                    c = self.sys_context[self.var_names[z[0]]]
+                                    Zadd.add((self.var_names.index(c), z[1]))
+                                    S_pc = S_pc + ((self.var_names.index(c), z[1]),)
+                            Z = Z.union(Zadd)
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            
 
                             # Test conditional independence of X and Y given Z
                             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z), 
                                 tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                             if self.verbosity >= 2:
-                                print(f"\t- {X} ⊥ {Y} | S_def = {str('{')}{' '.join([str(z) for z in S_default_XY])}{str('}')} U S_pc = {str('{')}{' '.join([str(z) for z in S_pc])}{str('}')}")
+                                Xp = (self.var_names[X[0]], X[1])
+                                Yp = (self.var_names[Y[0]], Y[1])
+                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default_XY])
+                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_pc])
+                                print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
                                 print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
                                 if not dependent: print(f"\t  independent")
                                 # print(f"\t- is {Y} ANC({X})?\n\t  {X} ⊥ {Y} | S_def = {' '.join([str(z) for z in S_default_XY])}, S_pc = {' '.join([str(z) for z in S_pc])}\n\t  val = {round(val,2)} / pval = {round(pval,4)}")
@@ -936,7 +1034,18 @@ class LPCMCI(PCMCIbase):
 
                                 if self.break_once_separated:
                                     break
-
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            else:
+                                if self.sys_context != []:
+                                    dependent, z = self._test_context(X, Y, Z, S_pc, S_default_XY)
+                                    if not dependent:
+                                        # Mark the edge from X to Y for removal and save sepset
+                                        to_remove[Y[0]][X] = True
+                                        self._save_sepset(X, Y, (frozenset(z), "wm"))
+                                        break
+                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                 
+                            
+                            
                 # for pair in links
 
                 ##########################################################################################################
@@ -3136,7 +3245,7 @@ class LPCMCI(PCMCIbase):
         for j in range(self.N):
             for ((i, lag_i), link) in self.graph_dict[j].items():
                 if len(link) > 0 and (lag_i < 0 or i < j):
-                    print("({},{:2}) {} {}".format(i, lag_i, link, (j, 0)))
+                    print("({},{:2}) {} {}".format(self.var_names[i], lag_i, link, (self.var_names[j], 0)))
 
 
     def _get_link(self, A, B):
@@ -3231,9 +3340,7 @@ class LPCMCI(PCMCIbase):
         if lag_A < lag_B:
 
             if verbosity >= 1:
-                # print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_A, lag_A - lag_B, self.graph_dict[var_B][(var_A, lag_A - lag_B)], var_B, 0, var_A, lag_A - lag_B, new_link, var_B, 0))
-                print(f"Updating link ({var_A}, {lag_A - lag_B}) {self.graph_dict[var_B][(var_A, lag_A - lag_B)]} ({var_B}, 0) ==> ({var_A}, {lag_A - lag_B}) {new_link if new_link != '' else '   '} ({var_B}, 0)")
-                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_B][(var_A, lag_A - lag_B)], var_A, lag_A - lag_B, (var_B, 0), new_link))
+                print(f"Updating link ({self.var_names[var_A]}, {lag_A - lag_B}) {self.graph_dict[var_B][(var_A, lag_A - lag_B)]} ({self.var_names[var_B]}, 0) ==> ({self.var_names[var_A]}, {lag_A - lag_B}) {new_link if new_link != '' else '   '} ({self.var_names[var_B]}, 0)")
 
             self.graph_dict[var_B][(var_A, lag_A - lag_B)] = new_link
 
@@ -3241,12 +3348,8 @@ class LPCMCI(PCMCIbase):
         elif lag_A == lag_B:
 
             if verbosity >= 1:
-                print(f"Updating link ({var_A}, 0) {self.graph_dict[var_B][(var_A, 0)]} ({var_B}, 0) ==> ({var_A}, 0) {new_link if new_link != '' else '   '} ({var_B}, 0)")
-                # print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_A, lag_A - lag_B, self.graph_dict[var_B][(var_A, 0)], var_B, 0, var_A, 0, new_link, var_B, 0))
-                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_B][(var_A, 0)], var_A, 0, (var_B, 0), new_link))
-                print(f"Updating link ({var_B}, 0) {self.graph_dict[var_A][(var_B, 0)]} ({var_A}, 0) ==> ({var_B}, 0) {self._reverse_link(new_link) if self._reverse_link(new_link) != '' else '   '} ({var_A}, 0)")
-                # print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_B, 0, self.graph_dict[var_A][(var_B, 0)], var_A, 0, var_B, 0, self._reverse_link(new_link), var_A, 0))
-                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_A][(var_B, 0)], var_B, 0, (var_A, 0), self._reverse_link(new_link)))
+                print(f"Updating link ({self.var_names[var_A]}, 0) {self.graph_dict[var_B][(var_A, 0)]} ({self.var_names[var_B]}, 0) ==> ({self.var_names[var_A]}, 0) {new_link if new_link != '' else '   '} ({self.var_names[var_B]}, 0)")
+                print(f"Updating link ({self.var_names[var_B]}, 0) {self.graph_dict[var_A][(var_B, 0)]} ({self.var_names[var_A]}, 0) ==> ({self.var_names[var_B]}, 0) {self._reverse_link(new_link) if self._reverse_link(new_link) != '' else '   '} ({self.var_names[var_A]}, 0)")
 
             self.graph_dict[var_B][(var_A, 0)] = new_link
             self.graph_dict[var_A][(var_B, 0)] = self._reverse_link(new_link)
@@ -3254,9 +3357,7 @@ class LPCMCI(PCMCIbase):
         else:
 
             if verbosity >= 1:
-                print(f"Updating link ({var_B}, {lag_B - lag_A}) {self.graph_dict[var_A][(var_B, lag_B - lag_A)]} ({var_A}, 0) ==> ({var_B}, {lag_B - lag_A}) {self._reverse_link(new_link) if self._reverse_link(new_link) != '' else '   '} ({var_A}, 0)")
-                # print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_B, lag_B - lag_A, self.graph_dict[var_A][(var_B, lag_B - lag_A)], var_A, 0, var_B, lag_B - lag_A, self._reverse_link(new_link), var_A, 0))
-                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_A][(var_B, lag_B - lag_A)], var_B, lag_B - lag_A, (var_A, 0), self._reverse_link(new_link)))
+                print(f"Updating link ({self.var_names[var_B]}, {lag_B - lag_A}) {self.graph_dict[var_A][(var_B, lag_B - lag_A)]} ({self.var_names[var_A]}, 0) ==> ({self.var_names[var_B]}, {lag_B - lag_A}) {self._reverse_link(new_link) if self._reverse_link(new_link) != '' else '   '} ({self.var_names[var_A]}, 0)")
 
             self.graph_dict[var_A][(var_B, lag_B - lag_A)] = self._reverse_link(new_link)
 
@@ -3269,6 +3370,14 @@ class LPCMCI(PCMCIbase):
 
         def _shift(Z, lag_B):
             return frozenset([(var, lag + lag_B) for (var, lag) in Z])
+        # def _shift(Z, lag_B):
+        #     s = []
+        #     for (var, lag) in Z:
+        #         s.append((var, lag + lag_B))
+        #         if self.var_names[var] in self.sys_context:
+        #             s.append((self.var_names[self.sys_context[self.var_names[var]]], lag + lag_B))
+                    
+        #     return frozenset(s)
 
         if lag_A < lag_B:
             out = {(_shift(Z, lag_B), status) for (Z, status) in self.sepsets[var_B][(var_A, lag_A - lag_B)]}

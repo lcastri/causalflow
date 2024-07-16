@@ -11,7 +11,7 @@ from causalflow.basics.constants import *
 from causalflow.basics.utils import *
 from causalflow.preprocessing.data import Data 
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
-from causalflow.causal_discovery.myLPCMCI import LPCMCI
+from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 from causalflow.graph.DAG import DAG
 from tigramite.pcmci import PCMCI
 import tigramite.data_processing as pp
@@ -116,19 +116,24 @@ class CAnDOIT(CausalDiscoveryMethod):
         # ! JCI Assmpution 2
         for k in self.contexts:
             for x in self.systems:
-                if x not in self.sys_context: 
-                    knowledge[self.vars.index(x)][(self.vars.index(k), '*')] = ''
-                else:
-                    knowledge[self.vars.index(x)][(self.vars.index(k), '*')] = '-->'
+                if x not in self.sys_context or (x in self.sys_context and k != self.sys_context[x]):
+                    for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(x)][(self.vars.index(k), -tau_i)] = ''
+                elif x in self.sys_context and k == self.sys_context[x]:
+                    knowledge[self.vars.index(x)][(self.vars.index(k), 0)] = '-->'
+                    knowledge[self.vars.index(k)][(self.vars.index(x), 0)] = '<--'
+                    for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(x)][(self.vars.index(k), -tau_i)] = ''
+                    for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(x), -tau_i)] = ''
         
         # ! JCI Assmpution 3
         for k1 in self.contexts:
             for k2 in remove_from_list(self.contexts, k1):
-                knowledge[self.vars.index(k)][(self.vars.index(k2), '*')] = '<->'
+                for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k2), -tau_i)] = '<->'
         
         # ! Assmpution 4
         for k in self.contexts:
-            knowledge[self.vars.index(k)][(self.vars.index(k), '*')] = ''
+            # for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = ''
+            for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '<->'
+        
                           
                           
                                               
@@ -136,26 +141,20 @@ class CAnDOIT(CausalDiscoveryMethod):
         for j in range(len(self.vars)):
             inner_dict = {} 
             
-            for i in range(len(self.systems)):
+            for i in range(len(self.vars)):
                 for tau_i in range(0, self.max_lag + 1):
                     if tau_i > 0 or i != j:
                         value = "o?>" if tau_i > 0 else "o?o"
                         inner_dict[(i, -tau_i)] = value
                        
             # if self.vars[j] in self.sys_context.keys():
-            for i in range(len(self.contexts)):
-                inner_dict[(len(self.systems) + i, '*')] = "o?>"
+            # for i in range(len(self.contexts)):
+            #     inner_dict[(len(self.systems) + i, '*')] = "o?>"
             
             out[j] = inner_dict
 
         for j, links_j in knowledge.items():
             for (i, lag_i), link_ij in links_j.items():
-            # for s in links_j.items():
-                # if isinstance(s[0], int):
-                #     i, link_ij = s
-                # else:
-                #     (i, lag_i), link_ij = s
-                #     i = (i, lag_i)
                 if link_ij == "":
                     del out[j][(i, lag_i)]
                 else: 
@@ -183,7 +182,14 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             DAG: causal model with context
         """
-        self.validator = LPCMCI(self.validator_data, self.systems, self.contexts, self.min_lag, self.max_lag, self.val_condtest, CP.verbosity, self.alpha)
+        self.validator = LPCMCI(self.validator_data,
+                                self.min_lag, self.max_lag,
+                                # self.systems, self.contexts, self.sys_context,
+                                self.sys_context,
+                                self.val_condtest,
+                                CP.verbosity,
+                                self.alpha)
+        # causal_model = self.validator.run()
         causal_model = self.validator.run(link_assumptions)
         causal_model.sys_context = self.CM.sys_context      
  
@@ -327,6 +333,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             self.CM.sys_context[int_var] = context_varname
             
             # Create context variable data
+            # context_data = np.ones(shape=int_data.d[int_var].shape)
             context_data = int_data.d[int_var]
             context_start = len(validator_data)
             context_end = context_start + len(context_data)
