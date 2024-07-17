@@ -704,55 +704,55 @@ class LPCMCI(PCMCIbase):
                     self.pval_max_val[j][(i, lag_i)] = -np.inf
                     self.pval_max_card[j][(i, lag_i)] = np.inf
                     
-    # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
-    def _test_context(self, X, Y, Z, S_pc, S_default):
-        if self.verbosity > 1:
-            print(f"\tcontext test")
+    # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
+    # def _test_context(self, X, Y, Z, S_pc, S_default):
+    #     if self.verbosity > 1:
+    #         print(f"\tcontext test")
     
-        S_context = [(s, -tau_i) for s in self.sys_context.keys() for tau_i in range(0, self.tau_max + 1) if (self.var_names.index(s), -tau_i) != X and (self.var_names.index(s), -tau_i) != Y]
-        max_attempt = len(S_context)
-        for r in range(0, max_attempt):
-            for combo in combinations(S_context, r+1):
-                Z_s = set()
-                Z_c = set()
-                newS_pc = deepcopy(S_pc)
-                for s in combo:
-                    s_idx = (self.var_names.index(s[0]), s[1])
-                    c_idx = (self.var_names.index(self.sys_context[s[0]]), s[1])
-                    if s_idx == X or s_idx == Y: continue
-                    if s_idx in Z: continue
-                    Z_s.add(s_idx)
-                    Z_c.add(c_idx)
-                    newS_pc = newS_pc + (s_idx,)
-                    newS_pc = newS_pc + (c_idx,)
+    #     S_context = [(s, -tau_i) for s in self.sys_context.keys() for tau_i in range(0, self.tau_max + 1) if (self.var_names.index(s), -tau_i) != X and (self.var_names.index(s), -tau_i) != Y]
+    #     max_attempt = len(S_context)
+    #     for r in range(0, max_attempt):
+    #         for combo in combinations(S_context, r+1):
+    #             Z_s = set()
+    #             Z_c = set()
+    #             newS_pc = deepcopy(S_pc)
+    #             for s in combo:
+    #                 s_idx = (self.var_names.index(s[0]), s[1])
+    #                 c_idx = (self.var_names.index(self.sys_context[s[0]]), s[1])
+    #                 if s_idx == X or s_idx == Y: continue
+    #                 if s_idx in Z: continue
+    #                 Z_s.add(s_idx)
+    #                 Z_c.add(c_idx)
+    #                 newS_pc = newS_pc + (s_idx,)
+    #                 newS_pc = newS_pc + (c_idx,)
                     
-                    newZ = Z.union(Z_s).union(Z_c)
+    #                 newZ = Z.union(Z_s).union(Z_c)
                 
-                if len(Z_s) == 0 and len(Z_c) == 0: continue
+    #             if len(Z_s) == 0 and len(Z_c) == 0: continue
                 
-                # Test conditional independence of X and Y given Z
-                val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(newZ), 
-                    tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
+    #             # Test conditional independence of X and Y given Z
+    #             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(newZ), 
+    #                 tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
-                if self.verbosity >= 2:
-                    Xp = (self.var_names[X[0]], X[1])
-                    Yp = (self.var_names[Y[0]], Y[1])
-                    S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default])
+    #             if self.verbosity >= 2:
+    #                 Xp = (self.var_names[X[0]], X[1])
+    #                 Yp = (self.var_names[Y[0]], Y[1])
+    #                 S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default])
 
-                    S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in newS_pc])
-                    print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
-                    print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
-                    if not dependent: print(f"\t  independent")
+    #                 S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in newS_pc])
+    #                 print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
+    #                 print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
+    #                 if not dependent: print(f"\t  independent")
 
-                # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
-                # values and conditioning set cardinalities
-                self._update_pval_val_card_dicts(X, Y, pval, val, len(Z))
+    #             # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
+    #             # values and conditioning set cardinalities
+    #             self._update_pval_val_card_dicts(X, Y, pval, val, len(Z))
 
-                # Check whether test result was significant
-                if not dependent and self.break_once_separated: # pval > self.pc_alpha:
-                    return False, newZ
-        return True, None
-    # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
+    #             # Check whether test result was significant
+    #             if not dependent and self.break_once_separated: # pval > self.pc_alpha:
+    #                 return False, newZ
+    #     return True, None
+    # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
 
     def _run_ancestral_removal_phase(self, prelim = False):
         """Run an ancestral edge removal phase, this is Algorithm S2"""
@@ -922,11 +922,11 @@ class LPCMCI(PCMCIbase):
                             Z = set(S_pc)
                             Z = Z.union(S_default_YX)
                             
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # FIXME:  whenever there is a intervention (system) variable
-                            # FIXME:  add to the conditioning set also ALL intervention (context) variable
-                            # FIXME:  this is to model the context variable at different time steps as a single
-                            # FIXME:  as a single context variables that confounds all the system variables 
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # !  whenever there is a intervention (system) variable
+                            # !  add to the conditioning set also ALL its intervention (context) variables
+                            # !  this is to model the context variable at different time steps as a single
+                            # !  context variable that confounds all the system variables 
                             Zadd = set()
                             for z in Z:
                                 if self.var_names[z[0]] in self.sys_context:
@@ -934,10 +934,8 @@ class LPCMCI(PCMCIbase):
                                     for tau_i in range(self.tau_max + 1):
                                         Zadd.add((self.var_names.index(c), -tau_i))
                                         S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
-                                    # Zadd.add((self.var_names.index(c), z[1]))
-                                    # S_pc = S_pc + ((self.var_names.index(c), z[1]),)
                             Z = Z.union(Zadd)
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
                             # Test conditional independence of X and Y given Z
@@ -995,22 +993,11 @@ class LPCMCI(PCMCIbase):
                             Z = set(S_pc)
                             Z = Z.union(S_default_XY)
                             
-                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # # FIXME:  whenever there is a intervention (system) variable
-                            # # FIXME:  add to the conditioning set also its intervention (context) variable
-                            # Zadd = set()
-                            # for z in Z:
-                            #     if self.var_names[z[0]] in self.sys_context:
-                            #         c = self.sys_context[self.var_names[z[0]]]
-                            #         Zadd.add((self.var_names.index(c), z[1]))
-                            #         S_pc = S_pc + ((self.var_names.index(c), z[1]),)
-                            # Z = Z.union(Zadd)
-                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # FIXME:  whenever there is a intervention (system) variable
-                            # FIXME:  add to the conditioning set also ALL intervention (context) variable
-                            # FIXME:  this is to model the context variable at different time steps as a single
-                            # FIXME:  as a single context variables that confounds all the system variables 
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # !  whenever there is a intervention (system) variable
+                            # !  add to the conditioning set also ALL its intervention (context) variables
+                            # !  this is to model the context variable at different time steps as a single
+                            # !  as a single context variables that confounds all the system variables 
                             Zadd = set()
                             for z in Z:
                                 if self.var_names[z[0]] in self.sys_context:
@@ -1018,10 +1005,8 @@ class LPCMCI(PCMCIbase):
                                     for tau_i in range(self.tau_max):
                                         Zadd.add((self.var_names.index(c), -tau_i))
                                         S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
-                                    # Zadd.add((self.var_names.index(c), z[1]))
-                                    # S_pc = S_pc + ((self.var_names.index(c), z[1]),)
                             Z = Z.union(Zadd)
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             
 
                             # Test conditional independence of X and Y given Z

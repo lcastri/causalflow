@@ -128,6 +128,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             for k2 in remove_from_list(self.contexts, k1):
                 for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k2), -tau_i)] = '<->'
         
+        # ! This models the context variables as chain across different time steps
         for k in self.contexts:
             knowledge[self.vars.index(k)][(self.vars.index(k), -1)] = '-->'
         
