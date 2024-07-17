@@ -25,11 +25,6 @@ for t in range(tau_max, nsample_obs):
   d[t, 0] += 0.9 * d[t-1, 0] + 0.6 * d[t, 1]
   d[t, 2] += 0.9 * d[t-1, 2] + 0.4 * d[t-1, 1]
   d[t, 3] += 0.9 * d[t-1, 3] -0.5 * d[t-2, 2]
-# d = np.random.random(size = (nsample_obs, nfeature))
-# for t in range(tau_max, nsample_obs):
-#   d[t, 0] += 0.9 * d[t-1, 0] + 0.6 * d[t-1, 1] + 0.4 * d[t, 2]
-#   d[t, 2] += 0.9 * d[t-1, 3] + 0.4 * d[t-1, 1]
-#   d[t, 3] += 0.9 * d[t-1, 3]
 
 # Remove the unobserved component time series
 # data_obs = d
@@ -78,24 +73,18 @@ int_data = dict()
 # X_0
 d_int0 = np.random.random(size = (nsample_int, nfeature))
 d_int0[0:tau_max, :] = d[len(d)-tau_max:,:]
-# d_int0[:, 0] = 3 * np.ones(shape = (nsample_int,)) 
-d_int0[:, 2] = 3 * np.ones(shape = (nsample_int,)) 
-# d_int0[:, 1] = 3 * np.ones(shape = (nsample_int,)) 
+d_int0[:, 0] = 3 * np.ones(shape = (nsample_int,)) 
+# d_int0[:, 2] = 3 * np.ones(shape = (nsample_int,)) 
 for t in range(tau_max, nsample_int):
-    d_int0[t, 0] += 0.9 * d_int0[t-1, 0] + 0.6 * d_int0[t, 1]
-    # d_int0[t, 2] += 0.9 * d_int0[t-1, 2] + 0.4 * d_int0[t-1, 1]
+    # d_int0[t, 0] += 0.9 * d_int0[t-1, 0] + 0.6 * d_int0[t, 1]
+    d_int0[t, 2] += 0.9 * d_int0[t-1, 2] + 0.4 * d_int0[t-1, 1]
     d_int0[t, 3] += 0.9 * d_int0[t-1, 3] -0.5 * d_int0[t-2, 2]
-# for t in range(tau_max, nsample_int):
-#   # d[t, 0] += 0.9 * d[t-1, 0] + 0.6 * d[t-1, 1] + 0.4 * d[t, 2]
-#   d[t, 2] += 0.9 * d[t-1, 3] + 0.4 * d[t-1, 1]
-#   d[t, 3] += 0.9 * d[t-1, 3]
         
 data_int = d_int0
 data_int = d_int0[:, [0, 2, 3]]
 df_int = Data(data_int, vars = var_names)
-# int_data['X_0'] =  df_int
-int_data['X_2'] =  df_int
-# int_data['X_1'] =  df_int
+int_data['X_0'] =  df_int
+# int_data['X_2'] =  df_int
 # int_data = {}
 
 
