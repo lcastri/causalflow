@@ -103,7 +103,6 @@ class CAnDOIT(CausalDiscoveryMethod):
         # ! JCI Assmpution 1: No system variable causes any context variable
         # ! JCI Assmpution 2: No context variable is confounded with a system variable
         # ! JCI Assmpution 3: The context distribution contains no (conditional) independences
-        # ! Assmpution 4: context variables do not cause itself
 
         knowledge = {self.vars.index(f): dict() for f in self.vars}
         
@@ -129,13 +128,11 @@ class CAnDOIT(CausalDiscoveryMethod):
             for k2 in remove_from_list(self.contexts, k1):
                 for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k2), -tau_i)] = '<->'
         
-        # ! Assmpution 4
         for k in self.contexts:
-            # for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = ''
-            for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '<->'
+            knowledge[self.vars.index(k)][(self.vars.index(k), -1)] = '-->'
         
                           
-                          
+                
                                               
         out = {}
         for j in range(len(self.vars)):
@@ -146,11 +143,7 @@ class CAnDOIT(CausalDiscoveryMethod):
                     if tau_i > 0 or i != j:
                         value = "o?>" if tau_i > 0 else "o?o"
                         inner_dict[(i, -tau_i)] = value
-                       
-            # if self.vars[j] in self.sys_context.keys():
-            # for i in range(len(self.contexts)):
-            #     inner_dict[(len(self.systems) + i, '*')] = "o?>"
-            
+                           
             out[j] = inner_dict
 
         for j, links_j in knowledge.items():
@@ -184,12 +177,10 @@ class CAnDOIT(CausalDiscoveryMethod):
         """
         self.validator = LPCMCI(self.validator_data,
                                 self.min_lag, self.max_lag,
-                                # self.systems, self.contexts, self.sys_context,
                                 self.sys_context,
                                 self.val_condtest,
                                 CP.verbosity,
                                 self.alpha)
-        # causal_model = self.validator.run()
         causal_model = self.validator.run(link_assumptions)
         causal_model.sys_context = self.CM.sys_context      
  

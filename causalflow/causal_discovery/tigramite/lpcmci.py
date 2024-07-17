@@ -924,13 +924,18 @@ class LPCMCI(PCMCIbase):
                             
                             # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             # FIXME:  whenever there is a intervention (system) variable
-                            # FIXME:  add to the conditioning set also its intervention (context) variable
+                            # FIXME:  add to the conditioning set also ALL intervention (context) variable
+                            # FIXME:  this is to model the context variable at different time steps as a single
+                            # FIXME:  as a single context variables that confounds all the system variables 
                             Zadd = set()
                             for z in Z:
                                 if self.var_names[z[0]] in self.sys_context:
                                     c = self.sys_context[self.var_names[z[0]]]
-                                    Zadd.add((self.var_names.index(c), z[1]))
-                                    S_pc = S_pc + ((self.var_names.index(c), z[1]),)
+                                    for tau_i in range(self.tau_max + 1):
+                                        Zadd.add((self.var_names.index(c), -tau_i))
+                                        S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
+                                    # Zadd.add((self.var_names.index(c), z[1]))
+                                    # S_pc = S_pc + ((self.var_names.index(c), z[1]),)
                             Z = Z.union(Zadd)
                             # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -965,16 +970,16 @@ class LPCMCI(PCMCIbase):
 
                                 if self.break_once_separated:
                                     break
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            else:
-                                if self.sys_context != []:
-                                    dependent, z = self._test_context(X, Y, Z, S_pc, S_default_YX)
-                                    if not dependent:
-                                        # Mark the edge from X to Y for removal and save sepset
-                                        to_remove[Y[0]][X] = True
-                                        self._save_sepset(X, Y, (frozenset(z), "wm"))
-                                        break
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
+                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # else:
+                            #     if self.sys_context != []:
+                            #         dependent, z = self._test_context(X, Y, Z, S_pc, S_default_YX)
+                            #         if not dependent:
+                            #             # Mark the edge from X to Y for removal and save sepset
+                            #             to_remove[Y[0]][X] = True
+                            #             self._save_sepset(X, Y, (frozenset(z), "wm"))
+                            #             break
+                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
 
                     # Run through all cardinality p_pc subsets of S_search_XY
                     if test_X:
@@ -990,15 +995,31 @@ class LPCMCI(PCMCIbase):
                             Z = set(S_pc)
                             Z = Z.union(S_default_XY)
                             
+                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # # FIXME:  whenever there is a intervention (system) variable
+                            # # FIXME:  add to the conditioning set also its intervention (context) variable
+                            # Zadd = set()
+                            # for z in Z:
+                            #     if self.var_names[z[0]] in self.sys_context:
+                            #         c = self.sys_context[self.var_names[z[0]]]
+                            #         Zadd.add((self.var_names.index(c), z[1]))
+                            #         S_pc = S_pc + ((self.var_names.index(c), z[1]),)
+                            # Z = Z.union(Zadd)
+                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             # FIXME:  whenever there is a intervention (system) variable
-                            # FIXME:  add to the conditioning set also its intervention (context) variable
+                            # FIXME:  add to the conditioning set also ALL intervention (context) variable
+                            # FIXME:  this is to model the context variable at different time steps as a single
+                            # FIXME:  as a single context variables that confounds all the system variables 
                             Zadd = set()
                             for z in Z:
                                 if self.var_names[z[0]] in self.sys_context:
                                     c = self.sys_context[self.var_names[z[0]]]
-                                    Zadd.add((self.var_names.index(c), z[1]))
-                                    S_pc = S_pc + ((self.var_names.index(c), z[1]),)
+                                    for tau_i in range(self.tau_max):
+                                        Zadd.add((self.var_names.index(c), -tau_i))
+                                        S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
+                                    # Zadd.add((self.var_names.index(c), z[1]))
+                                    # S_pc = S_pc + ((self.var_names.index(c), z[1]),)
                             Z = Z.union(Zadd)
                             # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             
@@ -1034,16 +1055,16 @@ class LPCMCI(PCMCIbase):
 
                                 if self.break_once_separated:
                                     break
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            else:
-                                if self.sys_context != []:
-                                    dependent, z = self._test_context(X, Y, Z, S_pc, S_default_XY)
-                                    if not dependent:
-                                        # Mark the edge from X to Y for removal and save sepset
-                                        to_remove[Y[0]][X] = True
-                                        self._save_sepset(X, Y, (frozenset(z), "wm"))
-                                        break
-                            # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                 
+                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # else:
+                            #     if self.sys_context != []:
+                            #         dependent, z = self._test_context(X, Y, Z, S_pc, S_default_XY)
+                            #         if not dependent:
+                            #             # Mark the edge from X to Y for removal and save sepset
+                            #             to_remove[Y[0]][X] = True
+                            #             self._save_sepset(X, Y, (frozenset(z), "wm"))
+                            #             break
+                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                 
                             
                             
                 # for pair in links
