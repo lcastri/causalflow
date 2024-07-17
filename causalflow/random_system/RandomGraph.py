@@ -23,13 +23,13 @@ class PriorityOp(Enum):
     D = '/'
     
 
-class RandomDAG:
+class RandomGraph:
     def __init__(self, nvars, nsamples, link_density, coeff_range: tuple, 
                  min_lag, max_lag, max_exp = None, noise_config: tuple = None, 
                  operators = ['+', '-', '*'], 
                  functions = ['','sin', 'cos', 'exp', 'abs', 'pow'],
                  n_hidden_confounders = 0,
-                 n_confounded = None):
+                 n_confounded_vars = None):
         """
         RandomDAG constructor
 
@@ -60,7 +60,7 @@ class RandomDAG:
         self.min_lag = min_lag
         self.max_lag = max_lag
         self.n_hidden_confounders = n_hidden_confounders
-        self.n_confounded = n_confounded
+        self.n_confounded = n_confounded_vars
         
         self.obsVar = ['X_' + str(i) for i in range(nvars)]
         self.hiddenVar = ['H_' + str(i) for i in range(n_hidden_confounders)]
@@ -68,8 +68,9 @@ class RandomDAG:
         self.functions = functions
         self.equations = {var: list() for var in self.obsVar + self.hiddenVar}
         self.confounders = {h: list() for h in self.hiddenVar}
-        self.potentialIntervention = {h: {'type': None, 'vars': list()} for h in self.hiddenVar}
+        # self.potentialIntervention = {h: {'type': None, 'vars': list()} for h in self.hiddenVar}
         self.dependency_graph = {var: set() for var in self.obsVar + self.hiddenVar}
+        self.PAG = None
 
         self.noise_config = noise_config
         self.noise = None
@@ -227,12 +228,10 @@ class RandomDAG:
             n_confounded = random.randint(2, self.Nobs) if self.n_confounded is None else self.n_confounded 
             
             if isContemporaneous:
-                self.potentialIntervention[hid]['type'] = 'contemporaneous'
-                # I need to do the same here for variables confounded contemporaneously
+                # self.potentialIntervention[hid]['type'] = 'contemporaneous'
                 lag = random.randint(self.min_lag, self.max_lag)
                 confVar = list()
                 while tmp_n_confounded < n_confounded:
-                #for _ in range(n_confounded):
                     variable = random.choice(firstvar_choice)
                     
                     if not self.__creates_cycle((variable, 0), (hid, lag)):
@@ -240,7 +239,7 @@ class RandomDAG:
                         firstvar_choice.remove(variable)
                         confVar.append(variable)
                                             
-                        self.potentialIntervention[hid]['vars'].append(variable)
+                        # self.potentialIntervention[hid]['vars'].append(variable)
                         
                         function = random.choice(self.functions)
                         coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
@@ -258,7 +257,7 @@ class RandomDAG:
                                 tmp = copy.deepcopy(confVar)
                                 tmp.remove(source)
                                 for target in tmp:
-                                    if (source, 0) in self.get_SCM()[target]:
+                                    if (source, 0) in self.get_Adj()[target]:
                                         self.equations[target] = list(filter(lambda item: item[3] != source and item[3] != 0, self.equations[target]))
                         self.equations[variable].append(term)
                     
@@ -271,10 +270,10 @@ class RandomDAG:
                     tmp = copy.deepcopy(confVar)
                     tmp.remove(source)
                     for target in tmp:
-                        if not (source, 0) in self.get_SCM()[target]:
+                        if not (source, 0) in self.get_Adj()[target]:
                             self.expected_bidirected_links.append({target: (source, 0)})
             else:    
-                self.potentialIntervention[hid]['type'] = 'lagged'  
+                # self.potentialIntervention[hid]['type'] = 'lagged'  
                 var_choice = copy.deepcopy(self.obsVar)
                 firstConf = True
                 source = None
@@ -282,7 +281,6 @@ class RandomDAG:
                 targets = list()
                 
                 while tmp_n_confounded < n_confounded:
-                # for _ in range(n_confounded):
                     if firstConf:
                         variable = random.choice(firstvar_choice)
                         lag = random.randint(self.min_lag, self.max_lag - 1)
@@ -296,7 +294,7 @@ class RandomDAG:
                         var_choice.remove(variable)
                         if firstConf:
                             firstvar_choice.remove(variable)
-                            self.potentialIntervention[hid]['vars'].append(variable)
+                            # self.potentialIntervention[hid]['vars'].append(variable)
                             firstConf = False
                             source = variable
                         else:
@@ -304,7 +302,7 @@ class RandomDAG:
                             
                             # NOTE: This is to remove the true link between confounded variable for ensuring 
                             # that the link due to the confounder is classified as spurious
-                            if (source, lag - sourceLag) in self.get_SCM()[variable]:
+                            if (source, lag - sourceLag) in self.get_Adj()[variable]:
                                 self.equations[variable] = list(filter(lambda item: item[3] != source and item[3] != lag - sourceLag, self.equations[variable]))
                         
                         function = random.choice(self.functions)
@@ -325,14 +323,14 @@ class RandomDAG:
                         
                 # Lagged bidirected links
                 for v in targets:
-                    if not (source, v[1] - sourceLag) in self.get_SCM()[v[0]]:
+                    if not (source, v[1] - sourceLag) in self.get_Adj()[v[0]]:
                         self.expected_bidirected_links.append({v[0]: (source, v[1] - sourceLag)})
                 # Contemporaneous bidirected links
                 for source in targets:
                     tmp = copy.deepcopy(targets)
                     tmp.remove(source)
                     for target in tmp:
-                        if not (source, 0) in self.get_SCM()[target[0]]:
+                        if not (source, 0) in self.get_Adj()[target[0]]:
                             self.expected_bidirected_links.append({target[0]: (source[0], 0)})
 
 
@@ -487,7 +485,7 @@ class RandomDAG:
         return data
     
     
-    def gen_interv_ts(self, interventions):
+    def gen_interv_ts(self, interventions, obs):
         """
         Generates time-series corresponding to intervention(s)
 
@@ -497,7 +495,7 @@ class RandomDAG:
         Returns:
             Data: interventional time-series data
         """
-                
+        starting_point = obs
         int_data = dict()
         for int_var in interventions:
             T = int(interventions[int_var]["T"])
@@ -509,20 +507,23 @@ class RandomDAG:
                 elif self.noise_config[0] is NoiseType.Weibull:
                     self.noise = np.random.weibull(self.noise_config[1], (self.T, self.N)) * self.noise_config[2]
             np_data = np.zeros((T, self.N))
-            for t in range(T):
-                if t < self.max_lag:
-                    for target, eq in self.equations.items():
-                        np_data[t, self.variables.index(target)] = self.noise[t, self.variables.index(target)]
-                else:
-                    for target, eq in self.equations.items():
-                        if target != int_var:
-                            np_data[t, self.variables.index(target)] = self.__evaluate_equation(eq, t, np_data)
-                            if self.noise_config is not None: np_data[t, self.variables.index(target)] += int_noise[t, self.variables.index(target)]
-                        else:
-                            np_data[t, self.variables.index(target)] = interventions[int_var]["VAL"]
+            np_data[0:self.max_lag, :] = starting_point[len(starting_point)-self.max_lag:,:]
+
+            for t in range(self.max_lag, T):
+                # if t < self.max_lag:
+                #     for target, eq in self.equations.items():
+                #         np_data[t, self.variables.index(target)] = self.noise[t, self.variables.index(target)]
+                # else:
+                for target, eq in self.equations.items():
+                    if target != int_var:
+                        np_data[t, self.variables.index(target)] = self.__evaluate_equation(eq, t, np_data)
+                        if self.noise_config is not None: np_data[t, self.variables.index(target)] += int_noise[t, self.variables.index(target)]
+                    else:
+                        np_data[t, self.variables.index(target)] = interventions[int_var]["VAL"]
                         
             int_data[int_var] = Data(np_data, self.variables)
             int_data[int_var].shrink(self.obsVar)
+            starting_point = np_data
         return int_data
     
     
@@ -533,12 +534,13 @@ class RandomDAG:
         Returns:
             dict: scm
         """
-        scm = self.get_SCM(withHidden=True)
-        p = PAG(scm, self.max_lag, self.hiddenVar)
-        return p.pag
+        if self.PAG is None:
+            scm = self.get_Adj(withHidden=True)
+            self.PAG = PAG(scm, self.max_lag, self.hiddenVar)
+        return self.PAG.pag
     
     
-    def get_SCM(self, withHidden = False):
+    def get_Adj(self, withHidden = False):
         """
         Outputs the Structural Causal Model
 
@@ -562,11 +564,11 @@ class RandomDAG:
         """
         Prints the Structural Causal Model
         """
-        scm = self.get_SCM(withHidden)
+        scm = self.get_Adj(withHidden)
         for t in scm: print(t + ' : ' + str(scm[t]))    
           
         
-    def intervene(self, int_var, int_len, int_value):
+    def intervene(self, int_var, int_len, int_value, obs):
         """
         Generates intervention on a single variable
 
@@ -578,7 +580,7 @@ class RandomDAG:
         Returns:
             Data: interventional time-series data
         """
-        return self.gen_interv_ts({int_var: {"T": int_len, "VAL": int_value}})
+        return self.gen_interv_ts({int_var: {"T": int_len, "VAL": int_value}}, obs)
     
     
     def ts_dag(self, withHidden = False, save_name = None):
@@ -589,7 +591,7 @@ class RandomDAG:
             withHidden (bool, optional): bit to decide whether to output the SCM including the hidden variables or not. Defaults to False.
             save_name (str, optional): figure path. Defaults to None.
         """
-        gt = self.get_SCM(withHidden) if withHidden else self.get_DPAG()
+        gt = self.get_Adj(withHidden) if withHidden else self.get_DPAG()
         var = self.variables if withHidden else self.obsVar
         g = DAG(var, self.min_lag, self.max_lag, False, gt)
         
@@ -723,7 +725,7 @@ class RandomDAG:
         """
         fullg = DAG(list(gt.keys()), min_lag, max_lag, False)
         fullg.fully_connected_dag()
-        fullscm = fullg.get_SCM()
+        fullscm = fullg.get_Adj()
         gt_TN = copy.deepcopy(fullscm)
         
         # Build the True Negative graph [complementary graph of the ground-truth]
@@ -780,7 +782,7 @@ class RandomDAG:
     
     
     @staticmethod 
-    def shd(gt, cm):
+    def shd(gt, cm, adj = True):
         """
         Computes Structural Hamming Distance between ground-truth causal graph and the estimated one
 
@@ -790,9 +792,18 @@ class RandomDAG:
         Returns:
             int: shd
         """
-        fn = RandomDAG.get_FN(gt, cm)
-        fp = RandomDAG.get_FP(gt, cm)
-        return fn + fp
+        if adj:
+            fn = RandomGraph.get_FN(gt, cm)
+            fp = RandomGraph.get_FP(gt, cm)
+            return fn + fp
+        else:
+            for t in gt.keys():
+                for s in gt[t]:
+                    if s not in cm[t]: counter += 3
+                    else:
+                        if gt[t][s][0] != cm[t][s][0]: counter += 1
+                        if gt[t][s][1] != cm[t][s][1]: counter += 1
+                        if gt[t][s][2] != cm[t][s][2]: counter += 1
 
 
     @staticmethod 
@@ -806,8 +817,8 @@ class RandomDAG:
         Returns:
             float: precision
         """
-        tp = RandomDAG.get_TP(gt, cm)
-        fp = RandomDAG.get_FP(gt, cm)
+        tp = RandomGraph.get_TP(gt, cm)
+        fp = RandomGraph.get_FP(gt, cm)
         if tp + fp == 0: return 0
         return tp/(tp + fp)
 
@@ -823,8 +834,8 @@ class RandomDAG:
         Returns:
             float: recall
         """
-        tp = RandomDAG.get_TP(gt, cm)
-        fn = RandomDAG.get_FN(gt, cm)
+        tp = RandomGraph.get_TP(gt, cm)
+        fn = RandomGraph.get_FN(gt, cm)
         if tp + fn == 0: return 0
         return tp/(tp + fn)
 
@@ -840,8 +851,8 @@ class RandomDAG:
         Returns:
             float: f1-score
         """
-        p = RandomDAG.precision(gt, cm)
-        r = RandomDAG.recall(gt, cm)
+        p = RandomGraph.precision(gt, cm)
+        r = RandomGraph.recall(gt, cm)
         if p + r == 0: return 0
         return (2 * p * r) / (p + r)
     
@@ -857,8 +868,8 @@ class RandomDAG:
         Returns:
             float: false positive rate
         """
-        fp = RandomDAG.get_FP(gt, cm)
-        tn = RandomDAG.get_TN(gt, min_lag, max_lag, cm)
+        fp = RandomGraph.get_FP(gt, cm)
+        tn = RandomGraph.get_TN(gt, min_lag, max_lag, cm)
         if tn + fp == 0: return 0
         return fp / (tn + fp)
     
@@ -874,8 +885,8 @@ class RandomDAG:
         Returns:
             float: true positive rate
         """
-        tp = RandomDAG.get_TP(gt, cm)
-        fn = RandomDAG.get_FN(gt, cm)
+        tp = RandomGraph.get_TP(gt, cm)
+        fn = RandomGraph.get_FN(gt, cm)
         if tp + fn == 0: return 0
         return tp / (tp + fn)
 
@@ -891,8 +902,8 @@ class RandomDAG:
         Returns:
             float: true negative rate
         """
-        tn = RandomDAG.get_TN(gt, min_lag, max_lag, cm)
-        fp = RandomDAG.get_FP(gt, cm)
+        tn = RandomGraph.get_TN(gt, min_lag, max_lag, cm)
+        fp = RandomGraph.get_FP(gt, cm)
         if tn + fp == 0: return 0
         return tn / (tn + fp)
 
@@ -908,8 +919,8 @@ class RandomDAG:
         Returns:
             float: false negative rate
         """
-        fn = RandomDAG.get_FN(gt, cm)
-        tp = RandomDAG.get_TP(gt, cm)
+        fn = RandomGraph.get_FN(gt, cm)
+        tp = RandomGraph.get_TP(gt, cm)
         if tp + fn == 0: return 0
         return fn / (tp + fn)
 

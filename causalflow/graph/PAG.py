@@ -41,82 +41,87 @@ class PAG():
     
     def tsDAG2tsDPAG(self):
         self.tsDPAG = {t: [(s[0], s[1], '-->') for s in self.link_assumptions[t] if s[0] not in self.latents] for t in self.link_assumptions.keys() if t not in self.latents}
-        self.ambiguous_links = []
         
-        for target in self.tsDAG.nodes():
-            print(f"Analysing target: {target}")
-            if target[0] in self.latents: continue
-            tmp = []
-            for n in list(self.tsDAG.nodes()):
-                # if n[1] > target[1]: continue
-                if n[0] != target[0] or n[1] != target[1]:
-                    tmp.append(n)
-            for p in list(self.tsDAG.predecessors(target)) + list(self.tsDAG.successors(target)):
-                if p in tmp: tmp.remove(p)
-            for source in tmp:
-                d_sep = self.find_d_separators(source, target, self.latents)
-                print(f"\t- {source} ⊥ {target} | {d_sep}")
-                if any(node[0] in self.latents for node in d_sep):
-                    if target[1] == 0:
-                        print(f"\t- SPURIOUS LINK: ({source[0]}, {source[1]}) o-o ({target[0]}, {target[1]})")
-                        if (source[0], source[1], 'o-o') not in self.tsDPAG[target[0]]: self.tsDPAG[target[0]].append((source[0], source[1], 'o-o'))
-                        if (source, target, 'o-o') not in self.ambiguous_links: self.ambiguous_links.append((source, target, 'o-o'))
-                    elif source[1] == 0:
-                        print(f"\t- SPURIOUS LINK: ({target[0]}, {target[1]}) o-o ({source[0]}, {source[1]})")
-                        if (target[0], target[1], 'o-o') not in self.tsDPAG[source[0]]: self.tsDPAG[source[0]].append((target[0], target[1], 'o-o'))
-                        if (target, source, 'o-o') not in self.ambiguous_links: self.ambiguous_links.append((target, source, 'o-o'))
-        
-        
-        print(f"--------------------------------------------------")
-        print(f"    Bidirected link due to latent confounders     ")
-        print(f"--------------------------------------------------")
-        # *(1) Bidirected link between variables confounded by a latent variable  
-        # *    if a link between them does not exist already
-        confounders = self.find_latent_confounders()
-        for confounded in copy.deepcopy(list(confounders.values())):
-            for c1 in copy.deepcopy(confounded):
-                tmp = copy.deepcopy(confounded)
-                tmp.remove(c1)
-                for c2 in tmp:
-                    if (c1, c2, 'o-o') in self.ambiguous_links:
-                        self.update_link_type(c1, c2, '<->')
-                        self.ambiguous_links.remove((c1, c2, 'o-o'))
-                        print(f"\t- SPURIOUS LINK REMOVED: {c1} o-o {c2}")
-                    elif (c2, c1, 'o-o') in self.ambiguous_links:
-                        self.update_link_type(c1, c2, '<->')
-                        self.ambiguous_links.remove((c2, c1, 'o-o'))
-                        print(f"\t- SPURIOUS LINK REMOVED: {c2} o-o {c1}")
-                    confounded.remove(c1)
-                        
-        print(f"--------------------------------------------------")
-        print(f"              Collider orientation                ")
-        print(f"--------------------------------------------------")
-        # *(2) Identify and orient the colliders:
-        # *    for any path X – Z – Y where there is no edge between
-        # *    X and Y and, Z was never included in the conditioning set ==> X → Z ← Y collider
-        colliders = self.find_colliders()
-        for ambiguous_link in copy.deepcopy(self.ambiguous_links):
-            source, target, linktype = ambiguous_link
-            for parent1, collider, parent2 in colliders:
-                if collider == target and (parent1 == source or parent2 == source):
-                    if not self.tsDAG.has_edge(parent1, parent2) and not self.tsDAG.has_edge(parent2, parent1):
-                        self.update_link_type(parent1, target, '-->')
-                        self.update_link_type(parent2, target, '-->')
-                        self.ambiguous_links.remove(ambiguous_link)
-                        break
-
-        print(f"--------------------------------------------------")
-        print(f"Non-collider orientation (orientation propagation)")
-        print(f"--------------------------------------------------")
-        # *(3) Orient the non-colliders edges (orientation propagation)
-        # *    any edge Z – Y part of a partially directed path X → Z – Y,
-        # *    where there is no edge between X and Y can be oriented as Z → Y
-        for ambiguous_link in copy.deepcopy(self.ambiguous_links):
-            triples = self.find_triples_containing_link(ambiguous_link)
-            for triple in triples: self.update_link_type(triple[1], triple[2], '-->')
+        if len(self.latents) > 0:
+            self.ambiguous_links = []
             
-        
+            for target in self.tsDAG.nodes():
+                print(f"Analysing target: {target}")
+                if target[0] in self.latents: continue
+                tmp = []
+                for n in list(self.tsDAG.nodes()):
+                    # if n[1] > target[1]: continue
+                    if n[0] != target[0] or n[1] != target[1]:
+                        tmp.append(n)
+                for p in list(self.tsDAG.predecessors(target)) + list(self.tsDAG.successors(target)):
+                    if p in tmp: tmp.remove(p)
+                for source in tmp:
+                    d_sep = self.find_d_separators(source, target, self.latents)
+                    print(f"\t- {source} ⊥ {target} | {d_sep}")
+                    if any(node[0] in self.latents for node in d_sep):
+                        if target[1] == 0:
+                            print(f"\t- SPURIOUS LINK: ({source[0]}, {source[1]}) o-o ({target[0]}, {target[1]})")
+                            if (source[0], source[1], 'o-o') not in self.tsDPAG[target[0]]: self.tsDPAG[target[0]].append((source[0], source[1], 'o-o'))
+                            if (source, target, 'o-o') not in self.ambiguous_links: self.ambiguous_links.append((source, target, 'o-o'))
+                        elif source[1] == 0:
+                            print(f"\t- SPURIOUS LINK: ({target[0]}, {target[1]}) o-o ({source[0]}, {source[1]})")
+                            if (target[0], target[1], 'o-o') not in self.tsDPAG[source[0]]: self.tsDPAG[source[0]].append((target[0], target[1], 'o-o'))
+                            if (target, source, 'o-o') not in self.ambiguous_links: self.ambiguous_links.append((target, source, 'o-o'))
+            
+            
+            print(f"--------------------------------------------------")
+            print(f"    Bidirected link due to latent confounders     ")
+            print(f"--------------------------------------------------")
+            # *(1) Bidirected link between variables confounded by a latent variable  
+            # *    if a link between them does not exist already
+            confounders = self.find_latent_confounders()
+            for confounded in copy.deepcopy(list(confounders.values())):
+                for c1 in copy.deepcopy(confounded):
+                    tmp = copy.deepcopy(confounded)
+                    tmp.remove(c1)
+                    for c2 in tmp:
+                        if (c1, c2, 'o-o') in self.ambiguous_links:
+                            self.update_link_type(c1, c2, '<->')
+                            self.ambiguous_links.remove((c1, c2, 'o-o'))
+                            print(f"\t- SPURIOUS LINK REMOVED: {c1} o-o {c2}")
+                        elif (c2, c1, 'o-o') in self.ambiguous_links:
+                            self.update_link_type(c1, c2, '<->')
+                            self.ambiguous_links.remove((c2, c1, 'o-o'))
+                            print(f"\t- SPURIOUS LINK REMOVED: {c2} o-o {c1}")
+                        confounded.remove(c1)
+                            
+            print(f"--------------------------------------------------")
+            print(f"              Collider orientation                ")
+            print(f"--------------------------------------------------")
+            # *(2) Identify and orient the colliders:
+            # *    for any path X – Z – Y where there is no edge between
+            # *    X and Y and, Z was never included in the conditioning set ==> X → Z ← Y collider
+            colliders = self.find_colliders()
+            for ambiguous_link in copy.deepcopy(self.ambiguous_links):
+                source, target, linktype = ambiguous_link
+                for parent1, collider, parent2 in colliders:
+                    if collider == target and (parent1 == source or parent2 == source):
+                        if not self.tsDAG.has_edge(parent1, parent2) and not self.tsDAG.has_edge(parent2, parent1):
+                            self.update_link_type(parent1, target, '-->')
+                            self.update_link_type(parent2, target, '-->')
+                            self.ambiguous_links.remove(ambiguous_link)
+                            break
+
+            print(f"--------------------------------------------------")
+            print(f"Non-collider orientation (orientation propagation)")
+            print(f"--------------------------------------------------")
+            # *(3) Orient the non-colliders edges (orientation propagation)
+            # *    any edge Z – Y part of a partially directed path X → Z – Y,
+            # *    where there is no edge between X and Y can be oriented as Z → Y
+            for ambiguous_link in copy.deepcopy(self.ambiguous_links):
+                triples = self.find_triples_containing_link(ambiguous_link)
+                for triple in triples: self.update_link_type(triple[1], triple[2], '-->')
+                
         # TODO: (3) Check if cycles are present
+        
+        else:
+            print("No latent variable")
+        
 
         return self.tsDPAG
 

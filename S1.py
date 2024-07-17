@@ -14,7 +14,7 @@ from causalflow.causal_discovery.baseline.TCDF import TCDF
 from causalflow.causal_discovery.baseline.VarLiNGAM import VarLiNGAM
 from causalflow.causal_discovery.baseline.tsFCI import tsFCI
 from causalflow.selection_methods.TE import TE, TEestimator
-from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
+from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
 from pathlib import Path
 
 from time import time
@@ -33,17 +33,17 @@ ALGO_RES = {Metric.TIME.value : None,
             Metric.RECA.value : None,
             Metric.F1SCORE.value : None,
             Metric.SHD.value : None,
-            jWord.SCM.value : None,
-            jWord.SpuriousLinks.value: None,
-            Metric.N_ESPU.value : None,
-            Metric.N_EqDAG.value: None}
+            jWord.GRAPH.value : None,
+            jWord.AmbiguousLinks.value: None,
+            Metric.N_AL.value : None,
+            Metric.PAGSIZE.value: None}
 
 
 EMPTY_RES = {jWord.GT.value : None,
              jWord.Confounders.value : None,
              jWord.HiddenConfounders.value : None, 
              jWord.InterventionVariables.value : None,
-             jWord.ExpectedSpuriousLinks.value : None,
+             jWord.ExpectedAmbiguousLinks.value : None,
              jWord.N_GSPU.value : None,
              Algo.CAnDOIT.value : deepcopy(ALGO_RES),   
              Algo.CAnDOITCont.value : deepcopy(ALGO_RES),   
@@ -87,11 +87,11 @@ def save_result(d):
     res_tmp["equations"] = str(RS.print_equations())
     res_tmp["coeff_range"] = str(RS.coeff_range)
     res_tmp["noise_config"] = str(RS.noise_config)
-    res_tmp[jWord.GT.value] = str(RS.get_SCM())
+    res_tmp[jWord.GT.value] = str(RS.get_Adj())
     res_tmp[jWord.Confounders.value] = str(RS.confounders)
     res_tmp[jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
     res_tmp[jWord.InterventionVariables.value] = str(list(d_int.keys()))
-    res_tmp[jWord.ExpectedSpuriousLinks.value] = str(RS.expected_bidirected_links)
+    res_tmp[jWord.ExpectedAmbiguousLinks.value] = str(RS.expected_bidirected_links)
     res_tmp[jWord.N_GSPU.value] = len(RS.expected_bidirected_links)
     
     for a, r in d.items():
@@ -104,11 +104,11 @@ def save_result(d):
         res_tmp[a.value][Metric.RECA.value] = RS.recall(r["scm"])
         res_tmp[a.value][Metric.F1SCORE.value] = RS.f1_score(r["scm"])
         res_tmp[a.value][Metric.SHD.value] = RS.shd(r["scm"])
-        res_tmp[a.value][jWord.SCM.value] = str(r["scm"])
+        res_tmp[a.value][jWord.GRAPH.value] = str(r["scm"])
         spurious_links = get_spurious_links(r["scm"])
-        res_tmp[a.value][jWord.SpuriousLinks.value] = str(spurious_links)
-        res_tmp[a.value][Metric.N_ESPU.value] = len(spurious_links)
-        res_tmp[a.value][Metric.N_EqDAG.value] = 2**len(spurious_links)
+        res_tmp[a.value][jWord.AmbiguousLinks.value] = str(spurious_links)
+        res_tmp[a.value][Metric.N_AL.value] = len(spurious_links)
+        res_tmp[a.value][Metric.PAGSIZE.value] = 2**len(spurious_links)
     
     
 if __name__ == '__main__':   
@@ -141,7 +141,7 @@ if __name__ == '__main__':
                     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
                     nconfounder = random.randint(1, 4)
 
-                    RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
+                    RS = RandomGraph(nvars = n, nsamples = nsample_obs + nsample_int, 
                                    link_density = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                                    min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                                    functions = ['', 'sin', 'cos', 'abs', 'exp', 'pow'], operators=['+', '-', '*', '/'], n_hidden_confounders = nconfounder)
@@ -156,7 +156,7 @@ if __name__ == '__main__':
                         d_int[int_var].plot_timeseries('results/' + resfolder + '/interv_' + int_var + '.png')
 
                 
-                    GT = RS.get_SCM()
+                    GT = RS.get_Adj()
                     
                     d_obs.plot_timeseries('results/' + resfolder + '/obs_data.png')
                     
@@ -185,7 +185,7 @@ if __name__ == '__main__':
                     fpcmci.timeseries_dag()
                     gc.collect()
             
-                    if len(get_spurious_links(fpcmci_cm.get_SCM())) == 0: 
+                    if len(get_spurious_links(fpcmci_cm.get_Adj())) == 0: 
                         gc.collect()
                         remove_directory(os.getcwd() + "/results/" + resfolder)
                         continue
@@ -351,14 +351,14 @@ if __name__ == '__main__':
             #########################################################################################################################
             # SAVE
             res = {
-                Algo.DYNOTEARS: {"time":dynotears_time, "scm":get_correct_SCM(GT, dynotears_cm.get_SCM())},
-                Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())},
-                Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_SCM())},
-                Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_SCM())},
-                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_SCM())},
-                Algo.TCDF: {"time":tcdf_time, "scm":get_correct_SCM(GT, tcdf_cm.get_SCM())},
-                Algo.tsFCI: {"time":tsfci_time, "scm":get_correct_SCM(GT, tsfci_cm.get_SCM())},
-                Algo.VarLiNGAM: {"time":varlingan_time, "scm":get_correct_SCM(GT, varlingan_cm.get_SCM())},
+                Algo.DYNOTEARS: {"time":dynotears_time, "scm":get_correct_SCM(GT, dynotears_cm.get_Adj())},
+                Algo.CAnDOIT: {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_Adj())},
+                Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_Adj())},
+                Algo.FPCMCI: {"time":fpcmci_time, "scm":get_correct_SCM(GT, fpcmci_cm.get_Adj())},
+                Algo.PCMCI: {"time":pcmci_time, "scm":get_correct_SCM(GT, pcmci_cm.get_Adj())},
+                Algo.TCDF: {"time":tcdf_time, "scm":get_correct_SCM(GT, tcdf_cm.get_Adj())},
+                Algo.tsFCI: {"time":tsfci_time, "scm":get_correct_SCM(GT, tsfci_cm.get_Adj())},
+                Algo.VarLiNGAM: {"time":varlingan_time, "scm":get_correct_SCM(GT, varlingan_cm.get_Adj())},
             }
             save_result(res)
             

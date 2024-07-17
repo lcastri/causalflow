@@ -31,11 +31,11 @@ def create_csv(nvars, resfolder):
                         df.loc[len(df)] = [Algo.FPCMCI.value, nv, (t - since).total_seconds()]
                         t = datetime.datetime.strptime(r[i][Algo.CAnDOIT.value][Metric.TIME.value], '%H:%M:%S.%f')
                         df.loc[len(df)] = [Algo.CAnDOIT.value, nv, (t - since).total_seconds()]
-                    elif score == Metric.N_ESPU:
+                    elif score == Metric.N_AL:
                         if r[i][jWord.N_GSPU.value] != 0:
-                            df.loc[len(df)] = [Algo.PCMCI.value, nv, r[i][Algo.PCMCI.value][Metric.N_ESPU.value] / r[i][jWord.N_GSPU.value]]
-                            df.loc[len(df)] = [Algo.FPCMCI.value, nv, r[i][Algo.FPCMCI.value][Metric.N_ESPU.value] / r[i][jWord.N_GSPU.value]]
-                            df.loc[len(df)] = [Algo.CAnDOIT.value, nv, r[i][Algo.CAnDOIT.value][Metric.N_ESPU.value] / r[i][jWord.N_GSPU.value]]
+                            df.loc[len(df)] = [Algo.PCMCI.value, nv, r[i][Algo.PCMCI.value][Metric.N_AL.value] / r[i][jWord.N_GSPU.value]]
+                            df.loc[len(df)] = [Algo.FPCMCI.value, nv, r[i][Algo.FPCMCI.value][Metric.N_AL.value] / r[i][jWord.N_GSPU.value]]
+                            df.loc[len(df)] = [Algo.CAnDOIT.value, nv, r[i][Algo.CAnDOIT.value][Metric.N_AL.value] / r[i][jWord.N_GSPU.value]]
                         else:
                             df.loc[len(df)] = [Algo.PCMCI.value, nv, 0]
                             df.loc[len(df)] = [Algo.FPCMCI.value, nv, 0]

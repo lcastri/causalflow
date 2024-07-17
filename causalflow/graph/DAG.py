@@ -204,30 +204,30 @@ class DAG():
     #     return out
     
             
-    def dummy_link_assumptions(self):
-        """
-        Build a fully connected DAG
-        """
+    # def dummy_link_assumptions(self):
+    #     """
+    #     Build a fully connected DAG
+    #     """
         
-        # System variables
-        link_assump = {self.features.index(f): dict() for f in self.features}
-        for t in self.g:
-            for s in self.g:
-                for l in range(0, self.max_lag + 1): 
-                    if t not in list(self.sys_context.values()):
-                        if s not in list(self.sys_context.values()):
-                            if s == t and l == 0: continue                 
-                            if l == 0:
-                                link_assump[self.features.index(t)][(self.features.index(s), 0)] = 'o?o'
-                            else:
-                                link_assump[self.features.index(t)][(self.features.index(s), -l)] = '-?>'
-                        elif t in self.sys_context.keys() and s == self.sys_context[t]:
-                            if l == 0:
-                                link_assump[self.features.index(t)][(self.features.index(s), 0)] = '-->'
-                                link_assump[self.features.index(s)][(self.features.index(t), 0)] = '<--'
-        # Context variables
+    #     # System variables
+    #     link_assump = {self.features.index(f): dict() for f in self.features}
+    #     for t in self.g:
+    #         for s in self.g:
+    #             for l in range(0, self.max_lag + 1): 
+    #                 if t not in list(self.sys_context.values()):
+    #                     if s not in list(self.sys_context.values()):
+    #                         if s == t and l == 0: continue                 
+    #                         if l == 0:
+    #                             link_assump[self.features.index(t)][(self.features.index(s), 0)] = 'o?o'
+    #                         else:
+    #                             link_assump[self.features.index(t)][(self.features.index(s), -l)] = '-?>'
+    #                     elif t in self.sys_context.keys() and s == self.sys_context[t]:
+    #                         if l == 0:
+    #                             link_assump[self.features.index(t)][(self.features.index(s), 0)] = '-->'
+    #                             link_assump[self.features.index(s)][(self.features.index(t), 0)] = '<--'
+    #     # Context variables
                                             
-        return link_assump
+    #     return link_assump
     
     
     def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):
@@ -474,30 +474,7 @@ class DAG():
                     link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
                     
         return link_assump
-
-
-    def get_SCM(self, indexed = False) -> dict:   
-        """
-        Returns SCM
-        
-        Args:
-            indexed (bool, optional): If true, returns the SCM with index instead of variables' names. Otherwise it uses variables' names. Defaults to False.
-
-        Returns:
-            dict: SCM
-        """
-        if not indexed:
-            scm = {v: list() for v in self.features}
-            for t in self.g:
-                for s in self.g[t].sources:
-                    scm[t].append((s[0], -abs(s[1]))) 
-        else:
-            scm = {self.features.index(v): list() for v in self.features}
-            for t in self.g:
-                for s in self.g[t].sources:
-                    scm[self.features.index(t)].append((self.features.index(s[0]), -abs(s[1]))) 
-        return scm
-    
+   
     
     def make_pretty(self) -> dict:
         """
@@ -647,6 +624,7 @@ class DAG():
         else:
             plt.show()
             
+            
     def __add_edge(self, min_width, max_width, min_score, max_score, edges, edge_width, arrows, r, t, s, s_node, t_node):
         edges.append((s_node, t_node))
         score = r.g[t].sources[s][SCORE] if r.g[t].sources[s][SCORE] != float('inf') else 1
@@ -670,7 +648,6 @@ class DAG():
         else:
             raise ValueError(f"{r.g[t].sources[s][TYPE]} not included in LinkType")
             
- 
    
     def ts_dag(self,
                min_width = 1, max_width = 5,
@@ -873,5 +850,36 @@ class DAG():
             for s, info in self.g[t].sources.items():
                 r[self.features.index(t), self.features.index(s[0])][s[1]] = info[TYPE]
         return np.array(r)
+    
+    
+    def get_Adj(self, indexed = False) -> dict:   
+        """
+        Returns Adjacency dictionary
+        
+        Args:
+            indexed (bool, optional): If true, returns the SCM with index instead of variables' names. Otherwise it uses variables' names. Defaults to False.
+
+        Returns:
+            dict: SCM
+        """
+        if not indexed:
+            scm = {v: list() for v in self.features}
+            for t in self.g:
+                for s in self.g[t].sources:
+                    scm[t].append((s[0], -abs(s[1]))) 
+        else:
+            scm = {self.features.index(v): list() for v in self.features}
+            for t in self.g:
+                for s in self.g[t].sources:
+                    scm[self.features.index(t)].append((self.features.index(s[0]), -abs(s[1]))) 
+        return scm
+    
+    
+    def get_Graph(self) -> dict:   
+        scm = {v: dict() for v in self.features}
+        for t in self.g:
+            for s in self.g[t].sources:
+                scm[t][(s[0], -abs(s[1]))] = self.g[t].sources[s][TYPE] 
+        return scm
     
         

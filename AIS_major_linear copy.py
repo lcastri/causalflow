@@ -14,7 +14,7 @@ from causalflow.causal_discovery.baseline.PCMCI import PCMCI
 from causalflow.causal_discovery.baseline.PCMCIplus import PCMCIplus
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
-from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
+from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
 from pathlib import Path
 import traceback
 
@@ -39,17 +39,17 @@ ALGO_RES = {'done': False,
             Metric.RECA.value : None,
             Metric.F1SCORE.value : None,
             Metric.SHD.value : None,
-            jWord.SCM.value : None,
-            jWord.SpuriousLinks.value: None,
-            Metric.N_ESPU.value : None,
-            Metric.N_EqDAG.value: None}
+            jWord.GRAPH.value : None,
+            jWord.AmbiguousLinks.value: None,
+            Metric.N_AL.value : None,
+            Metric.PAGSIZE.value: None}
 
 
 EMPTY_RES = {jWord.GT.value : None,
              jWord.Confounders.value : None,
              jWord.HiddenConfounders.value : None, 
              jWord.InterventionVariables.value : None,
-             jWord.ExpectedSpuriousLinks.value : None,
+             jWord.ExpectedAmbiguousLinks.value : None,
              jWord.N_GSPU.value : None,
              Algo.PCMCI.value : deepcopy(ALGO_RES),
              Algo.PCMCIplus.value : deepcopy(ALGO_RES),
@@ -89,29 +89,28 @@ def get_ambiguous_link(scm):
 def fill_res(res, r):
     res['done'] = True
     res[Metric.TIME.value] = r["time"]
-    res[Metric.FN.value] = RandomDAG.get_FN(GT, r["scm"])
-    res[Metric.TN.value] = RandomDAG.get_TN(GT, min_lag, max_lag, r["scm"])
-    res[Metric.FP.value] = RandomDAG.get_FP(GT, r["scm"])
-    res[Metric.TP.value] = RandomDAG.get_TP(GT, r["scm"])
-    res[Metric.FPR.value] = RandomDAG.FPR(GT, min_lag, max_lag, r["scm"])
-    res[Metric.TPR.value] = RandomDAG.TPR(GT, r["scm"])
-    res[Metric.FNR.value] = RandomDAG.FNR(GT, r["scm"])
-    res[Metric.TNR.value] = RandomDAG.TNR(GT, min_lag, max_lag, r["scm"])
-    res[Metric.PREC.value] = RandomDAG.precision(GT, r["scm"])
-    res[Metric.RECA.value] = RandomDAG.recall(GT, r["scm"])
-    res[Metric.F1SCORE.value] = RandomDAG.f1_score(GT, r["scm"])
-    res[Metric.SHD.value] = RandomDAG.shd(GT, r["scm"])
-    res[jWord.SCM.value] = str(r["scm"])
+    res[Metric.FN.value] = RandomGraph.get_FN(GT, r["scm"])
+    res[Metric.TN.value] = RandomGraph.get_TN(GT, min_lag, max_lag, r["scm"])
+    res[Metric.FP.value] = RandomGraph.get_FP(GT, r["scm"])
+    res[Metric.TP.value] = RandomGraph.get_TP(GT, r["scm"])
+    res[Metric.FPR.value] = RandomGraph.FPR(GT, min_lag, max_lag, r["scm"])
+    res[Metric.TPR.value] = RandomGraph.TPR(GT, r["scm"])
+    res[Metric.FNR.value] = RandomGraph.FNR(GT, r["scm"])
+    res[Metric.TNR.value] = RandomGraph.TNR(GT, min_lag, max_lag, r["scm"])
+    res[Metric.PREC.value] = RandomGraph.precision(GT, r["scm"])
+    res[Metric.RECA.value] = RandomGraph.recall(GT, r["scm"])
+    res[Metric.F1SCORE.value] = RandomGraph.f1_score(GT, r["scm"])
+    res[Metric.SHD.value] = RandomGraph.shd(GT, r["scm"])
+    res[jWord.GRAPH.value] = str(r["scm"])
     spurious_links = get_ambiguous_link(r["scm"])
-    res[jWord.SpuriousLinks.value] = str(spurious_links)
-    res[Metric.N_ESPU.value] = len(spurious_links)
-    res[Metric.N_EqDAG.value] = 2**len(spurious_links)
+    res[jWord.AmbiguousLinks.value] = str(spurious_links)
+    res[Metric.N_AL.value] = len(spurious_links)
+    res[Metric.PAGSIZE.value] = 2**len(spurious_links)
     
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "S1_major_candoit_lpcmci"
-    f_alpha = 0.5
+    resdir = "AIS_major_linear"
     alpha = 0.05
     nfeature = range(7, 15)
     nrun = 25
@@ -180,7 +179,7 @@ if __name__ == '__main__':
                         noise_param = random.uniform(0.5, 2)
                         noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
                         noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-                        RS = RandomDAG(nvars = n, nsamples = nsample_obs + nsample_int, 
+                        RS = RandomGraph(nvars = n, nsamples = nsample_obs + nsample_int, 
                                     link_density = link_density, coeff_range = (min_c, max_c), max_exp = max_exp, 
                                     min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                                     functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders)
@@ -215,7 +214,7 @@ if __name__ == '__main__':
                         EQUATIONS = RS.print_equations()
                         COEFF_RANGE = RS.coeff_range 
                         NOISE_CONF = (RS.noise_config[0].value, RS.noise_config[1], RS.noise_config[2])
-                        GT = RS.get_SCM()
+                        GT = RS.get_Adj()
                         CONFOUNDERS = RS.confounders
                         HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
                         INT_VARS = list(d_int.keys())
@@ -250,7 +249,7 @@ if __name__ == '__main__':
                         #     continue
                         # else:
                         res = deepcopy(ALGO_RES)
-                        fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_SCM())})
+                        fill_res(res, {"time":lpcmci_time, "scm":get_correct_SCM(GT, lpcmci_cm.get_Adj())})
                                 
                         data[nr]['done'] = False
                         data[nr]["min_lag"] = str(min_lag)
@@ -262,7 +261,7 @@ if __name__ == '__main__':
                         data[nr][jWord.Confounders.value] = str(CONFOUNDERS)
                         data[nr][jWord.HiddenConfounders.value] = str(HIDDEN_CONFOUNDERS)
                         data[nr][jWord.InterventionVariables.value] = str(INT_VARS)
-                        data[nr][jWord.ExpectedSpuriousLinks.value] = str(EXP_SPURIOUS_LINKS)
+                        data[nr][jWord.ExpectedAmbiguousLinks.value] = str(EXP_SPURIOUS_LINKS)
                         data[nr][jWord.N_GSPU.value] = len(EXP_SPURIOUS_LINKS)
                             
                         data[nr][Algo.LPCMCI.value] = res
@@ -301,7 +300,7 @@ if __name__ == '__main__':
                         gc.collect()
                     
                         res = deepcopy(ALGO_RES)
-                        fill_res(res, {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_SCM())})
+                        fill_res(res, {"time":candoit_time, "scm":get_correct_SCM(GT, candoit_cm.get_Adj())})
                         
                         data[nr][Algo.CAnDOIT.value] = res
                             

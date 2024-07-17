@@ -7,7 +7,7 @@ from causalflow.CPrinter import CPLevel
 from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOIT_cont
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
-from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
+from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
 from pathlib import Path
 import traceback
 
@@ -27,17 +27,17 @@ ALGO_RES = {Metric.TIME.value : None,
             Metric.RECA.value : None,
             Metric.F1SCORE.value : None,
             Metric.SHD.value : None,
-            jWord.SCM.value : None,
-            jWord.SpuriousLinks.value: None,
-            Metric.N_ESPU.value : None,
-            Metric.N_EqDAG.value: None}
+            jWord.GRAPH.value : None,
+            jWord.AmbiguousLinks.value: None,
+            Metric.N_AL.value : None,
+            Metric.PAGSIZE.value: None}
 
 
 EMPTY_RES = {jWord.GT.value : None,
              jWord.Confounders.value : None,
              jWord.HiddenConfounders.value : None, 
              jWord.InterventionVariables.value : None,
-             jWord.ExpectedSpuriousLinks.value : None,
+             jWord.ExpectedAmbiguousLinks.value : None,
              jWord.N_GSPU.value : None, 
              Algo.CAnDOITCont.value : deepcopy(ALGO_RES),
              }
@@ -74,11 +74,11 @@ def save_result(d):
     res_tmp["equations"] = str(RS.print_equations())
     res_tmp["coeff_range"] = str(RS.coeff_range)
     res_tmp["noise_config"] = str(RS.noise_config)
-    res_tmp[jWord.GT.value] = str(RS.get_SCM())
+    res_tmp[jWord.GT.value] = str(RS.get_Adj())
     res_tmp[jWord.Confounders.value] = str(RS.confounders)
     res_tmp[jWord.HiddenConfounders.value] = str(list(RS.confounders.keys()))
     res_tmp[jWord.InterventionVariables.value] = str(list(d_int.keys()))
-    res_tmp[jWord.ExpectedSpuriousLinks.value] = str(RS.expected_bidirected_links)
+    res_tmp[jWord.ExpectedAmbiguousLinks.value] = str(RS.expected_bidirected_links)
     res_tmp[jWord.N_GSPU.value] = len(RS.expected_bidirected_links)
     
     for a, r in d.items():
@@ -91,11 +91,11 @@ def save_result(d):
         res_tmp[a.value][Metric.RECA.value] = RS.recall(r["scm"])
         res_tmp[a.value][Metric.F1SCORE.value] = RS.f1_score(r["scm"])
         res_tmp[a.value][Metric.SHD.value] = RS.shd(r["scm"])
-        res_tmp[a.value][jWord.SCM.value] = str(r["scm"])
+        res_tmp[a.value][jWord.GRAPH.value] = str(r["scm"])
         spurious_links = get_spurious_links(r["scm"])
-        res_tmp[a.value][jWord.SpuriousLinks.value] = str(spurious_links)
-        res_tmp[a.value][Metric.N_ESPU.value] = len(spurious_links)
-        res_tmp[a.value][Metric.N_EqDAG.value] = 2**len(spurious_links)
+        res_tmp[a.value][jWord.AmbiguousLinks.value] = str(spurious_links)
+        res_tmp[a.value][Metric.N_AL.value] = len(spurious_links)
+        res_tmp[a.value][Metric.PAGSIZE.value] = 2**len(spurious_links)
     
     
 if __name__ == '__main__':   
@@ -119,7 +119,7 @@ if __name__ == '__main__':
         noise_param = random.uniform(0.5, 2)
         noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
         noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-        RS = RandomDAG(nvars = 10, nsamples = nsample, 
+        RS = RandomGraph(nvars = 10, nsamples = nsample, 
                        link_density = 3, coeff_range = (coeff_sign*min_c, coeff_sign*max_c), max_exp = 2, 
                        min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                        functions = [''], operators=['+', '-', '*'], n_hidden_confounders = 1)
@@ -133,7 +133,7 @@ if __name__ == '__main__':
             d_int[int_var] = i[int_var]
             d_int[int_var].plot_timeseries(resfolder + '/interv_' + int_var + '.png')
                 
-        GT = RS.get_SCM()
+        GT = RS.get_Adj()
                     
         d_obs.plot_timeseries(resfolder + '/obs_data.png')
                     
@@ -194,7 +194,7 @@ if __name__ == '__main__':
             #########################################################################################################################
             # SAVE
             res = {
-                Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_SCM())},
+                Algo.CAnDOITCont: {"time":candoit_cont_time, "scm":get_correct_SCM(GT, candoit_cont_cm.get_Adj())},
             }
             save_result(res)
                 

@@ -7,7 +7,7 @@ from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOIT_pcm
 from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT as CAnDOIT_lpcmci
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 from causalflow.causal_discovery.baseline.PCMCIplus import PCMCIplus
-from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
+from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.basics.constants import ImageExt
 import numpy as np
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     noise_param = random.uniform(0.5, 2)
     noise_uniform = (NoiseType.Uniform, -noise_param, noise_param)
     noise_gaussian = (NoiseType.Gaussian, 0, noise_param)
-    RS = RandomDAG(nvars = 4, nsamples = nsample_obs + nsample_int, 
+    RS = RandomGraph(nvars = 4, nsamples = nsample_obs + nsample_int, 
                 link_density = 2, coeff_range = (0.1, 0.5), max_exp = 2, 
                 min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian]),
                 functions = functions, operators = operators, n_hidden_confounders = 1)

@@ -10,7 +10,7 @@ from causalflow.causal_discovery.CAnDOIT import CAnDOIT
 from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.causal_discovery.baseline.PCMCI import PCMCI
 from causalflow.selection_methods.TE import TE, TEestimator
-from causalflow.random_system.RandomDAG import NoiseType, RandomDAG
+from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
 from pathlib import Path
 
 from time import time
@@ -97,12 +97,12 @@ def get_spurious_links(scm):
 def save_result(pcmci_t, pcmci_scm, fpcmci_t, fpcmci_scm, candoit_t, candoit_scm):
     print("\n")
     print("Number of variable = " + str(n))
-    print("Ground truth = " + str(RS.get_SCM()))
+    print("Ground truth = " + str(RS.get_Adj()))
     print("Confounders: " + str(RS.confounders))
     print("Hidden confounder: " + str(list(RS.confounders.keys())))
     print("Intervention variable: " + str(list(d_int.keys())))
     
-    res_tmp["GT"] = str(RS.get_SCM())
+    res_tmp["GT"] = str(RS.get_Adj())
     res_tmp["Confounders"] = str(RS.confounders)
     res_tmp["HiddenConfounders"] = str(list(RS.confounders.keys()))
     res_tmp["InterventionVariables"] = str(list(d_int.keys()))
@@ -160,10 +160,10 @@ if __name__ == '__main__':
                     os.makedirs('results/' + resfolder, exist_ok = True)
                     res_tmp = deepcopy(EMPTY_RES)
                     
-                    RS = RandomDAG(nvars = nvars, nsamples = nsample_obs+nsample_int, 
+                    RS = RandomGraph(nvars = nvars, nsamples = nsample_obs+nsample_int, 
                                       link_density = 2, coeff_range = (min_c, max_c), max_exp = 2, 
                                       min_lag = min_lag, max_lag = max_lag, noise_config = noise,
-                                      functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1, n_confounded=n)
+                                      functions = ['', 'sin', 'cos', 'abs'], operators=['+', '-', '*'], n_hidden_confounders = 1, n_confounded_vars=n)
                     RS.gen_equations()
 
                     d_obs = RS.gen_obs_ts()
@@ -175,7 +175,7 @@ if __name__ == '__main__':
                         d_int[int_var].plot_timeseries('results/' + resfolder + '/interv_' + int_var + '.png')
 
                 
-                    GT = RS.get_SCM()
+                    GT = RS.get_Adj()
                     
                     d_obs.plot_timeseries('results/' + resfolder + '/obs_data.png')
                     
@@ -208,7 +208,7 @@ if __name__ == '__main__':
                     fpcmci.timeseries_dag()
                     gc.collect()
             
-                    if n >= 2 and len(get_spurious_links(fpcmci_cm.get_SCM())) == 0: 
+                    if n >= 2 and len(get_spurious_links(fpcmci_cm.get_Adj())) == 0: 
                         gc.collect()
                         remove_directory(os.getcwd() + "/results/" + resfolder)
                         continue
@@ -271,9 +271,9 @@ if __name__ == '__main__':
 
             #########################################################################################################################
             # SAVE
-            save_result(pcmci_time, get_correct_SCM(GT, pcmci_cm.get_SCM()),
-                        fpcmci_time, get_correct_SCM(GT, fpcmci_cm.get_SCM()),
-                        candoit_time, get_correct_SCM(GT, candoit_cm.get_SCM()))
+            save_result(pcmci_time, get_correct_SCM(GT, pcmci_cm.get_Adj()),
+                        fpcmci_time, get_correct_SCM(GT, fpcmci_cm.get_Adj()),
+                        candoit_time, get_correct_SCM(GT, candoit_cm.get_Adj()))
             
             Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
             filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"

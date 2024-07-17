@@ -5,15 +5,16 @@ import os
 from matplotlib import pyplot as plt
 import numpy as np
 
-class jWord(Enum):
-    SCM = 'scm'
-    N_GSPU = 'N_ExpectedSpuriousLinks'
-    GT = "GT"
-    Confounders = "Confounders"
-    HiddenConfounders = "HiddenConfounders"
-    InterventionVariables = "InterventionVariables"
-    ExpectedSpuriousLinks = "ExpectedSpuriousLinks"
-    SpuriousLinks = "SpuriousLinks"
+# class jWord(Enum):
+#     ADJ = 'adj'
+#     GRAPH = 'graph'
+#     N_GSPU = 'N_ExpectedSpuriousLinks'
+#     Confounders = "Confounders"
+#     HiddenConfounders = "HiddenConfounders"
+#     InterventionVariables = "InterventionVariables"
+#     ExpectedAmbiguousLinks = "ExpectedAmbiguousLinks"
+#     AmbiguousLinks = "AmbiguousLinks"
+#     ExpectedUncertainty = "ExpectedUncertainty"
     
 class Algo(Enum):
     CAnDOIT = 'candoit'
@@ -42,8 +43,8 @@ class Metric(Enum):
     TPR = "tpr"
     FNR = "fnr"
     TNR = "tnr"
-    N_ESPU = 'N_SpuriousLinks'
-    N_EqDAG = 'N_EquiDAG'
+    UNCERTAINTY = 'uncertainty'
+    PAGSIZE = 'pag_size'
 
 plotLabel = {Metric.TIME : 'Time [s]',
              Metric.PREC : 'Precision',
@@ -61,8 +62,8 @@ plotLabel = {Metric.TIME : 'Time [s]',
              Algo.tsFCI : 'tsFCI',
              Algo.VarLiNGAM : 'VarLiNGAM',
              Metric.FPR: 'False Positive Rate',
-             Metric.N_ESPU : '# Sp. links estimated / # Sp. links',
-             Metric.N_EqDAG : "# Equ. DAGs"}
+             Metric.UNCERTAINTY : '# Uncertainty',
+             Metric.PAGSIZE : "PAG Size"}
 
 titleLabel = {Metric.TIME : 'Time',
               Metric.PREC : 'Precision',
@@ -70,8 +71,8 @@ titleLabel = {Metric.TIME : 'Time',
               Metric.F1SCORE : '$F_1$ Score',
               Metric.SHD : 'SHD',
               Metric.FPR: 'FPR',
-              Metric.N_ESPU : 'Spurious Links',
-              Metric.N_EqDAG : '# Equivalent DAGs',}
+              Metric.UNCERTAINTY : 'Uncertainty',
+              Metric.PAGSIZE : '# Equivalent DAGs',}
 
 class plotType(Enum):
     Line = 0
@@ -97,7 +98,7 @@ def extract_data(file_path, algorithms, metric, mode = ExtractDataMode.MeandStd)
                     t = datetime.datetime.strptime(r[i][algo.value][metric.value], '%H:%M:%S.%f')
                     ext_data[algo.value]["samples"].append((t - since).total_seconds())
                 
-            elif metric == Metric.N_ESPU:
+            elif metric == Metric.N_AL:
                 for algo in algorithms:
                     if r[i][jWord.N_GSPU.value] != 0:
                         ext_data[algo.value]["samples"].append((r[i][algo.value][metric.value])/r[i][jWord.N_GSPU.value])
@@ -275,6 +276,6 @@ if __name__ == '__main__':
     #               Algo.VarLiNGAM: {"marker": '>', "color": 'k', "linestyle": '-'},
     #               }
     for r in resfolder:
-        for metric in [Metric.TIME, Metric.F1SCORE, Metric.PREC, Metric.RECA, Metric.SHD, Metric.FPR, Metric.N_ESPU, Metric.N_EqDAG]:
+        for metric in [Metric.TIME, Metric.F1SCORE, Metric.PREC, Metric.RECA, Metric.SHD, Metric.FPR, Metric.N_AL, Metric.PAGSIZE]:
             compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
             # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)

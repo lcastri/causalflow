@@ -369,7 +369,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         max_conds_px = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
         
         # Get the parents that will be checked
-        _int_parents = self.val_method._get_int_parents(dag.get_SCM(indexed = True))
+        _int_parents = self.val_method._get_int_parents(dag.get_Adj(indexed = True))
 
         # Get the conditions as implied by the input arguments
         links_tocheck = self.val_method._iter_indep_conds(_int_parents, _int_link_assumptions, max_conds_py, max_conds_px)
