@@ -131,8 +131,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         
         # ! Assmpution 4
         for k in self.contexts:
-            # for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = ''
-            for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '<->'
+            for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = ''
+            # for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '<->'
         
                           
                           
