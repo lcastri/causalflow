@@ -209,8 +209,8 @@ if __name__ == '__main__':
                         elapsed_lpcmci = time() - new_start
                         lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
                         print(lpcmci_time)
-                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, min_width=2, max_width=5, x_disp=0.5)
-                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, min_width=2, max_width=5, x_disp=0.5)
+                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
                         lpcmci.save()
                         gc.collect()
                         
@@ -288,8 +288,8 @@ if __name__ == '__main__':
                             elapsed_candoit = time() - new_start
                             candoit_time = str(timedelta(seconds = elapsed_candoit))
                             print(candoit_time)
-                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, min_width=2, max_width=5, x_disp=0.5)
-                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, min_width=2, max_width=5, x_disp=0.5)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
                             gc.collect()
                         
                             # res = deepcopy(ALGO_RES)
