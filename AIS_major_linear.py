@@ -30,7 +30,6 @@ import ast
 
 def remove_directory(directory_path):
     try:
-        # Use shutil.rmtree() to remove the directory and its content recursively
         shutil.rmtree(directory_path)
         print(f"Directory '{directory_path}' and its content have been removed.")
     except OSError as e:
@@ -154,7 +153,6 @@ if __name__ == '__main__':
                         INT_VARS = list(d_int.keys()) if len(d_int) > 0 else None
                     else:
                         # File does not exist, create a new dictionary
-                        # data[nr] = deepcopy(EMPTY_RES)
                         data[nr] = {}
                         
                         
@@ -211,8 +209,8 @@ if __name__ == '__main__':
                         elapsed_lpcmci = time() - new_start
                         lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
                         print(lpcmci_time)
-                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG)
-                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF)
+                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, min_width=2, max_width=5, x_disp=0.5)
+                        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, min_width=2, max_width=5, x_disp=0.5)
                         lpcmci.save()
                         gc.collect()
                         
@@ -290,8 +288,8 @@ if __name__ == '__main__':
                             elapsed_candoit = time() - new_start
                             candoit_time = str(timedelta(seconds = elapsed_candoit))
                             print(candoit_time)
-                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
-                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, min_width=2, max_width=5, x_disp=0.5)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, min_width=2, max_width=5, x_disp=0.5)
                             gc.collect()
                         
                             # res = deepcopy(ALGO_RES)
