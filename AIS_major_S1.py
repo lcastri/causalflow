@@ -100,9 +100,9 @@ def fill_res(r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "AIS_major/AIS_major_linear"
+    resdir = "AIS_major/AIS_major_S1"
     alpha = 0.05
-    nfeature = range(10, 13)
+    nfeature = range(5, 13)
     nrun = 25
     
     # RandomDAG params 
@@ -321,7 +321,11 @@ if __name__ == '__main__':
                                 if noIntervention:
                                     gc.collect()
                                     remove_directory(os.getcwd() + '/' + resfolder)
-                                    continue
+                                    
+                                    del data[nr]
+                                    
+                                    with open(filename, 'w') as file:
+                                        json.dump(data, file)
                                     
                                 continue
 

@@ -100,9 +100,9 @@ def fill_res(r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "AIS_major/AIS_major_linear"
+    resdir = "AIS_major/AIS_major_S2"
     alpha = 0.05
-    nfeature = range(10, 13)
+    nfeature = range(5, 13)
     nrun = 25
     
     # RandomDAG params 
@@ -116,7 +116,6 @@ if __name__ == '__main__':
     max_exp = 2
     functions = ['']
     operators = ['+', '-', '*']
-    n_hidden_confounders = 0
     
     for n in nfeature:
         for nr in range(nrun):
@@ -125,7 +124,7 @@ if __name__ == '__main__':
             #########################################################################################################################
             # DATA
             while True:
-                try:
+                # try:
                     # Check if the file exists
                     Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
                     filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
@@ -165,6 +164,7 @@ if __name__ == '__main__':
                         data[nr] = {}
                         
                         
+                        n_hidden_confounders = random.randint(1, 2)
                         min_lag = 0
                         max_lag = random.randint(1, 3)
                         os.makedirs(resfolder, exist_ok = True)
@@ -220,8 +220,8 @@ if __name__ == '__main__':
                             elapsed_lpcmci = time() - new_start
                             lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
                             print(lpcmci_time)
-                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=1)
+                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=1)
                             lpcmci.save()
                             gc.collect()
                             
@@ -302,8 +302,8 @@ if __name__ == '__main__':
                                 elapsed_candoit = time() - new_start
                                 candoit_time = str(timedelta(seconds = elapsed_candoit))
                                 print(candoit_time)
-                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=1)
+                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=1)
                                 gc.collect()
                             
                                 res = fill_res({"time": candoit_time, 
@@ -324,7 +324,6 @@ if __name__ == '__main__':
                                     
                                     del data[nr]
                                     
-                                    # Save the dictionary back to a JSON file
                                     with open(filename, 'w') as file:
                                         json.dump(data, file)
                                     
@@ -336,18 +335,18 @@ if __name__ == '__main__':
                         json.dump(data, file)
                     break
                     
-                except Exception as e:
-                    traceback_info = traceback.format_exc()
-                    with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
-                        f.write("Exception occurred: " + str(e) + "\n")
-                        f.write("Traceback:\n" + traceback_info + "\n")
-                    remove_directory(os.getcwd() + "/" + resfolder)
+                # except Exception as e:
+                #     traceback_info = traceback.format_exc()
+                #     with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
+                #         f.write("Exception occurred: " + str(e) + "\n")
+                #         f.write("Traceback:\n" + traceback_info + "\n")
+                #     remove_directory(os.getcwd() + "/" + resfolder)
                     
-                    filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
-                    if os.path.exists(filename):
-                        with open(filename, 'r') as file:
-                            data = json.load(file)
-                            if nr in data: 
-                                data.pop(nr)
-                                json.dump(data, file)           
-                    continue
+                #     filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
+                #     if os.path.exists(filename):
+                #         with open(filename, 'r') as file:
+                #             data = json.load(file)
+                #             if nr in data: 
+                #                 data.pop(nr)
+                #                 json.dump(data, file)           
+                #     continue

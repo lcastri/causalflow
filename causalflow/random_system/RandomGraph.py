@@ -630,5 +630,5 @@ class RandomGraph:
                         s_lag -= 1
                         t_lag -= 1
                         
-        g.ts_dag(save_name = save_name, node_color = node_color, edge_color = edge_color, min_width=2, max_width=5, x_disp=0.5, node_size=6)
+        g.ts_dag(save_name = save_name, node_color = node_color, edge_color = edge_color, min_width=2, max_width=5, x_disp=1, node_size=6)
 

@@ -288,7 +288,7 @@ if __name__ == '__main__':
     
     # To use to plot RS_comparison_nconfounded
     resfolder = 'AIS_major/AIS_major_linear'
-    vars = [5, 9]
+    vars = [5, 12]
     
     
     bootstrap = True
