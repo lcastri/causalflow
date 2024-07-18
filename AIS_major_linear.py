@@ -19,6 +19,7 @@ from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
 import causalflow.basics.metrics as metrics
 from pathlib import Path
 import traceback
+import timeout_decorator
 
 from time import time
 from datetime import timedelta
@@ -26,8 +27,8 @@ from res_statistics_new import *
 import gc
 import shutil
 import ast
-import concurrent.futures
 
+TIMEOUT = 5*60
 
 def remove_directory(directory_path):
     try:
@@ -50,9 +51,16 @@ def get_ambiguous_link(scm):
                 amb_links.append((s, sources[s], t))
             
     return canContinue, amb_links, potentialIntervention
+
+
+@timeout_decorator.timeout(TIMEOUT)
+def run_algo(algo, name):
+    if name == Algo.LPCMCI.value:
+        return algo.run()
+    elif name == Algo.CAnDOIT.value:
+        return algo.run(remove_unneeded=False, nofilter=True)
+
         
-        
-# def fill_res(res, r):
 def fill_res(r):
     res = {}
     res['done'] = True
@@ -88,85 +96,6 @@ def fill_res(r):
     res[Metric.UNCERTAINTY.value] = len(ambiguous_links)
     res[Metric.PAGSIZE.value] = 2**len(ambiguous_links)
     return res
-
-
-def run_algo(algo, algoname):
-    if algoname == Algo.CAnDOIT.value:
-        new_start = time()
-        candoit_cm = algo.run(remove_unneeded=False, nofilter=True)
-        elapsed_candoit = time() - new_start
-        candoit_time = str(timedelta(seconds = elapsed_candoit))
-        print(candoit_time)
-        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-        gc.collect()
-                                
-        res = fill_res({"time": candoit_time, 
-                        "adj": candoit_cm.get_Adj(), 
-                        "graph": candoit_cm.get_Graph()})
-        
-        data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
-        data[nr]['done'] = True
-            
-        # Save the dictionary back to a JSON file
-        with open(filename, 'w') as file:
-            json.dump(data, file)
-        return None
-    
-    if algoname == Algo.LPCMCI.value:
-        new_start = time()
-        lpcmci_cm = algo.run()
-        elapsed_lpcmci = time() - new_start
-        lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
-        print(lpcmci_time)
-        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-        lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-        lpcmci.save()
-        gc.collect()
-        
-        canContinue, _, potentialIntervention = get_ambiguous_link(lpcmci_cm.get_Graph())
-        
-        if not canContinue: 
-            gc.collect()
-            remove_directory(os.getcwd() + '/' + resfolder)
-            raise ValueError("no ambiguous link")
-        else:
-            res = fill_res({"time": lpcmci_time, 
-                            "adj": lpcmci_cm.get_Adj(), 
-                            "graph": lpcmci_cm.get_Graph()})
-            
-            data[nr] = {}
-                    
-            data[nr]['done'] = False
-            data[nr]["min_lag"] = str(min_lag)
-            data[nr]["max_lag"] = str(max_lag)
-            data[nr]["equations"] = str(EQUATIONS)
-            data[nr]["coeff_range"] = str(COEFF_RANGE)
-            data[nr]["noise_config"] = str(NOISE_CONF)
-            data[nr]["adj"] = str(GT_ADJ)
-            data[nr]["graph"] = str(GT_GRAPH)
-            data[nr]["potential_interventions"] = str(potentialIntervention)
-            data[nr]["confounders"] = str(CONFOUNDERS)
-            data[nr]["hidden_confounders"] = str(HIDDEN_CONFOUNDERS)
-            data[nr]["expected_ambiguous_links"] = str(EXPECTED_AMBIGUOUS_LINKS)
-            data[nr]["expected_uncertainty"] = str(EXPECTED_UNCERTAINTY)
-            
-            d_int = dict()
-            for intvar in potentialIntervention:
-                i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
-                d_int[intvar] = i[intvar]
-                d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
-                d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
-            INT_VARS = list(d_int.keys())
-            data[nr]["intervention_variables"] = str(INT_VARS)
-            
-            data[nr][Algo.LPCMCI.value] = res
-                
-            # Save the dictionary back to a JSON file
-            with open(filename, 'w') as file:
-                json.dump(data, file)
-                
-            return potentialIntervention, d_int
     
     
 if __name__ == '__main__':
@@ -175,7 +104,6 @@ if __name__ == '__main__':
     alpha = 0.05
     nfeature = range(10, 13)
     nrun = 25
-    TIMEOUT = 15*60
     
     # RandomDAG params 
     nsample_obs = 1250
@@ -285,65 +213,62 @@ if __name__ == '__main__':
                                         neglect_only_autodep = False,
                                         resfolder = resfolder + "/lpcmci")
                         
-                        with concurrent.futures.ThreadPoolExecutor() as executor:
-                            future = executor.submit(run_algo, lpcmci, 'lpcmci')
-                            try:
-                                # new_start = time()
-                                potentialIntervention, d_int = future.result(timeout=TIMEOUT)
-                                # elapsed_lpcmci = time() - new_start
-                                # lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
-                                # print(lpcmci_time)
-                                # lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-                                # lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-                                # lpcmci.save()
-                                # gc.collect()
-                                
-                                # canContinue, _, potentialIntervention = get_ambiguous_link(lpcmci_cm.get_Graph())
-                                
-                                # if not canContinue: 
-                                #     gc.collect()
-                                #     remove_directory(os.getcwd() + '/' + resfolder)
-                                #     continue
-                                # else:
-                                #     res = fill_res({"time": lpcmci_time, 
-                                #                     "adj": lpcmci_cm.get_Adj(), 
-                                #                     "graph": lpcmci_cm.get_Graph()})
-                                    
-                                #     data[nr] = {}
-                                            
-                                #     data[nr]['done'] = False
-                                #     data[nr]["min_lag"] = str(min_lag)
-                                #     data[nr]["max_lag"] = str(max_lag)
-                                #     data[nr]["equations"] = str(EQUATIONS)
-                                #     data[nr]["coeff_range"] = str(COEFF_RANGE)
-                                #     data[nr]["noise_config"] = str(NOISE_CONF)
-                                #     data[nr]["adj"] = str(GT_ADJ)
-                                #     data[nr]["graph"] = str(GT_GRAPH)
-                                #     data[nr]["potential_interventions"] = str(potentialIntervention)
-                                #     data[nr]["confounders"] = str(CONFOUNDERS)
-                                #     data[nr]["hidden_confounders"] = str(HIDDEN_CONFOUNDERS)
-                                #     data[nr]["expected_ambiguous_links"] = str(EXPECTED_AMBIGUOUS_LINKS)
-                                #     data[nr]["expected_uncertainty"] = str(EXPECTED_UNCERTAINTY)
-                                    
-                                #     d_int = dict()
-                                #     for intvar in potentialIntervention:
-                                #         i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
-                                #         d_int[intvar] = i[intvar]
-                                #         d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
-                                #         d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
-                                #     INT_VARS = list(d_int.keys())
-                                #     data[nr]["intervention_variables"] = str(INT_VARS)
-                                    
-                                #     data[nr][Algo.LPCMCI.value] = res
-                                        
-                                #     # Save the dictionary back to a JSON file
-                                #     with open(filename, 'w') as file:
-                                #         json.dump(data, file)
-                                        
-                            except concurrent.futures.TimeoutError:
+                        try:
+                            new_start = time()
+                            lpcmci_cm = run_algo(lpcmci, 'lpcmci')
+                            # lpcmci_cm = lpcmci.run()
+                            elapsed_lpcmci = time() - new_start
+                            lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
+                            print(lpcmci_time)
+                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                            lpcmci.save()
+                            gc.collect()
+                            
+                            canContinue, _, potentialIntervention = get_ambiguous_link(lpcmci_cm.get_Graph())
+                            
+                            if not canContinue: 
+                                gc.collect()
+                                remove_directory(os.getcwd() + '/' + resfolder)
                                 continue
-                            except ValueError:
-                                continue
+                            else:
+                                res = fill_res({"time": lpcmci_time, 
+                                                "adj": lpcmci_cm.get_Adj(), 
+                                                "graph": lpcmci_cm.get_Graph()})
+                                
+                                data[nr] = {}
+                                        
+                                data[nr]['done'] = False
+                                data[nr]["min_lag"] = str(min_lag)
+                                data[nr]["max_lag"] = str(max_lag)
+                                data[nr]["equations"] = str(EQUATIONS)
+                                data[nr]["coeff_range"] = str(COEFF_RANGE)
+                                data[nr]["noise_config"] = str(NOISE_CONF)
+                                data[nr]["adj"] = str(GT_ADJ)
+                                data[nr]["graph"] = str(GT_GRAPH)
+                                data[nr]["potential_interventions"] = str(potentialIntervention)
+                                data[nr]["confounders"] = str(CONFOUNDERS)
+                                data[nr]["hidden_confounders"] = str(HIDDEN_CONFOUNDERS)
+                                data[nr]["expected_ambiguous_links"] = str(EXPECTED_AMBIGUOUS_LINKS)
+                                data[nr]["expected_uncertainty"] = str(EXPECTED_UNCERTAINTY)
+                                
+                                d_int = dict()
+                                for intvar in potentialIntervention:
+                                    i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
+                                    d_int[intvar] = i[intvar]
+                                    d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
+                                    d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
+                                INT_VARS = list(d_int.keys())
+                                data[nr]["intervention_variables"] = str(INT_VARS)
+                                
+                                data[nr][Algo.LPCMCI.value] = res
+                                    
+                                # Save the dictionary back to a JSON file
+                                with open(filename, 'w') as file:
+                                    json.dump(data, file)
+                                    
+                        except timeout_decorator.timeout_decorator.TimeoutError:
+                            continue
             
                     
                     #########################################################################################################################
@@ -367,33 +292,34 @@ if __name__ == '__main__':
                                             resfolder = resfolder + f"/candoit_{selected_intvar}",
                                             plot_data = False,
                                             exclude_context = True)
+                            try:
+                                new_start = time()
+                                candoit_cm = run_algo(candoit, 'candoit')
+                                # candoit_cm = candoit.run(remove_unneeded=False, nofilter=True)
+                                elapsed_candoit = time() - new_start
+                                candoit_time = str(timedelta(seconds = elapsed_candoit))
+                                print(candoit_time)
+                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                                gc.collect()
                             
-                            with concurrent.futures.ThreadPoolExecutor() as executor:
-                                future = executor.submit(run_algo, candoit, 'candoit')
-                                try:
-                                    # new_start = time()
-                                    # candoit_cm = candoit.run(remove_unneeded=False, nofilter=True)
-                                    future.result(timeout=TIMEOUT)
-                                    # elapsed_candoit = time() - new_start
-                                    # candoit_time = str(timedelta(seconds = elapsed_candoit))
-                                    # print(candoit_time)
-                                    # candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-                                    # candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
-                                    # gc.collect()
+                                res = fill_res({"time": candoit_time, 
+                                                "adj": candoit_cm.get_Adj(), 
+                                                "graph": candoit_cm.get_Graph()})
                                 
-                                    # res = fill_res({"time": candoit_time, 
-                                    #                 "adj": candoit_cm.get_Adj(), 
-                                    #                 "graph": candoit_cm.get_Graph()})
+                                data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
                                     
-                                    # data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
-                                    # data[nr]['done'] = True
-                                        
-                                    # # Save the dictionary back to a JSON file
-                                    # with open(filename, 'w') as file:
-                                    #     json.dump(data, file)
-                                        
-                                except concurrent.futures.TimeoutError:
-                                    continue
+                                # Save the dictionary back to a JSON file
+                                with open(filename, 'w') as file:
+                                    json.dump(data, file)
+                                                                 
+                            except timeout_decorator.timeout_decorator.TimeoutError:
+                                continue
+
+                    data[nr]['done'] = True
+                    # Save the dictionary back to a JSON file
+                    with open(filename, 'w') as file:
+                        json.dump(data, file)
                     break
                     
                 except Exception as e:
