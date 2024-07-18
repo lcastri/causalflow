@@ -267,14 +267,17 @@ if __name__ == '__main__':
                                 with open(filename, 'w') as file:
                                     json.dump(data, file)
                                     
+                                gc.collect()
                         except timeout_decorator.timeout_decorator.TimeoutError:
+                            gc.collect()
+                            remove_directory(os.getcwd() + '/' + resfolder)
                             continue
             
                     
                     #########################################################################################################################
                     # CAnDOIT                        
                     if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
-                        
+                        noIntervention = True
                         for selected_intvar in potentialIntervention:
                             tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar == selected_intvar}
                                                     
@@ -308,12 +311,18 @@ if __name__ == '__main__':
                                                 "graph": candoit_cm.get_Graph()})
                                 
                                 data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
+                                noIntervention = False
                                     
                                 # Save the dictionary back to a JSON file
                                 with open(filename, 'w') as file:
                                     json.dump(data, file)
                                                                  
                             except timeout_decorator.timeout_decorator.TimeoutError:
+                                if noIntervention:
+                                    gc.collect()
+                                    remove_directory(os.getcwd() + '/' + resfolder)
+                                    continue
+                                    
                                 continue
 
                     data[nr]['done'] = True
