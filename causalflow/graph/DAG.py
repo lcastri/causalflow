@@ -86,149 +86,7 @@ class DAG():
                 if self.g[s[0]].intervention_node:
                     int_links.append((s[0], s[1], t))
         return int_links
-    
-    
-    def fully_connected_dag(self):
-        """
-        Build a fully connected DAG
-        """
-        for t in self.g:
-            for s in self.g:
-                for l in range(1, self.max_lag + 1): self.add_source(t, s, 1, 0, l)
-                
-    
-    
-    # def build_link_assumptions(self):
-
-    #     # This describes what I know about my system
-    #     knowledge = {self.features.index(f): dict() for f in self.features}
-        
-    #     # link context --> system variables
-    #     for sys, context in self.sys_context.items():
-    #         for tau_i in range(0, self.max_lag + 1):
-    #             if tau_i == 0:
-    #                 knowledge[self.features.index(sys)][(self.features.index(context), 0)] = '-->'
-    #                 knowledge[self.features.index(context)][(self.features.index(sys), 0)] = '<--'
-    #             else:
-    #                 knowledge[self.features.index(sys)][(self.features.index(context), -tau_i)] = ''
-            
-    #     # NO link context/system --> context variables for any time lag
-    #     for sys, context in self.sys_context.items():
-    #         for tau_i in range(0, self.max_lag + 1):
-    #             for v in self.features:
-    #                 if v == context and tau_i == 0: continue
-    #                 elif v == sys and tau_i == 0: continue
-    #                 knowledge[self.features.index(context)][(self.features.index(v), -tau_i)] = ''
-                    
-            
-    #     # NO link context --> other system variables for any time lag
-    #     # for sys, context in self.sys_context.items():
-    #     #     for j in range(len(self.features)):
-    #     #         if self.features[j] != sys and self.features[j] != context:
-    #     #             for tau_i in range(0, self.max_lag+1):
-    #     #                 knowledge[j][(self.features.index(context), -tau_i)] = ''
-                        
-    #     # link between context variables o-o
-    #     for context_i in self.sys_context.values():
-    #         tmp = list(self.sys_context.values())
-    #         tmp.remove(context_i)
-    #         for context_j in tmp:
-    #             knowledge[self.features.index(context_i)][(self.features.index(context_j), 0)] = 'o-o'        
-        
-        
-    #     out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
-    #         for i in range(len(self.features)) for tau_i in range(0, self.max_lag+1)
-    #         if (tau_i > 0 or i != j)} for j in range(len(self.features))}
-
-    #     for j, links_j in knowledge.items():
-    #         for (i, lag_i), link_ij in links_j.items():
-    #             if link_ij == "": 
-    #                 del out[j][(i, lag_i)]
-    #             else:
-    #                 out[j][(i, lag_i)] = link_ij
-    #     return out
-    
-    # def JCI_assumptions(self):
-
-    #     knowledge = {self.features.index(f): dict() for f in self.features}
-        
-    #     # ! JCI Assmpution 1: No system variable causes any context variable
-    #     for self.features
-    #     # ! JCI Assmpution 2: No context variable is confounded with a system variable
-        
-    #     # ! JCI Assmpution 3: The context distribution contains no (conditional) independences
-        
-    #     # link context --> system variales
-    #     for sys, context in self.sys_context.items():
-    #         for tau_i in range(0, self.max_lag + 1):
-    #             if tau_i == 0:
-    #                 knowledge[self.features.index(sys)][(self.features.index(context), 0)] = '-->'
-    #                 knowledge[self.features.index(context)][(self.features.index(sys), 0)] = '<--'
-    #             else:
-    #                 knowledge[self.features.index(sys)][(self.features.index(context), -tau_i)] = ''
-            
-    #     # NO link context/system --> context variables for any time lag
-    #     for sys, context in self.sys_context.items():
-    #         for tau_i in range(0, self.max_lag + 1):
-    #             for v in self.features:
-    #                 if v == context and tau_i == 0: continue
-    #                 elif v == sys and tau_i == 0: continue
-    #                 knowledge[self.features.index(context)][(self.features.index(v), -tau_i)] = ''
-                    
-            
-    #     # NO link context --> other system variables for any time lag
-    #     # for sys, context in self.sys_context.items():
-    #     #     for j in range(len(self.features)):
-    #     #         if self.features[j] != sys and self.features[j] != context:
-    #     #             for tau_i in range(0, self.max_lag+1):
-    #     #                 knowledge[j][(self.features.index(context), -tau_i)] = ''
-                        
-    #     # link between context variables o-o
-    #     for context_i in self.sys_context.values():
-    #         tmp = list(self.sys_context.values())
-    #         tmp.remove(context_i)
-    #         for context_j in tmp:
-    #             knowledge[self.features.index(context_i)][(self.features.index(context_j), 0)] = 'o-o'        
-        
-        
-    #     out = {j: {(i, -tau_i): ("o?>" if tau_i > 0 else "o?o")
-    #         for i in range(len(self.features)) for tau_i in range(0, self.max_lag+1)
-    #         if (tau_i > 0 or i != j)} for j in range(len(self.features))}
-
-    #     for j, links_j in knowledge.items():
-    #         for (i, lag_i), link_ij in links_j.items():
-    #             if link_ij == "": 
-    #                 del out[j][(i, lag_i)]
-    #             else:
-    #                 out[j][(i, lag_i)] = link_ij
-    #     return out
-    
-            
-    # def dummy_link_assumptions(self):
-    #     """
-    #     Build a fully connected DAG
-    #     """
-        
-    #     # System variables
-    #     link_assump = {self.features.index(f): dict() for f in self.features}
-    #     for t in self.g:
-    #         for s in self.g:
-    #             for l in range(0, self.max_lag + 1): 
-    #                 if t not in list(self.sys_context.values()):
-    #                     if s not in list(self.sys_context.values()):
-    #                         if s == t and l == 0: continue                 
-    #                         if l == 0:
-    #                             link_assump[self.features.index(t)][(self.features.index(s), 0)] = 'o?o'
-    #                         else:
-    #                             link_assump[self.features.index(t)][(self.features.index(s), -l)] = '-?>'
-    #                     elif t in self.sys_context.keys() and s == self.sys_context[t]:
-    #                         if l == 0:
-    #                             link_assump[self.features.index(t)][(self.features.index(s), 0)] = '-->'
-    #                             link_assump[self.features.index(s)][(self.features.index(t), 0)] = '<--'
-    #     # Context variables
-                                            
-    #     return link_assump
-    
+      
     
     def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):
         """
@@ -337,6 +195,7 @@ class DAG():
                     link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
                     
         return link_assump
+    
     
     # FIXME: remove me. this is related to CAnDOIT_cont
     def add_context_cont(self):

@@ -16,6 +16,7 @@ from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
+import causalflow.basics.metrics as metrics
 from pathlib import Path
 import traceback
 
@@ -25,39 +26,6 @@ from res_statistics_new import *
 import gc
 import shutil
 import ast
-
-# ALGO_RES = {'done': False,
-#             jWord.ADJ.value : None,
-#             jWord.GRAPH.value : None,
-#             Metric.TIME.value : None,
-#             Metric.FN.value : None,
-#             Metric.TN.value : None,
-#             Metric.FP.value : None,
-#             Metric.TP.value : None,
-#             Metric.FPR.value : None,
-#             Metric.TPR.value : None,
-#             Metric.FNR.value : None,
-#             Metric.TNR.value : None,
-#             Metric.PREC.value : None,
-#             Metric.RECA.value : None,
-#             Metric.F1SCORE.value : None,
-#             Metric.SHD.value : None,
-#             jWord.GRAPH.value : None,
-#             jWord.AmbiguousLinks.value: None,
-#             Metric.UNCERTAINTY.value : None,
-#             Metric.PAGSIZE.value: None}
-
-
-# EMPTY_RES = {jWord.ADJ.value : None,
-#              jWord.GRAPH.value : None,
-#              jWord.Confounders.value : None,
-#              jWord.HiddenConfounders.value : None, 
-#              jWord.ExpectedAmbiguousLinks.value : None,
-#              jWord.ExpectedUncertainty : None,
-#              jWord.N_GSPU.value : None,
-#              Algo.LPCMCI.value : deepcopy(ALGO_RES),
-#              Algo.CAnDOIT.value : deepcopy(ALGO_RES),
-#              }
 
 
 def remove_directory(directory_path):
@@ -69,14 +37,6 @@ def remove_directory(directory_path):
         print(f"Error: {e}")
 
 
-# def get_correct_SCM(gt, scm):
-#     new_scm = {v: list() for v in gt.keys()}
-#     if list(scm.keys()):
-#         for k in scm:
-#             new_scm[k] = scm[k]
-#     return new_scm
-
-
 def get_ambiguous_link(scm):
     canContinue = False
     potentialIntervention = set()
@@ -84,10 +44,10 @@ def get_ambiguous_link(scm):
     
     for t, sources in scm.items():
         for s in sources:
-            if s[2] == 'o-o' or s[2] == 'o->':
+            if sources[s] == 'o-o' or sources[s] == 'o->':
                 canContinue = True
                 potentialIntervention.add(s[0])
-                amb_links.append(((s[0], s[1]), s[2], t))
+                amb_links.append((s, sources[s], t))
             
     return canContinue, amb_links, potentialIntervention
         
@@ -98,31 +58,31 @@ def fill_res(r):
     res['done'] = True
     res[Metric.TIME.value] = r["time"]
     res["adj"] = str(r["adj"])
-    res[f"adj_{Metric.FN.value}"] = RandomGraph.get_FN(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.TN.value}"] = RandomGraph.get_TN(GT_ADJ, min_lag, max_lag, r["adj"])
-    res[f"adj_{Metric.FP.value}"] = RandomGraph.get_FP(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.TP.value}"] = RandomGraph.get_TP(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.FPR.value}"] = RandomGraph.FPR(GT_ADJ, min_lag, max_lag, r["adj"])
-    res[f"adj_{Metric.TPR.value}"] = RandomGraph.TPR(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.FNR.value}"] = RandomGraph.FNR(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.TNR.value}"] = RandomGraph.TNR(GT_ADJ, min_lag, max_lag, r["adj"])
-    res[f"adj_{Metric.PREC.value}"] = RandomGraph.precision(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.RECA.value}"] = RandomGraph.recall(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.F1SCORE.value}"] = RandomGraph.f1_score(GT_ADJ, r["adj"])
-    res[f"adj_{Metric.SHD.value}"] = RandomGraph.shd(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.FN.value}"] = metrics.get_FN(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.TN.value}"] = metrics.get_TN(GT_ADJ, min_lag, max_lag, r["adj"])
+    res[f"adj_{Metric.FP.value}"] = metrics.get_FP(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.TP.value}"] = metrics.get_TP(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.FPR.value}"] = metrics.FPR(GT_ADJ, min_lag, max_lag, r["adj"])
+    res[f"adj_{Metric.TPR.value}"] = metrics.TPR(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.FNR.value}"] = metrics.FNR(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.TNR.value}"] = metrics.TNR(GT_ADJ, min_lag, max_lag, r["adj"])
+    res[f"adj_{Metric.PREC.value}"] = metrics.precision(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.RECA.value}"] = metrics.recall(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.F1SCORE.value}"] = metrics.f1_score(GT_ADJ, r["adj"])
+    res[f"adj_{Metric.SHD.value}"] = metrics.shd(GT_ADJ, r["adj"])
     res["graph"] = str(r["graph"])
-    res[f"graph_{Metric.FN.value}"] = RandomGraph.get_FN(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.TN.value}"] = RandomGraph.get_TN(GT_ADJ, min_lag, max_lag, r["graph"])
-    res[f"graph_{Metric.FP.value}"] = RandomGraph.get_FP(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.TP.value}"] = RandomGraph.get_TP(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.FPR.value}"] = RandomGraph.FPR(GT_ADJ, min_lag, max_lag, r["graph"])
-    res[f"graph_{Metric.TPR.value}"] = RandomGraph.TPR(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.FNR.value}"] = RandomGraph.FNR(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.TNR.value}"] = RandomGraph.TNR(GT_ADJ, min_lag, max_lag, r["graph"])
-    res[f"graph_{Metric.PREC.value}"] = RandomGraph.precision(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.RECA.value}"] = RandomGraph.recall(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.F1SCORE.value}"] = RandomGraph.f1_score(GT_ADJ, r["graph"])
-    res[f"graph_{Metric.SHD.value}"] = RandomGraph.shd(GT_ADJ, r["graph"])
+    res[f"graph_{Metric.FN.value}"] = metrics.get_FN(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.TN.value}"] = metrics.get_TN(GT_GRAPH, min_lag, max_lag, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.FP.value}"] = metrics.get_FP(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.TP.value}"] = metrics.get_TP(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.FPR.value}"] = metrics.FPR(GT_GRAPH, min_lag, max_lag, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.TPR.value}"] = metrics.TPR(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.FNR.value}"] = metrics.FNR(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.TNR.value}"] = metrics.TNR(GT_GRAPH, min_lag, max_lag, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.PREC.value}"] = metrics.precision(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.RECA.value}"] = metrics.recall(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.F1SCORE.value}"] = metrics.f1_score(GT_GRAPH, r["graph"], alsoOrient=True)
+    res[f"graph_{Metric.SHD.value}"] = metrics.shd(GT_GRAPH, r["graph"], alsoOrient=True)
     _, ambiguous_links, _ = get_ambiguous_link(r["graph"])
     res["ambiguous_links"] = str(ambiguous_links)
     res[Metric.UNCERTAINTY.value] = len(ambiguous_links)
@@ -134,14 +94,14 @@ if __name__ == '__main__':
     # Simulation params
     resdir = "AIS_major/AIS_major_linear"
     alpha = 0.05
-    nfeature = range(5, 16)
+    nfeature = range(5, 15)
     nrun = 25
     
     # RandomDAG params 
-    # nsample_obs = 1250
-    # nsample_int = 250
-    nsample_obs = 750
-    nsample_int = 150
+    nsample_obs = 1250
+    nsample_int = 250
+    # nsample_obs = 750
+    # nsample_int = 150
     min_c = 0.1
     max_c = 0.5
     link_density = 3
@@ -177,8 +137,10 @@ if __name__ == '__main__':
                         d_obs = Data(os.getcwd() + '/' + resfolder + '/obs_data.csv')
                         d_int = dict()
                         # List all files in the folder and filter files that start with 'interv_' and end with '.csv'
-                        intvars = ast.literal_eval(data[nr]['InterventionVariables'])
-                        for v in intvars: d_int[v] = Data(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv')
+                        potentialIntervention = ast.literal_eval(data[nr]['potential_interventions'])
+                        for v in potentialIntervention:
+                            if os.path.exists(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv'):
+                                d_int[v] = Data(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv')
                         
                         EQUATIONS = data[nr]["equations"]
                         COEFF_RANGE = ast.literal_eval(data[nr]["coeff_range"])
@@ -189,15 +151,15 @@ if __name__ == '__main__':
                         HIDDEN_CONFOUNDERS = ast.literal_eval(data[nr]["hidden_confounders"])
                         EXPECTED_AMBIGUOUS_LINKS = ast.literal_eval(data[nr]["expected_ambiguous_links"])
                         EXPECTED_UNCERTAINTY = ast.literal_eval(data[nr]["expected_uncertainty"])
-                        INT_VARS = list(d_int.keys())
+                        INT_VARS = list(d_int.keys()) if len(d_int) > 0 else None
                     else:
                         # File does not exist, create a new dictionary
                         # data[nr] = deepcopy(EMPTY_RES)
                         data[nr] = {}
                         
                         
-                        min_lag = random.randint(0, 1)
-                        max_lag = random.randint(2, 5)
+                        min_lag = 0
+                        max_lag = random.randint(1, 3)
                         os.makedirs(resfolder, exist_ok = True)
                         
                         # Noise params 
@@ -235,7 +197,7 @@ if __name__ == '__main__':
                     # LPCMCI
                     if Algo.LPCMCI.value not in data[nr] or (Algo.LPCMCI.value in data[nr] and not data[nr][Algo.LPCMCI.value]['done']):
                         lpcmci = LPCMCI(deepcopy(d_obs),
-                                        min_lag = min_lag, 
+                                        min_lag = 0, 
                                         max_lag = max_lag, 
                                         sys_context = [],
                                         val_condtest = ParCorr(significance = 'analytic'),
@@ -279,12 +241,21 @@ if __name__ == '__main__':
                             data[nr]["noise_config"] = str(NOISE_CONF)
                             data[nr]["adj"] = str(GT_ADJ)
                             data[nr]["graph"] = str(GT_GRAPH)
+                            data[nr]["potential_interventions"] = str(potentialIntervention)
                             data[nr]["confounders"] = str(CONFOUNDERS)
                             data[nr]["hidden_confounders"] = str(HIDDEN_CONFOUNDERS)
                             data[nr]["expected_ambiguous_links"] = str(EXPECTED_AMBIGUOUS_LINKS)
                             data[nr]["expected_uncertainty"] = str(EXPECTED_UNCERTAINTY)
                             
-                                
+                            d_int = dict()
+                            for intvar in potentialIntervention:
+                                i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
+                                d_int[intvar] = i[intvar]
+                                d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
+                                d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
+                            INT_VARS = list(d_int.keys())
+                            data[nr]["intervention_variables"] = str(INT_VARS)
+                            
                             data[nr][Algo.LPCMCI.value] = res
                                 
                             # Save the dictionary back to a JSON file
@@ -293,54 +264,47 @@ if __name__ == '__main__':
             
                     
                     #########################################################################################################################
-                    # CAnDOIT
-                    
-                    if INT_VARS is None:
-                        d_int = dict()
-                        for intvar in intvars:
-                            i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
-                            d_int[intvar] = i[intvar]
-                            d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
-                            d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
-                        INT_VARS = list(d_int.keys())
-                    
+                    # CAnDOIT                        
                     if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
-                        new_d_obs = deepcopy(d_obs)
-                        new_d_obs.d = new_d_obs.d[:-nsample_int]
-                        candoit = CAnDOIT(new_d_obs, 
-                                          deepcopy(d_int),
-                                          alpha = alpha, 
-                                          min_lag = min_lag, 
-                                          max_lag = max_lag, 
-                                          sel_method = TE(TEestimator.Gaussian), 
-                                          val_condtest = ParCorr(significance = 'analytic'),
-                                          verbosity = CPLevel.INFO,
-                                          neglect_only_autodep = False,
-                                          resfolder = resfolder + "/candoit",
-                                          plot_data = False,
-                                          exclude_context = True)
                         
-                        new_start = time()
-                        candoit_cm = candoit.run()
-                        elapsed_candoit = time() - new_start
-                        candoit_time = str(timedelta(seconds = elapsed_candoit))
-                        print(candoit_time)
-                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
-                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF)
-                        gc.collect()
-                    
-                        # res = deepcopy(ALGO_RES)
-                        fill_res({"time": candoit_time, 
-                                  "adj": candoit_cm.get_Adj(), 
-                                  "graph": candoit_cm.get_Graph()})
-                        
-                        data[nr][Algo.CAnDOIT.value] = res
-                        data[nr]["intervention_variables"] = str(INT_VARS)
-                        data[nr]['done'] = True
+                        for selected_intvar in potentialIntervention:
+                            tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar == selected_intvar}
+                                                    
+                            new_d_obs = deepcopy(d_obs)
+                            new_d_obs.d = new_d_obs.d[:-nsample_int]
+                            candoit = CAnDOIT(new_d_obs, 
+                                            deepcopy(tmp_d_int),
+                                            alpha = alpha, 
+                                            min_lag = 0, 
+                                            max_lag = max_lag, 
+                                            sel_method = TE(TEestimator.Gaussian), 
+                                            val_condtest = ParCorr(significance = 'analytic'),
+                                            verbosity = CPLevel.INFO,
+                                            neglect_only_autodep = False,
+                                            resfolder = resfolder + f"/candoit_{selected_intvar}",
+                                            plot_data = False,
+                                            exclude_context = True)
                             
-                        # Save the dictionary back to a JSON file
-                        with open(filename, 'w') as file:
-                            json.dump(data, file)
+                            new_start = time()
+                            candoit_cm = candoit.run(remove_unneeded=False, nofilter=True)
+                            elapsed_candoit = time() - new_start
+                            candoit_time = str(timedelta(seconds = elapsed_candoit))
+                            print(candoit_time)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF)
+                            gc.collect()
+                        
+                            # res = deepcopy(ALGO_RES)
+                            res = fill_res({"time": candoit_time, 
+                                            "adj": candoit_cm.get_Adj(), 
+                                            "graph": candoit_cm.get_Graph()})
+                            
+                            data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
+                            data[nr]['done'] = True
+                                
+                            # Save the dictionary back to a JSON file
+                            with open(filename, 'w') as file:
+                                json.dump(data, file)
 
                     break
                     

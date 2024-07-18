@@ -17,6 +17,14 @@ class PAG():
         
         self.pag = self.tsDAG2tsDPAG()
         
+    
+    def convert2Graph(self):
+        out = {t: {} for t in self.pag}
+        for t in self.pag:
+            for s in self.pag[t]:
+                out[t][(s[0], s[1])] = s[2]
+        return out
+        
     @staticmethod
     def createDAG(link_assumptions, tau_max):
         BN = BayesianNetwork()
