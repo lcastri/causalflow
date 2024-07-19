@@ -300,7 +300,7 @@ if __name__ == '__main__':
                                             exclude_context = True)
                             try:
                                 new_start = time()
-                                intAttempt[potentialIntervention.index(selected_intvar)] = True
+                                intAttempt[list(potentialIntervention).index(selected_intvar)] = True
                                 candoit_cm = run_algo(candoit, 'candoit')
                                 # candoit_cm = candoit.run(remove_unneeded=False, nofilter=True)
                                 elapsed_candoit = time() - new_start
@@ -315,7 +315,7 @@ if __name__ == '__main__':
                                                 "graph": candoit_cm.get_Graph()})
                                 
                                 data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
-                                intDone[potentialIntervention.index(selected_intvar)] = True
+                                intDone[list(potentialIntervention).index(selected_intvar)] = True
                                     
                                 # Save the dictionary back to a JSON file
                                 with open(filename, 'w') as file:

@@ -57,15 +57,19 @@ class PAG():
 
     
     def tsDAG2tsDPAG(self):
+        print("Converting tsDAG to tsDPAG")
         self.tsDPAG = {t: [(s[0], s[1], '-->') for s in self.link_assumptions[t] if s[0] not in self.latents] for t in self.link_assumptions.keys() if t not in self.latents}
         
         if len(self.latents) > 0:
             self.ambiguous_links = []
             self.dSepSets = {}
-            lock = threading.Lock()
+            lock_dSepSets = threading.Lock()
+            lock_tsDPAG = threading.Lock()
+            lock_ambiguous_links = threading.Lock()
 
             
             def process_target(target):
+                print(f"Thread on node {target}")
                 if target[0] in self.latents:
                     return
 
@@ -80,7 +84,7 @@ class PAG():
                         print(f"\t- {source} ⊥ {target} | {d_sep} ALREADY CHECKED")
                     else:
                         areDsep, d_sep = self.find_d_separators(source, target, self.latents)
-                        with lock:
+                        with lock_dSepSets:
                             self.dSepSets[(source, target)] = d_sep
                         print(f"\t- {source} ⊥ {target} | {d_sep}")
                     if areDsep and any(node[0] in self.latents for node in d_sep):
@@ -88,17 +92,19 @@ class PAG():
                             continue
                         if target[1] == 0:
                             print(f"\t- SPURIOUS LINK: ({source[0]}, {source[1]}) o-o ({target[0]}, {target[1]})")
-                            with lock:
-                                if (source[0], source[1], 'o-o') not in self.tsDPAG[target[0]]:
+                            if (source[0], source[1], 'o-o') not in self.tsDPAG[target[0]]:
+                                with lock_tsDPAG:
                                     self.tsDPAG[target[0]].append((source[0], source[1], 'o-o'))
-                                if (source, target, 'o-o') not in self.ambiguous_links:
+                            if (source, target, 'o-o') not in self.ambiguous_links:
+                                with lock_ambiguous_links:
                                     self.ambiguous_links.append((source, target, 'o-o'))
                         elif source[1] == 0:
                             print(f"\t- SPURIOUS LINK: ({target[0]}, {target[1]}) o-o ({source[0]}, {source[1]})")
-                            with lock:
-                                if (target[0], target[1], 'o-o') not in self.tsDPAG[source[0]]:
+                            if (target[0], target[1], 'o-o') not in self.tsDPAG[source[0]]:
+                                with lock_tsDPAG:
                                     self.tsDPAG[source[0]].append((target[0], target[1], 'o-o'))
-                                if (target, source, 'o-o') not in self.ambiguous_links:
+                            if (target, source, 'o-o') not in self.ambiguous_links:
+                                with lock_ambiguous_links:
                                     self.ambiguous_links.append((target, source, 'o-o'))
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
