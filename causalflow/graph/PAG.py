@@ -96,7 +96,7 @@ class PAG():
                             self.update_link_type(c1, c2, '<->')
                             self.ambiguous_links.remove((c2, c1, 'o-o'))
                             print(f"\t- SPURIOUS LINK REMOVED: {c2} o-o {c1}")
-                        confounded.remove(c1)
+                    confounded.remove(c1)
                             
             print(f"--------------------------------------------------")
             print(f"              Collider orientation                ")

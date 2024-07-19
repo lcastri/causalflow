@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # Simulation params
     resdir = "AIS_major/AIS_major_S2"
     alpha = 0.05
-    nfeature = range(5, 13)
+    nfeature = range(5, 10)
     nrun = 25
     
     # RandomDAG params 
@@ -142,6 +142,7 @@ if __name__ == '__main__':
                         min_lag = int(data[nr]['min_lag'])
                         max_lag = int(data[nr]['max_lag'])
                         d_obs = Data(os.getcwd() + '/' + resfolder + '/obs_data.csv')
+                        d_obs_wH = Data(os.getcwd() + '/' + resfolder + '/obs_data_wH.csv')
                         d_int = dict()
                         # List all files in the folder and filter files that start with 'interv_' and end with '.csv'
                         potentialIntervention = ast.literal_eval(data[nr]['potential_interventions'])
@@ -182,9 +183,10 @@ if __name__ == '__main__':
                         RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
                         RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
 
-                        d_obs = RS.gen_obs_ts()
+                        d_obs_wH, d_obs = RS.gen_obs_ts()
                         d_obs.plot_timeseries(resfolder + '/obs_data.png')
                         d_obs.save_csv(resfolder + '/obs_data.csv')
+                        d_obs_wH.save_csv(resfolder + '/obs_data_wH.csv')
 
                         
                         EQUATIONS = RS.print_equations()
@@ -254,7 +256,7 @@ if __name__ == '__main__':
                                 
                                 d_int = dict()
                                 for intvar in potentialIntervention:
-                                    i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
+                                    i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs_wH.d)
                                     d_int[intvar] = i[intvar]
                                     d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
                                     d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')

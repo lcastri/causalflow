@@ -481,8 +481,9 @@ class RandomGraph:
                     if self.noise is not None: np_data[t, self.variables.index(target)] += self.noise[t, self.variables.index(target)]
                     
         data = Data(np_data, self.variables)
-        data.shrink(self.obsVar)
-        return data
+        only_obs = copy.deepcopy(data)
+        only_obs.shrink(self.obsVar)
+        return data, only_obs
     
     
     def gen_interv_ts(self, interventions, obs):
