@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # Simulation params
     resdir = "AIS_major/AIS_major_S2"
     alpha = 0.05
-    nfeature = range(5, 10)
+    nfeature = range(10, 13)
     nrun = 25
     
     # RandomDAG params 
