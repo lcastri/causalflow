@@ -279,7 +279,8 @@ if __name__ == '__main__':
                     #########################################################################################################################
                     # CAnDOIT                        
                     if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
-                        noIntervention = True
+                        intAttempt = [False for _ in potentialIntervention]
+                        intDone = [False for _ in potentialIntervention]
                         for selected_intvar in potentialIntervention:
                             tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar == selected_intvar}
                                                     
@@ -299,6 +300,7 @@ if __name__ == '__main__':
                                             exclude_context = True)
                             try:
                                 new_start = time()
+                                intAttempt[potentialIntervention.index(selected_intvar)] = True
                                 candoit_cm = run_algo(candoit, 'candoit')
                                 # candoit_cm = candoit.run(remove_unneeded=False, nofilter=True)
                                 elapsed_candoit = time() - new_start
@@ -313,14 +315,14 @@ if __name__ == '__main__':
                                                 "graph": candoit_cm.get_Graph()})
                                 
                                 data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
-                                noIntervention = False
+                                intDone[potentialIntervention.index(selected_intvar)] = True
                                     
                                 # Save the dictionary back to a JSON file
                                 with open(filename, 'w') as file:
                                     json.dump(data, file)
                                                                  
                             except timeout_decorator.timeout_decorator.TimeoutError:
-                                if noIntervention:
+                                if all(intAttempt) and not any(intDone):
                                     gc.collect()
                                     remove_directory(os.getcwd() + '/' + resfolder)
                                     
