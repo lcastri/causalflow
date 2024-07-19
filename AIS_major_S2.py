@@ -124,7 +124,7 @@ if __name__ == '__main__':
             #########################################################################################################################
             # DATA
             while True:
-                # try:
+                try:
                     # Check if the file exists
                     Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
                     filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
@@ -178,7 +178,7 @@ if __name__ == '__main__':
                         RS = RandomGraph(nvars = n, nsamples = nsample_obs + nsample_int, 
                                        link_density = link_density, coeff_range = (min_c, max_c), max_exp = max_exp, 
                                        min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian, noise_weibull]),
-                                       functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders)
+                                       functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders, n_confounded_vars = link_density)
                         RS.gen_equations()
                         RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
                         RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
@@ -337,18 +337,18 @@ if __name__ == '__main__':
                         json.dump(data, file)
                     break
                     
-                # except Exception as e:
-                #     traceback_info = traceback.format_exc()
-                #     with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
-                #         f.write("Exception occurred: " + str(e) + "\n")
-                #         f.write("Traceback:\n" + traceback_info + "\n")
-                #     remove_directory(os.getcwd() + "/" + resfolder)
+                except Exception as e:
+                    traceback_info = traceback.format_exc()
+                    with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
+                        f.write("Exception occurred: " + str(e) + "\n")
+                        f.write("Traceback:\n" + traceback_info + "\n")
+                    remove_directory(os.getcwd() + "/" + resfolder)
                     
-                #     filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
-                #     if os.path.exists(filename):
-                #         with open(filename, 'r') as file:
-                #             data = json.load(file)
-                #             if nr in data: 
-                #                 data.pop(nr)
-                #                 json.dump(data, file)           
-                #     continue
+                    filename = os.getcwd() + "/results/" + resdir + "/" + str(n) + ".json"
+                    if os.path.exists(filename):
+                        with open(filename, 'r') as file:
+                            data = json.load(file)
+                            if nr in data: 
+                                data.pop(nr)
+                                json.dump(data, file)           
+                    continue

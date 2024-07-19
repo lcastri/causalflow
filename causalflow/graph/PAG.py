@@ -1,9 +1,8 @@
+from joblib import Parallel, delayed
 from pgmpy.models import BayesianNetwork
 from itertools import combinations
 import copy
 from collections import defaultdict
-
-from causalflow.CPrinter import CP
 
 
 class PAG():
@@ -12,6 +11,7 @@ class PAG():
         self.link_assumptions = dag
         self.tau_max = tau_max
         self.latents = latents
+        self.dSepSets = {}
 
         self.tsDAG = self.createDAG(self.link_assumptions, self.tau_max)
         
@@ -47,6 +47,14 @@ class PAG():
         return BN
     
     
+    def alreadyChecked(self, source, target):
+        if (source, target) in self.dSepSets: return True, self.dSepSets[(source, target)]
+        elif (target, source) in self.dSepSets: return True, self.dSepSets[(target, source)]
+        elif ((source[0], source[1] - target[1]), (target[0], 0)) in self.dSepSets: return True, self.dSepSets[((source[0], source[1] - target[1]), (target[0], 0))]
+        elif ((target[0], target[1] - source[1]), (source[0], 0)) in self.dSepSets: return True, self.dSepSets[((target[0], target[1] - source[1]), (source[0], 0))]
+        return False, None
+
+    
     def tsDAG2tsDPAG(self):
         self.tsDPAG = {t: [(s[0], s[1], '-->') for s in self.link_assumptions[t] if s[0] not in self.latents] for t in self.link_assumptions.keys() if t not in self.latents}
         
@@ -58,15 +66,20 @@ class PAG():
                 if target[0] in self.latents: continue
                 tmp = []
                 for n in list(self.tsDAG.nodes()):
-                    # if n[1] > target[1]: continue
                     if n[0] != target[0] or n[1] != target[1]:
                         tmp.append(n)
                 for p in list(self.tsDAG.predecessors(target)) + list(self.tsDAG.successors(target)):
                     if p in tmp: tmp.remove(p)
                 for source in tmp:
-                    d_sep = self.find_d_separators(source, target, self.latents)
-                    print(f"\t- {source} ⊥ {target} | {d_sep}")
-                    if any(node[0] in self.latents for node in d_sep):
+                    alreadyChecked, d_sep = self.alreadyChecked(source, target)
+                    if alreadyChecked:
+                        print(f"\t- {source} ⊥ {target} | {d_sep} ALREADY CHECKED")
+                    else:
+                        areDsep, d_sep = self.find_d_separators(source, target, self.latents)
+                        self.dSepSets[(source, target)] = d_sep
+                        print(f"\t- {source} ⊥ {target} | {d_sep}")
+                    if areDsep and any(node[0] in self.latents for node in d_sep):
+                        if source[0] in self.latents or target[0] in self.latents: continue
                         if target[1] == 0:
                             print(f"\t- SPURIOUS LINK: ({source[0]}, {source[1]}) o-o ({target[0]}, {target[1]})")
                             if (source[0], source[1], 'o-o') not in self.tsDPAG[target[0]]: self.tsDPAG[target[0]].append((source[0], source[1], 'o-o'))
@@ -180,39 +193,37 @@ class PAG():
                     seen_edges.add(edge)
         
         return shrinked_confounders
+    
                 
-                
-    def find_d_separators(self, source, target, latents):   
-        nodes = list(self.tsDAG.nodes())
-        nodes.remove(source)
-        nodes.remove(target)
+    def find_d_separators(self, source, target, latents):
         
-        separating_sets = []
-        separating_sets_with_latent = []
-        
-        for r in range(len(nodes) + 1):
-            for subset in combinations(nodes, r):
-                if not self.tsDAG.is_dconnected(source, target, set(subset)):
-                    if any(node[0] in latents for node in subset):
-                        separating_sets_with_latent.append(set(subset))
-                    else:
-                        separating_sets.append(set(subset))
-        
-        if len(separating_sets) > 0:
-            # If there are separating sets without latent variables, return the one with minimum dimension
-            min_dimension_set = min(separating_sets, key=len)
-            return min_dimension_set
-        
-        elif len(separating_sets_with_latent) > 0:
-            # If all separating sets contain latent variables, return the one with minimum dimension
-            min_dimension_set = min(separating_sets_with_latent, key=len)
-            return min_dimension_set
-        
+        paths = self.find_all_paths(source, target)
+               
+        if len(paths) == 0: 
+            return True, set()
         else:
-            # TODO: what do we do here?
-            # TODO: Return None if no separating sets found (though theoretically this should not happen in a non-trivial graph)
-            return None
-        
+            nodes = set()
+            obs_nodes = set()
+            for path in paths:
+                path.remove(source)
+                path.remove(target)
+                for node in path:
+                    nodes.add(node)
+                    if node not in self.latents: obs_nodes.add(node)
+                               
+            for r in range(len(obs_nodes) + 1):
+                for subset in combinations(obs_nodes, r):
+                    subset_set = set(subset)
+                    if not self.tsDAG.is_dconnected(source, target, subset_set):
+                        return True, subset_set
+                    
+            for r in range(len(nodes) + 1):
+                for subset in combinations(nodes, r):
+                    subset_set = set(subset)
+                    if not self.tsDAG.is_dconnected(source, target, subset_set):
+                        return True, subset_set
+            
+        return False, set()
 
     def find_triples_containing_link(self, ambiguous_link):
         pag = self.createDAG(self.tsDPAG, self.tau_max)
@@ -226,6 +237,25 @@ class PAG():
             if n != source and not pag.has_edge(n, source) and not pag.has_edge(source, n): triples.add((n, target, source))
         
         return triples
+        
+    
+    # DFS to find all paths
+    def find_all_paths(self, start, goal, path=[]):
+        path = path + [start]
+        if start == goal:
+            return [path]
+        paths = []
+        for node in self.tsDAG.successors(start):
+            if node not in path:
+                new_paths = self.find_all_paths(node, goal, path)
+                for new_path in new_paths:
+                    paths.append(new_path)
+        for node in self.tsDAG.predecessors(start):
+            if node not in path:
+                new_paths = self.find_all_paths(node, goal, path)
+                for new_path in new_paths:
+                    paths.append(new_path)
+        return paths
 
                     
 
@@ -233,6 +263,7 @@ class PAG():
 
 
 # tau_max = 2
+
 # DAG = {
 #     'X_1': [('X_1', -1), ('X_2', -1), ('X_3', 0)],
 #     'X_2': [],
@@ -240,13 +271,12 @@ class PAG():
 #     'X_4': [('X_4', -1)],
 # }
 
-# # tau_max = 2
-# # DAG = {
-# #     'X_1': [('X_2', 0), ('X_1', -1)],
-# #     'X_2': [],
-# #     'X_3': [('X_2', -1), ('X_3', -1)],
-# #     'X_4': [('X_4', -1), ('X_3', -2)],
-# # }
+# DAG = {
+#     'X_1': [('X_2', 0), ('X_1', -1)],
+#     'X_2': [],
+#     'X_3': [('X_2', -1), ('X_3', -1)],
+#     'X_4': [('X_4', -1), ('X_3', -2)],
+# }
 
 # p = PAG(DAG, tau_max, ['X_2'])
 # print(p.pag)
