@@ -5,7 +5,8 @@ import random
 import numpy as np
 from causalflow.basics.constants import ImageExt, LinkType
 from causalflow.graph.DAG import DAG
-from causalflow.graph.PAG_thread import PAG
+# from causalflow.graph.PAG_thread import PAG
+from causalflow.graph.PAG import PAG
 from causalflow.preprocessing.data import Data
 import networkx as nx
 

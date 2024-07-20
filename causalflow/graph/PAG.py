@@ -1,4 +1,3 @@
-from joblib import Parallel, delayed
 from pgmpy.models import BayesianNetwork
 from itertools import combinations
 import copy
@@ -61,7 +60,17 @@ class PAG():
         if len(self.latents) > 0:
             self.ambiguous_links = []
             
-            for target in self.tsDAG.nodes():
+            # Separate nodes based on their time index
+            time_zero_nodes = []
+            other_nodes = []
+
+            for node in self.tsDAG.nodes():
+                if node[1] == 0:
+                    time_zero_nodes.append(node)
+                else:
+                    other_nodes.append(node)
+            
+            for target in time_zero_nodes + other_nodes:
                 print(f"Analysing target: {target}")
                 if target[0] in self.latents: continue
                 tmp = []

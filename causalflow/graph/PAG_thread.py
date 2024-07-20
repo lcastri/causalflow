@@ -106,10 +106,22 @@ class PAG():
                             if (target, source, 'o-o') not in self.ambiguous_links:
                                 with lock_ambiguous_links:
                                     self.ambiguous_links.append((target, source, 'o-o'))
+                                    
+            # Separate nodes based on their time index
+            time_zero_nodes = []
+            other_nodes = []
+
+            for node in self.tsDAG.nodes():
+                if node[1] == 0:
+                    time_zero_nodes.append(node)
+                else:
+                    other_nodes.append(node)
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                executor.map(process_target, self.tsDAG.nodes())
-            
+                executor.map(process_target, time_zero_nodes)
+                
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                executor.map(process_target, other_nodes)
             
             print(f"--------------------------------------------------")
             print(f"    Bidirected link due to latent confounders     ")
