@@ -199,6 +199,9 @@ if __name__ == '__main__':
                         GT_ADJ = RS.get_Adj()
                         try:
                             GT_GRAPH = generate_DPAG()
+                            _, amb_links, _ = get_ambiguous_link(GT_GRAPH)
+                            EXPECTED_AMBIGUOUS_LINKS = amb_links
+                            EXPECTED_UNCERTAINTY = len(amb_links)
                         except timeout_decorator.timeout_decorator.TimeoutError:
                             gc.collect()
                             remove_directory(os.getcwd() + '/' + resfolder)
@@ -206,9 +209,6 @@ if __name__ == '__main__':
                         # GT_GRAPH = RS.get_DPAG()
                         CONFOUNDERS = RS.confounders
                         HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
-                        _, amb_links, _ = get_ambiguous_link(GT_GRAPH)
-                        EXPECTED_AMBIGUOUS_LINKS = amb_links
-                        EXPECTED_UNCERTAINTY = len(amb_links)
                         INT_VARS = None
                     
                                 
