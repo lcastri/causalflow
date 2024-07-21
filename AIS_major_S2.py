@@ -28,7 +28,7 @@ import gc
 import shutil
 import ast
 
-TIMEOUT = 5*60
+TIMEOUT = 10*60
 
 def remove_directory(directory_path):
     try:
@@ -59,6 +59,10 @@ def run_algo(algo, name):
         return algo.run()
     elif name == Algo.CAnDOIT.value:
         return algo.run(remove_unneeded=False, nofilter=True)
+    
+@timeout_decorator.timeout(180)
+def generate_DPAG():
+    return RS.get_DPAG()
 
         
 def fill_res(r):
@@ -102,7 +106,7 @@ if __name__ == '__main__':
     # Simulation params
     resdir = "AIS_major/AIS_major_S2"
     alpha = 0.05
-    nfeature = range(5, 10)
+    nfeature = range(12, 13)
     nrun = 25
     
     # RandomDAG params 
@@ -193,7 +197,13 @@ if __name__ == '__main__':
                         COEFF_RANGE = RS.coeff_range 
                         NOISE_CONF = (RS.noise_config[0].value, RS.noise_config[1], RS.noise_config[2])
                         GT_ADJ = RS.get_Adj()
-                        GT_GRAPH = RS.get_DPAG()
+                        try:
+                            GT_GRAPH = generate_DPAG()
+                        except timeout_decorator.timeout_decorator.TimeoutError:
+                            gc.collect()
+                            remove_directory(os.getcwd() + '/' + resfolder)
+                            continue
+                        # GT_GRAPH = RS.get_DPAG()
                         CONFOUNDERS = RS.confounders
                         HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
                         _, amb_links, _ = get_ambiguous_link(GT_GRAPH)
