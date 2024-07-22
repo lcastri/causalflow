@@ -2,8 +2,8 @@ from copy import deepcopy
 import json
 import os
 import random
-# from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
-from tigramite.independence_tests.parcorr import ParCorr
+from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
+# from tigramite.independence_tests.parcorr import ParCorr
 # from tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
 from causalflow.basics.constants import ImageExt
@@ -105,9 +105,9 @@ def fill_res(r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "AIS_major/AIS_major_S2"
+    resdir = "AIS_major/AIS_major_S4"
     alpha = 0.05
-    nfeature = range(12, 13)
+    nfeature = range(5, 11)
     nrun = 25
     
     # RandomDAG params 
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     max_c = 0.5
     link_density = 3
     max_exp = 2
-    functions = ['']
+    functions = ['', 'sin', 'cos', 'abs']
     operators = ['+', '-', '*']
     
     for n in nfeature:
@@ -220,7 +220,7 @@ if __name__ == '__main__':
                                         min_lag = 0, 
                                         max_lag = max_lag, 
                                         sys_context = [],
-                                        val_condtest = ParCorr(significance = 'analytic'),
+                                        val_condtest = GPDC(significance = 'analytic'),
                                         verbosity = CPLevel.INFO,
                                         alpha = alpha,
                                         neglect_only_autodep = False,
@@ -303,7 +303,7 @@ if __name__ == '__main__':
                                             min_lag = 0, 
                                             max_lag = max_lag, 
                                             sel_method = TE(TEestimator.Gaussian), 
-                                            val_condtest = ParCorr(significance = 'analytic'),
+                                            val_condtest = GPDC(significance = 'analytic'),
                                             verbosity = CPLevel.INFO,
                                             neglect_only_autodep = False,
                                             resfolder = resfolder + f"/candoit_{selected_intvar}",
