@@ -120,7 +120,7 @@ if __name__ == '__main__':
     link_density = 3
     max_exp = 2
     functions = ['']
-    operators = ['+', '-', '*']
+    operators = ['+', '-']
     
     for n in nfeature:
         for nr in range(nrun):

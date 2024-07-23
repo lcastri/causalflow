@@ -287,8 +287,8 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
 if __name__ == '__main__':      
     
     # To use to plot RS_comparison_nconfounded
-    resfolder = 'AIS_major/AIS_major_S2'
-    vars = [5, 12]
+    resfolder = 'AIS_major/AIS_major_S4'
+    vars = [5, 6]
     
     
     bootstrap = True

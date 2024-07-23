@@ -107,7 +107,7 @@ if __name__ == '__main__':
     # Simulation params
     resdir = "AIS_major/AIS_major_S4"
     alpha = 0.05
-    nfeature = range(5, 11)
+    nfeature = range(5, 7)
     nrun = 25
     
     # RandomDAG params 
@@ -292,6 +292,7 @@ if __name__ == '__main__':
                     if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
                         intAttempt = [False for _ in potentialIntervention]
                         intDone = [False for _ in potentialIntervention]
+                        removed = False
                         for selected_intvar in potentialIntervention:
                             tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar == selected_intvar}
                                                     
@@ -341,14 +342,18 @@ if __name__ == '__main__':
                                     
                                     with open(filename, 'w') as file:
                                         json.dump(data, file)
+                                        
+                                    removed = True
                                     
                                 continue
-
-                    data[nr]['done'] = True
-                    # Save the dictionary back to a JSON file
-                    with open(filename, 'w') as file:
-                        json.dump(data, file)
-                    break
+                    if not removed:
+                        data[nr]['done'] = True
+                        # Save the dictionary back to a JSON file
+                        with open(filename, 'w') as file:
+                            json.dump(data, file)
+                        break
+                    else:
+                        continue
                     
                 except Exception as e:
                     traceback_info = traceback.format_exc()

@@ -115,7 +115,7 @@ if __name__ == '__main__':
     link_density = 3
     max_exp = 2
     functions = ['']
-    operators = ['+', '-', '*']
+    operators = ['+', '-']
     n_hidden_confounders = 0
     
     for n in nfeature:
