@@ -29,6 +29,7 @@ import shutil
 import ast
 
 TIMEOUT = 5*60
+TIMEOUT_DPAG = 3*60
 
 def remove_directory(directory_path):
     try:
@@ -60,7 +61,10 @@ def run_algo(algo, name):
     elif name == Algo.CAnDOIT.value:
         return algo.run(remove_unneeded=False, nofilter=True)
 
-        
+@timeout_decorator.timeout(TIMEOUT_DPAG)
+def generate_DPAG():
+    return RS.get_DPAG()
+
 def fill_res(r):
     res = {}
     res['done'] = True
@@ -180,11 +184,17 @@ if __name__ == '__main__':
                                        functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders)
                         RS.gen_equations()
                         RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
-                        RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
+                        try:
+                            RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
+                        except timeout_decorator.timeout_decorator.TimeoutError:
+                            gc.collect()
+                            remove_directory(os.getcwd() + '/' + resfolder)
+                            continue
 
-                        d_obs = RS.gen_obs_ts()
+                        d_obs_wH, d_obs = RS.gen_obs_ts()
                         d_obs.plot_timeseries(resfolder + '/obs_data.png')
                         d_obs.save_csv(resfolder + '/obs_data.csv')
+                        d_obs_wH.save_csv(resfolder + '/obs_data_wH.csv')
 
                         
                         EQUATIONS = RS.print_equations()
@@ -192,11 +202,11 @@ if __name__ == '__main__':
                         NOISE_CONF = (RS.noise_config[0].value, RS.noise_config[1], RS.noise_config[2])
                         GT_ADJ = RS.get_Adj()
                         GT_GRAPH = RS.get_DPAG()
-                        CONFOUNDERS = RS.confounders
-                        HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
                         _, amb_links, _ = get_ambiguous_link(GT_GRAPH)
                         EXPECTED_AMBIGUOUS_LINKS = amb_links
                         EXPECTED_UNCERTAINTY = len(amb_links)
+                        CONFOUNDERS = RS.confounders
+                        HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
                         INT_VARS = None
                     
                                 

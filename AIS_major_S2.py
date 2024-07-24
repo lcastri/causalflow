@@ -186,7 +186,12 @@ if __name__ == '__main__':
                                        functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders, n_confounded_vars = link_density)
                         RS.gen_equations()
                         RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
-                        RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
+                        try:
+                            RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
+                        except timeout_decorator.timeout_decorator.TimeoutError:
+                            gc.collect()
+                            remove_directory(os.getcwd() + '/' + resfolder)
+                            continue
 
                         d_obs_wH, d_obs = RS.gen_obs_ts()
                         d_obs.plot_timeseries(resfolder + '/obs_data.png')
@@ -198,16 +203,10 @@ if __name__ == '__main__':
                         COEFF_RANGE = RS.coeff_range 
                         NOISE_CONF = (RS.noise_config[0].value, RS.noise_config[1], RS.noise_config[2])
                         GT_ADJ = RS.get_Adj()
-                        try:
-                            GT_GRAPH = generate_DPAG()
-                            _, amb_links, _ = get_ambiguous_link(GT_GRAPH)
-                            EXPECTED_AMBIGUOUS_LINKS = amb_links
-                            EXPECTED_UNCERTAINTY = len(amb_links)
-                        except timeout_decorator.timeout_decorator.TimeoutError:
-                            gc.collect()
-                            remove_directory(os.getcwd() + '/' + resfolder)
-                            continue
-                        # GT_GRAPH = RS.get_DPAG()
+                        GT_GRAPH = RS.get_DPAG()
+                        _, amb_links, _ = get_ambiguous_link(GT_GRAPH)
+                        EXPECTED_AMBIGUOUS_LINKS = amb_links
+                        EXPECTED_UNCERTAINTY = len(amb_links)
                         CONFOUNDERS = RS.confounders
                         HIDDEN_CONFOUNDERS = list(RS.confounders.keys())
                         INT_VARS = None
