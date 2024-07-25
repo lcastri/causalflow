@@ -1,6 +1,7 @@
 import datetime
 from enum import Enum
 import json
+import math
 import os
 from matplotlib import pyplot as plt
 import numpy as np
@@ -107,36 +108,34 @@ def extract_data(file_path, algorithm, metric, mode = ExtractDataMode.MeandStd, 
             candoit_keys = [key for key in r[i] if key.startswith('candoit__')]
             if candoit_mode == 'best': selected_candoit = candoit_keys[np.argmax([r[i][k]['graph_f1_score'] for k in candoit_keys])]
             if metric == Metric.TIME:
-                # for algo in algorithm:
-                # if algo == Algo.CAnDOIT:
                 if algorithm == Algo.CAnDOIT.value:
                     if candoit_mode == 'best': 
                         t = datetime.datetime.strptime(r[i][selected_candoit][metric.value], '%H:%M:%S.%f')
-                        # ext_data[algo.value]["samples"].append((t - since).total_seconds())
                         ext_data[algorithm]["samples"].append((t - since).total_seconds())
                     if candoit_mode == 'mean': 
                         ts = [datetime.datetime.strptime(r[i][candoit_run][metric.value], '%H:%M:%S.%f') for candoit_run in candoit_keys]
                         tmp = np.mean([(t - since).total_seconds() for t in ts])
-                        # ext_data[algo.value]["samples"].append(tmp)
                         ext_data[algorithm]["samples"].append(tmp)
                 else:
-                    # t = datetime.datetime.strptime(r[i][algo.value][metric.value], '%H:%M:%S.%f')
-                    # ext_data[algo.value]["samples"].append((t - since).total_seconds())
                     t = datetime.datetime.strptime(r[i][algorithm][metric.value], '%H:%M:%S.%f')
                     ext_data[algorithm]["samples"].append((t - since).total_seconds())
-            else:
-                # for algo in algorithm:
-                # if algo == Algo.CAnDOIT:
+            elif metric == Metric.PAGSIZE:
                 if algorithm == Algo.CAnDOIT.value:
                     if candoit_mode == 'best': 
-                        # ext_data[algo.value]["samples"].append((r[i][selected_candoit][metric.value]))
+                        ext_data[algorithm]["samples"].append((10*math.log(r[i][selected_candoit][metric.value], 10)))
+                    if candoit_mode == 'mean':
+                        tmp = np.mean([10*math.log(r[i][candoit_run][metric.value], 10) for candoit_run in candoit_keys])
+                        ext_data[algorithm]["samples"].append((tmp))
+                else:
+                    ext_data[algorithm]["samples"].append((10*math.log(r[i][algorithm][metric.value], 10)))
+            else:
+                if algorithm == Algo.CAnDOIT.value:
+                    if candoit_mode == 'best': 
                         ext_data[algorithm]["samples"].append((r[i][selected_candoit][metric.value]))
                     if candoit_mode == 'mean':
                         tmp = np.mean([r[i][candoit_run][metric.value] for candoit_run in candoit_keys])
-                        # ext_data[algo.value]["samples"].append((tmp))
                         ext_data[algorithm]["samples"].append((tmp))
                 else:
-                    # ext_data[algo.value]["samples"].append((r[i][algo.value][metric.value]))
                     ext_data[algorithm]["samples"].append((r[i][algorithm][metric.value]))
                 
     if mode == ExtractDataMode.MeandStd:
@@ -288,7 +287,7 @@ if __name__ == '__main__':
     
     # To use to plot RS_comparison_nconfounded
     resfolder = 'AIS_major/AIS_major_S4'
-    vars = [5, 7]
+    vars = [5, 9]
     
     
     bootstrap = True

@@ -187,6 +187,7 @@ if __name__ == '__main__':
                         RS.gen_equations()
                         RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
                         try:
+                            generate_DPAG()
                             RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
                         except timeout_decorator.timeout_decorator.TimeoutError:
                             gc.collect()
