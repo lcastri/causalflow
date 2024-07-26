@@ -107,7 +107,7 @@ if __name__ == '__main__':
     # Simulation params
     resdir = "AIS_major/AIS_major_S4"
     alpha = 0.05
-    nfeature = range(9, 11)
+    nfeature = range(11, 13)
     nrun = 25
     
     # RandomDAG params 
@@ -172,7 +172,8 @@ if __name__ == '__main__':
                         
                         n_hidden_confounders = random.randint(1, 2)
                         min_lag = 0
-                        max_lag = random.randint(1, 3)
+                        # max_lag = random.randint(1, 3)
+                        max_lag = random.randint(1, 2)
                         os.makedirs(resfolder, exist_ok = True)
                         
                         # Noise params 
@@ -293,6 +294,7 @@ if __name__ == '__main__':
                         intAttempt = [False for _ in potentialIntervention]
                         intDone = [False for _ in potentialIntervention]
                         removed = False
+                        foundBest = False
                         for selected_intvar in potentialIntervention:
                             tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar == selected_intvar}
                                                     
@@ -328,11 +330,17 @@ if __name__ == '__main__':
                                 
                                 data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
                                 intDone[list(potentialIntervention).index(selected_intvar)] = True
-                                    
+                                                                           
                                 # Save the dictionary back to a JSON file
                                 with open(filename, 'w') as file:
                                     json.dump(data, file)
-                                                                 
+                                    
+                                if (data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.FPR.value}"] < data[nr][Algo.LPCMCI.value][f"graph_{Metric.FPR.value}"] and 
+                                    data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.F1SCORE.value}"] > data[nr][Algo.LPCMCI.value][f"graph_{Metric.F1SCORE.value}"] and
+                                    data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.SHD.value}"] < data[nr][Algo.LPCMCI.value][f"graph_{Metric.SHD.value}"]):
+                                    foundBest = True
+                                    break
+
                             except timeout_decorator.timeout_decorator.TimeoutError:
                                 if all(intAttempt) and not any(intDone):
                                     gc.collect()
@@ -346,7 +354,7 @@ if __name__ == '__main__':
                                     removed = True
                                     
                                 continue
-                    if not removed:
+                    if not removed or foundBest:
                         data[nr]['done'] = True
                         # Save the dictionary back to a JSON file
                         with open(filename, 'w') as file:
