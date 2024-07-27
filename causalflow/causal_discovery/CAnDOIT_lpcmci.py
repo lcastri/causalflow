@@ -126,7 +126,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         # ! JCI Assmpution 3
         for k1 in self.contexts:
             for k2 in remove_from_list(self.contexts, k1):
-                for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(k2), -tau_i)] = '<->'
+                knowledge[self.vars.index(k1)][(self.vars.index(k2), 0)] = '<->'
+                # for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(k1)][(self.vars.index(k2), -tau_i)] = '<->'
         
         # ! This models the context variables as chain across different time steps
         for k in self.contexts:

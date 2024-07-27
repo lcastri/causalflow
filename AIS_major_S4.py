@@ -28,7 +28,7 @@ import gc
 import shutil
 import ast
 
-TIMEOUT = 10*60
+TIMEOUT = 15*60
 TIMEOUT_DPAG = 3*60
 
 def remove_directory(directory_path):
