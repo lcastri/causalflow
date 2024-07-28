@@ -104,8 +104,8 @@ if __name__ == '__main__':
     nrun = 25
     
     # RandomDAG params 
-    nsample_obs = 1250
-    nsample_int = 250
+    nsample_obs = 1200
+    nsample_int = 300
     ninterventions = 3
     min_c = 0.1
     max_c = 0.5
@@ -123,16 +123,38 @@ if __name__ == '__main__':
             try:
                 # Check if the file exists
                 Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
-                filename_lpcmci = os.getcwd() + "/results/" + resdir + "/lpcmci.json"
-                resfolder = 'results/' + resdir + '/lpcmci/' + nr
-                if os.path.exists(filename_lpcmci):
+                filename = os.getcwd() + "/results/" + resdir + "/S3.json"
+                resfolder = 'results/' + resdir + '/' + nr
+                if os.path.exists(filename):
                     # File exists, load its contents into a dictionary
-                    with open(filename_lpcmci, 'r') as file:
+                    with open(filename, 'r') as file:
                         data = json.load(file)
                 else:
                     # File does not exist, create a new dictionary
                     data = {}
                 if nr in data and data[nr]['done']: break
+                elif nr in data and not data[nr]['done']:        
+                    min_lag = int(data[nr]['min_lag'])
+                    max_lag = int(data[nr]['max_lag'])
+                    d_obs = Data(os.getcwd() + '/' + resfolder + '/obs_data.csv')
+                    d_obs_wH = Data(os.getcwd() + '/' + resfolder + '/obs_data_wH.csv')
+                    d_int = dict()
+                    # List all files in the folder and filter files that start with 'interv_' and end with '.csv'
+                    potentialIntervention = ast.literal_eval(data[nr]['potential_interventions'])
+                    for v in potentialIntervention:
+                        if os.path.exists(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv'):
+                            d_int[v] = Data(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv')
+                        
+                    EQUATIONS = data[nr]["equations"]
+                    COEFF_RANGE = ast.literal_eval(data[nr]["coeff_range"])
+                    NOISE_CONF = data[nr]["noise_config"]
+                    GT_ADJ = ast.literal_eval(data[nr]['adj'])
+                    GT_GRAPH = ast.literal_eval(data[nr]['graph'])
+                    CONFOUNDERS = ast.literal_eval(data[nr]["confounders"])
+                    HIDDEN_CONFOUNDERS = ast.literal_eval(data[nr]["hidden_confounders"])
+                    EXPECTED_AMBIGUOUS_LINKS = ast.literal_eval(data[nr]["expected_ambiguous_links"])
+                    EXPECTED_UNCERTAINTY = ast.literal_eval(data[nr]["expected_uncertainty"])
+                    INT_VARS = list(d_int.keys()) if len(d_int) > 0 else None
                 else:
                     # File does not exist, create a new dictionary
                     data[nr] = {}
@@ -229,20 +251,19 @@ if __name__ == '__main__':
                             data[nr]["expected_ambiguous_links"] = str(EXPECTED_AMBIGUOUS_LINKS)
                             data[nr]["expected_uncertainty"] = str(EXPECTED_UNCERTAINTY)
                             
-                            d_int = dict()
-                            for intvar in potentialIntervention:
-                                i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs_wH.d)
-                                d_int[intvar] = i[intvar]
-                                d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
-                                d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
-                            INT_VARS = list(d_int.keys())
+                            # d_int = dict()
+                            # for intvar in potentialIntervention:
+                            #     i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs_wH.d)
+                            #     d_int[intvar] = i[intvar]
+                            #     d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
+                            #     d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
+                            INT_VARS = list(potentialIntervention)
                             data[nr]["intervention_variables"] = str(INT_VARS)
                             
                             data[nr][Algo.LPCMCI.value] = res
-                            data[nr]['done'] = True
 
                             # Save the dictionary back to a JSON file
-                            with open(filename_lpcmci, 'w') as file:
+                            with open(filename, 'w') as file:
                                 json.dump(data, file)
                                 
                             gc.collect()
@@ -250,110 +271,70 @@ if __name__ == '__main__':
                         gc.collect()
                         remove_directory(os.getcwd() + '/' + resfolder)
                         continue
-            
+                    
+                #########################################################################################################################
+                # CAnDOIT
+                for i in range(1, ninterventions + 1):                               
+                    intdata = {}
+                    for selected_intvar in combinations(potentialIntervention, i):
+                        # d_int = dict()
+                        d_int = RS.intervene([v for v in selected_intvar], 
+                                             [int(nsample_int/i) for _ in selected_intvar], 
+                                             [random.uniform(5, 10) for _ in selected_intvar], d_obs_wH.d)
+                        # for intvar in selected_intvar:
+                        #     int_data = RS.intervene(intvar, int(nsample_int/i), random.uniform(5, 10), d_obs_wH.d if len(d_int) == 0 else d_int[list(d_int.keys())[-1]].d)
+                        #     d_int[intvar] = int_data[intvar]
+                            # d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
+                            # d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
+                        # tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar in selected_intvar}
+                        candoit_name = '_'.join([v for v in selected_intvar])
+                                                            
+                        new_d_obs = deepcopy(d_obs)
+                        new_d_obs.d = new_d_obs.d[:-nsample_int]
+                        candoit = CAnDOIT(new_d_obs, 
+                                        deepcopy(d_int),
+                                        alpha = alpha, 
+                                        min_lag = 0, 
+                                        max_lag = max_lag, 
+                                        sel_method = TE(TEestimator.Gaussian), 
+                                        val_condtest = ParCorr(significance = 'analytic'),
+                                        verbosity = CPLevel.INFO,
+                                        neglect_only_autodep = False,
+                                        resfolder = 'results/' + resdir + '/' + nr + '/' + str(i) + f"/candoit_{candoit_name}",
+                                        plot_data = False,
+                                        exclude_context = True)
+                        try:
+                            new_start = time()
+                            candoit_cm = run_algo(candoit, 'candoit')
+                            elapsed_candoit = time() - new_start
+                            candoit_time = str(timedelta(seconds = elapsed_candoit))
+                            print(candoit_time)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=1)
+                            candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=1)
+                            gc.collect()
+                            
+                            res = fill_res({"time": candoit_time, 
+                                            "adj": candoit_cm.get_Adj(), 
+                                            "graph": candoit_cm.get_Graph()})
+                            
+                            intdata[f"{Algo.CAnDOIT.value}__{candoit_name}"] = res
+                            data[nr][str(i)] = intdata                              
+                            # Save the dictionary back to a JSON file
+                            with open(filename, 'w') as file:
+                                json.dump(data, file)
+                                        
+                                    
+                        except timeout_decorator.timeout_decorator.TimeoutError:
+                            continue
+                    data[nr]['done'] = True
+                    # Save the dictionary back to a JSON file
+                    with open(filename, 'w') as file:
+                        json.dump(data, file)              
+        
             except Exception as e:
                 traceback_info = traceback.format_exc()
                 with open(os.getcwd() + '/results/' + resdir + '/error.txt', 'a') as f:
                     f.write("Exception occurred: " + str(e) + "\n")
                     f.write("Traceback:\n" + traceback_info + "\n")
-                remove_directory(os.getcwd() + "/" + resfolder)
-                
-                if os.path.exists(filename_lpcmci):
-                    with open(filename_lpcmci, 'r') as file:
-                        data = json.load(file)
-                        if nr in data: 
-                            data.pop(nr)
-                            json.dump(data, file)           
-                continue
-                    
-    for i in range(1, ninterventions + 1):
-        filename_lpcmci = os.getcwd() + "/results/" + resdir + "/lpcmci.json"
-        if os.path.exists(filename_lpcmci):
-            # File exists, load its contents into a dictionary
-            with open(filename_lpcmci, 'r') as file:
-                data = json.load(file)
-        for nr in range(nrun): data[str(nr)]['done'] = False
-        # Save the dictionary back to a JSON file
-        filename = os.getcwd() + "/results/" + resdir + "/" + str(i) + ".json"
-        if not os.path.exists(filename):
-            with open(filename, 'w') as file:
-                json.dump(data, file)
-                
-    #########################################################################################################################
-    # CAnDOIT                        
-    for i in range(1, ninterventions + 1):
-        # Save the dictionary back to a JSON file
-        filename = os.getcwd() + "/results/" + resdir + "/" + str(i) + ".json"
-        for nr in range(nrun):
-            nr = str(nr)
-            # File exists, load its contents into a dictionary
-            with open(filename, 'r') as file:
-                data = json.load(file)                
-            if nr in data and data[nr]['done'] != True:
-                resfolder = 'results/' + resdir + '/lpcmci/' + nr      
-                min_lag = int(data[nr]['min_lag'])
-                max_lag = int(data[nr]['max_lag'])
-                d_obs = Data(os.getcwd() + '/' + resfolder + '/obs_data.csv')
-                d_obs_wH = Data(os.getcwd() + '/' + resfolder + '/obs_data_wH.csv')
-                d_int = dict()
-                # List all files in the folder and filter files that start with 'interv_' and end with '.csv'
-                potentialIntervention = ast.literal_eval(data[nr]['potential_interventions'])
-                for v in potentialIntervention:
-                    if os.path.exists(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv'):
-                        d_int[v] = Data(os.getcwd() + '/' + resfolder + f'/interv_{v}.csv')
-                EQUATIONS = data[nr]["equations"]
-                COEFF_RANGE = ast.literal_eval(data[nr]["coeff_range"])
-                NOISE_CONF = data[nr]["noise_config"]
-                GT_ADJ = ast.literal_eval(data[nr]['adj'])
-                GT_GRAPH = ast.literal_eval(data[nr]['graph'])
-                CONFOUNDERS = ast.literal_eval(data[nr]["confounders"])
-                HIDDEN_CONFOUNDERS = ast.literal_eval(data[nr]["hidden_confounders"])
-                EXPECTED_AMBIGUOUS_LINKS = ast.literal_eval(data[nr]["expected_ambiguous_links"])
-                EXPECTED_UNCERTAINTY = ast.literal_eval(data[nr]["expected_uncertainty"])
-                INT_VARS = list(d_int.keys()) if len(d_int) > 0 else None
-                              
-                for selected_intvar in combinations(potentialIntervention, i):
-                    tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar in selected_intvar}
-                    candoit_name = '_'.join([v for v in selected_intvar])
-                                                        
-                    new_d_obs = deepcopy(d_obs)
-                    new_d_obs.d = new_d_obs.d[:-nsample_int]
-                    candoit = CAnDOIT(new_d_obs, 
-                                    deepcopy(tmp_d_int),
-                                    alpha = alpha, 
-                                    min_lag = 0, 
-                                    max_lag = max_lag, 
-                                    sel_method = TE(TEestimator.Gaussian), 
-                                    val_condtest = ParCorr(significance = 'analytic'),
-                                    verbosity = CPLevel.INFO,
-                                    neglect_only_autodep = False,
-                                    resfolder = 'results/' + resdir + '/' + str(i) + '/' + nr   + f"/candoit_{candoit_name}",
-                                    plot_data = False,
-                                    exclude_context = True)
-                    try:
-                        new_start = time()
-                        candoit_cm = run_algo(candoit, 'candoit')
-                        elapsed_candoit = time() - new_start
-                        candoit_time = str(timedelta(seconds = elapsed_candoit))
-                        print(candoit_time)
-                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=1)
-                        candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=1)
-                        gc.collect()
-                        
-                        res = fill_res({"time": candoit_time, 
-                                        "adj": candoit_cm.get_Adj(), 
-                                        "graph": candoit_cm.get_Graph()})
-                            
-                        data[nr][f"{Algo.CAnDOIT.value}__{candoit_name}"] = res
-                                                                
-                        # Save the dictionary back to a JSON file
-                        with open(filename, 'w') as file:
-                            json.dump(data, file)
-                                    
-                                
-                    except timeout_decorator.timeout_decorator.TimeoutError:
-                        continue
-                data[nr]['done'] = True
-                # Save the dictionary back to a JSON file
-                with open(filename, 'w') as file:
-                    json.dump(data, file)                    
+                remove_directory(os.getcwd() + "/" + resfolder)       
+                continue      

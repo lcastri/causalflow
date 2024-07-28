@@ -582,7 +582,10 @@ class RandomGraph:
         Returns:
             Data: interventional time-series data
         """
-        return self.gen_interv_ts({int_var: {"T": int_len, "VAL": int_value}}, obs)
+        if not isinstance(int_var, list): int_var = [int_var]
+        if not isinstance(int_len, list): int_len = [int_len]
+        if not isinstance(int_value, list): int_value = [int_value]
+        return self.gen_interv_ts({v: {"T": l, "VAL": val} for v, l, val in zip(int_var, int_len, int_value)}, obs)
     
     
     def ts_dag(self, withHidden = False, save_name = None):
