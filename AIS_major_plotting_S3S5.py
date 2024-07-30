@@ -160,7 +160,7 @@ def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotTyp
         else:
             toPlot[algo.value] = {"samples" : list(), "means" : list(), "confidences" : list()} 
         
-    res_path = os.getcwd() + "/results/" + resfolder + "/S3.json"
+    res_path = os.getcwd() + "/results/" + resfolder + "/S5.json"
     for n in range(nvars[0],nvars[1]+1):    
         for algo in toPlot.keys():
             if algo.startswith('candoit'):
@@ -273,7 +273,7 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
     
 if __name__ == '__main__':      
     
-    resfolder = 'AIS_major/AIS_major_S3'
+    resfolder = 'AIS_major/AIS_major_S5'
     ninterventions = [1, 3]
 
     bootstrap = True
