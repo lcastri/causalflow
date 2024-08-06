@@ -2,6 +2,7 @@ import copy
 from enum import Enum
 import math
 import random
+from matplotlib import pyplot as plt
 import numpy as np
 from causalflow.basics.constants import ImageExt, LinkType
 from causalflow.graph.DAG import DAG
@@ -588,7 +589,7 @@ class RandomGraph:
         return self.gen_interv_ts({v: {"T": l, "VAL": val} for v, l, val in zip(int_var, int_len, int_value)}, obs)
     
     
-    def ts_dag(self, withHidden = False, save_name = None):
+    def ts_dag(self, withHidden = False, save_name = None, randomColors = False):
         """
         Draws a Time-seris DAG
 
@@ -599,41 +600,40 @@ class RandomGraph:
         gt = self.get_Adj(withHidden) if withHidden else self.get_DPAG()
         var = self.variables if withHidden else self.obsVar
         g = DAG(var, self.min_lag, self.max_lag, False, gt)
-        
-        node_color = 'orange'
-        # node_c = ['tab:blue', 'tab:orange', 'tab:green']
-        edge_color = 'grey'
-        if withHidden:
-            
-            # Nodes color definition
-            node_color = dict()
-            tmpG = nx.grid_2d_graph(self.max_lag + 1, len(g.g.keys()))
-            for n in tmpG.nodes():
-                if var[abs(n[1] - (self.N - 1))] in self.hiddenVar:
-                    node_color[n] = 'peachpuff'
+        node_color = []
+
+        tab_colors = plt.cm.get_cmap('tab20', 20).colors  # You can adjust the number of colors if needed
+        avail_tab_colors = list(copy.deepcopy(tab_colors))
+        for t in g.g:
+            if t in self.hiddenVar:
+                node_color.append('peachpuff')
+            else:
+                if randomColors :
+                    c = random.randint(0, len(avail_tab_colors)-1)
+                    node_color.append(avail_tab_colors[c])
+                    avail_tab_colors.pop(c)
                 else:
-                    # node_color[n] = node_c[abs(n[1] - (self.N - 1))]
-                    node_color[n] = 'orange'
+                    node_color.append('orange')
                     
-            # Edges color definition
-            edge_color = dict()
-            for t in g.g:
-                for s in g.g[t].sources:
-                    s_index = len(g.g.keys())-1 - list(g.g.keys()).index(s[0])
-                    t_index = len(g.g.keys())-1 - list(g.g.keys()).index(t)
-                    
-                    s_lag = self.max_lag - s[1]
-                    t_lag = self.max_lag
-                    while s_lag >= 0:
-                        s_node = (s_lag, s_index)
-                        t_node = (t_lag, t_index)
-                        if s[0] in self.hiddenVar:
-                            edge_color[(s_node, t_node)] = 'gainsboro'
-                        else:
-                            edge_color[(s_node, t_node)] = 'gray'
-                            
-                        s_lag -= 1
-                        t_lag -= 1
+        # Edges color definition
+        edge_color = dict()
+        for t in g.g:
+            for s in g.g[t].sources:
+                s_index = len(g.g.keys())-1 - list(g.g.keys()).index(s[0])
+                t_index = len(g.g.keys())-1 - list(g.g.keys()).index(t)
+                
+                s_lag = self.max_lag - s[1]
+                t_lag = self.max_lag
+                while s_lag >= 0:
+                    s_node = (s_lag, s_index)
+                    t_node = (t_lag, t_index)
+                    if s[0] in self.hiddenVar:
+                        edge_color[(s_node, t_node)] = 'gainsboro'
+                    else:
+                        edge_color[(s_node, t_node)] = 'gray'
+                        
+                    s_lag -= 1
+                    t_lag -= 1
                         
         g.ts_dag(save_name = save_name, node_color = node_color, edge_color = edge_color, min_width=2, max_width=5, x_disp=1, node_size=6)
 

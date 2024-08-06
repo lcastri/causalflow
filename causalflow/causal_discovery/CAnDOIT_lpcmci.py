@@ -131,7 +131,8 @@ class CAnDOIT(CausalDiscoveryMethod):
         
         # ! This models the context variables as chain across different time steps
         for k in self.contexts:
-            knowledge[self.vars.index(k)][(self.vars.index(k), -1)] = '-->'
+            for tau_i in range(1, self.max_lag + 1):
+                knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '-->' if tau_i == 1 else ''
         
                           
                 

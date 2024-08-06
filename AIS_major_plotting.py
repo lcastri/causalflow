@@ -1,7 +1,6 @@
 import datetime
 from enum import Enum
 import json
-import math
 import os
 from matplotlib import pyplot as plt
 import numpy as np
@@ -59,7 +58,7 @@ plotLabel = {Metric.TIME : 'Time [s]',
              Metric.GRAPH_SHD : 'Adjacency and Orientation SHD',
              Metric.GRAPH_FPR: 'Adjacency and Orientation False Positive Rate',
              Metric.UNCERTAINTY : 'Uncertainty',
-             Metric.PAGSIZE : "PAG Size",
+             Metric.PAGSIZE : "PAG Size ($log_{10}$)",
              'candoit_best' : 'CAnDOIT_best',
              'candoit_mean' : 'CAnDOIT_mean',
              Algo.DYNOTEARS : 'DYNOTEARS',
@@ -83,7 +82,7 @@ titleLabel = {Metric.TIME : 'Time',
               Metric.GRAPH_SHD : 'Adjacency and Orientation SHD',
               Metric.GRAPH_FPR: 'Adjacency and Orientation FPR',
               Metric.UNCERTAINTY : 'Uncertainty',
-              Metric.PAGSIZE : '# Equivalent DAGs',}
+              Metric.PAGSIZE : 'PAG Size',}
 
 class plotType(Enum):
     Line = 0
@@ -96,8 +95,7 @@ class ExtractDataMode(Enum):
     BootStrap = 1
     
     
-def extract_data(file_path, algorithm, metric, mode = ExtractDataMode.MeandStd, candoit_mode = 'best'):
-    # ext_data = {algo.value: {"samples" : list(), "mean" : float, "confidence" : float} for algo in algorithm}
+def extract_data(file_path, algorithm, n, metric, mode = ExtractDataMode.MeandStd, candoit_mode = 'best', extrafield = False):
     ext_data = {algorithm: {"samples" : list(), "mean" : float, "confidence" : float}}
 
     since = datetime.datetime(1900, 1, 1, 0, 0, 0, 0)
@@ -105,51 +103,79 @@ def extract_data(file_path, algorithm, metric, mode = ExtractDataMode.MeandStd, 
         r = json.load(json_file)
                 
         for i in r.keys():
-            candoit_keys = [key for key in r[i] if key.startswith('candoit__')]
-            if candoit_mode == 'best': selected_candoit = candoit_keys[np.argmax([r[i][k]['graph_f1_score'] for k in candoit_keys])]
-            if metric == Metric.TIME:
-                if algorithm == Algo.CAnDOIT.value:
-                    if candoit_mode == 'best': 
-                        t = datetime.datetime.strptime(r[i][selected_candoit][metric.value], '%H:%M:%S.%f')
+            if not extrafield:
+                candoit_keys = [key for key in r[i] if key.startswith('candoit__')]
+                if candoit_mode == 'best': selected_candoit = candoit_keys[np.argmax([r[i][k]['graph_f1_score'] for k in candoit_keys])]
+                if metric == Metric.TIME:
+                    if algorithm == Algo.CAnDOIT.value:
+                        if candoit_mode == 'best': 
+                            t = datetime.datetime.strptime(r[i][selected_candoit][metric.value], '%H:%M:%S.%f')
+                            ext_data[algorithm]["samples"].append((t - since).total_seconds())
+                        if candoit_mode == 'mean': 
+                            ts = [datetime.datetime.strptime(r[i][candoit_run][metric.value], '%H:%M:%S.%f') for candoit_run in candoit_keys]
+                            tmp = np.mean([(t - since).total_seconds() for t in ts])
+                            ext_data[algorithm]["samples"].append(tmp)
+                    else:
+                        t = datetime.datetime.strptime(r[i][algorithm][metric.value], '%H:%M:%S.%f')
                         ext_data[algorithm]["samples"].append((t - since).total_seconds())
-                    if candoit_mode == 'mean': 
-                        ts = [datetime.datetime.strptime(r[i][candoit_run][metric.value], '%H:%M:%S.%f') for candoit_run in candoit_keys]
-                        tmp = np.mean([(t - since).total_seconds() for t in ts])
-                        ext_data[algorithm]["samples"].append(tmp)
+                elif metric == Metric.PAGSIZE:
+                    if algorithm == Algo.CAnDOIT.value:
+                        if candoit_mode == 'best': 
+                            ext_data[algorithm]["samples"].append((np.log10(r[i][selected_candoit][metric.value])))
+                        if candoit_mode == 'mean':
+                            tmp = np.mean([np.log10(r[i][candoit_run][metric.value]) for candoit_run in candoit_keys])
+                            ext_data[algorithm]["samples"].append((tmp))
+                    else:
+                        ext_data[algorithm]["samples"].append((np.log10(r[i][algorithm][metric.value])))
                 else:
-                    t = datetime.datetime.strptime(r[i][algorithm][metric.value], '%H:%M:%S.%f')
-                    ext_data[algorithm]["samples"].append((t - since).total_seconds())
-            elif metric == Metric.PAGSIZE:
-                if algorithm == Algo.CAnDOIT.value:
-                    if candoit_mode == 'best': 
-                        ext_data[algorithm]["samples"].append((10*math.log(r[i][selected_candoit][metric.value], 10)))
-                    if candoit_mode == 'mean':
-                        tmp = np.mean([10*math.log(r[i][candoit_run][metric.value], 10) for candoit_run in candoit_keys])
-                        ext_data[algorithm]["samples"].append((tmp))
-                else:
-                    ext_data[algorithm]["samples"].append((10*math.log(r[i][algorithm][metric.value], 10)))
+                    if algorithm == Algo.CAnDOIT.value:
+                        if candoit_mode == 'best': 
+                            ext_data[algorithm]["samples"].append((r[i][selected_candoit][metric.value]))
+                        if candoit_mode == 'mean':
+                            tmp = np.mean([r[i][candoit_run][metric.value] for candoit_run in candoit_keys])
+                            ext_data[algorithm]["samples"].append((tmp))
+                    else:
+                        ext_data[algorithm]["samples"].append((r[i][algorithm][metric.value]))
             else:
-                if algorithm == Algo.CAnDOIT.value:
-                    if candoit_mode == 'best': 
-                        ext_data[algorithm]["samples"].append((r[i][selected_candoit][metric.value]))
-                    if candoit_mode == 'mean':
-                        tmp = np.mean([r[i][candoit_run][metric.value] for candoit_run in candoit_keys])
-                        ext_data[algorithm]["samples"].append((tmp))
+                candoit_keys = [key for key in r[i][str(n)] if key.startswith('candoit__')]
+                if candoit_mode == 'best': selected_candoit = candoit_keys[np.argmax([r[i][str(n)][k]['graph_f1_score'] for k in candoit_keys])]
+                if metric == Metric.TIME:
+                    if algorithm == Algo.CAnDOIT.value:
+                        if candoit_mode == 'best': 
+                            t = datetime.datetime.strptime(r[i][str(n)][selected_candoit][metric.value], '%H:%M:%S.%f')
+                            ext_data[algorithm]["samples"].append((t - since).total_seconds())
+                        if candoit_mode == 'mean': 
+                            ts = [datetime.datetime.strptime(r[i][str(n)][candoit_run][metric.value], '%H:%M:%S.%f') for candoit_run in candoit_keys]
+                            tmp = np.mean([(t - since).total_seconds() for t in ts])
+                            ext_data[algorithm]["samples"].append(tmp)
+                    else:
+                        t = datetime.datetime.strptime(r[i][algorithm][metric.value], '%H:%M:%S.%f')
+                        ext_data[algorithm]["samples"].append((t - since).total_seconds())
+                elif metric == Metric.PAGSIZE:
+                    if algorithm == Algo.CAnDOIT.value:
+                        if candoit_mode == 'best': 
+                            ext_data[algorithm]["samples"].append((np.log10(r[i][str(n)][selected_candoit][metric.value])))
+                        if candoit_mode == 'mean':
+                            tmp = np.mean([np.log10(r[i][str(n)][candoit_run][metric.value]) for candoit_run in candoit_keys])
+                            ext_data[algorithm]["samples"].append((tmp))
+                    else:
+                        ext_data[algorithm]["samples"].append((np.log10(r[i][algorithm][metric.value])))
                 else:
-                    ext_data[algorithm]["samples"].append((r[i][algorithm][metric.value]))
+                    if algorithm == Algo.CAnDOIT.value:
+                        if candoit_mode == 'best': 
+                            ext_data[algorithm]["samples"].append((r[i][str(n)][selected_candoit][metric.value]))
+                        if candoit_mode == 'mean':
+                            tmp = np.mean([r[i][str(n)][candoit_run][metric.value] for candoit_run in candoit_keys])
+                            ext_data[algorithm]["samples"].append((tmp))
+                    else:
+                        ext_data[algorithm]["samples"].append((r[i][algorithm][metric.value]))
+  
                 
     if mode == ExtractDataMode.MeandStd:
-        # for algo in algorithm:
-            # ext_data[algo.value]["mean"] = np.mean(ext_data[algo.value]["samples"])
-            # ext_data[algo.value]["confidence"] = np.std(ext_data[algo.value]["samples"])
         ext_data[algorithm]["mean"] = np.mean(ext_data[algorithm]["samples"])
         ext_data[algorithm]["confidence"] = np.std(ext_data[algorithm]["samples"])
     
     elif mode == ExtractDataMode.BootStrap: 
-        # for algo in algorithm:
-            # ext_data[algo.value]["mean"] = np.mean(ext_data[algo.value]["samples"])
-            # lower_bound, upper_bound = confidence_interval(ext_data[algo.value]["samples"])
-            # ext_data[algo.value]["confidence"] = (upper_bound - lower_bound) / 2
         ext_data[algorithm]["mean"] = np.mean(ext_data[algorithm]["samples"])
         lower_bound, upper_bound = confidence_interval(ext_data[algorithm]["samples"])
         ext_data[algorithm]["confidence"] = (upper_bound - lower_bound) / 2
@@ -157,7 +183,7 @@ def extract_data(file_path, algorithm, metric, mode = ExtractDataMode.MeandStd, 
     return ext_data
            
     
-def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotType.LinewErrorBar, bootStrap = False, show = False, xLabel = '# vars'):
+def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotType.LinewErrorBar, bootStrap = False, show = False, xLabel = '# vars', extrafield = False):
    
     toPlot = {}
     for algo in algorithms:
@@ -166,25 +192,22 @@ def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotTyp
             toPlot[f"{algo.value}_mean"] = {"samples" : list(), "means" : list(), "confidences" : list()}
         else:
             toPlot[algo.value] = {"samples" : list(), "means" : list(), "confidences" : list()} 
-        
+    
+    if extrafield: res_path = os.getcwd() + "/results/" + resfolder + "/" + resfolder[-2:] + ".json"
     for n in range(nvars[0],nvars[1]+1):
-        res_path = os.getcwd() + "/results/" + resfolder + "/" + str(n) + ".json"
+        if not extrafield: res_path = os.getcwd() + "/results/" + resfolder + "/" + str(n) + ".json"
         
         for algo in toPlot.keys():
             if algo.startswith('candoit'):
                 mode = algo.split('_')[1]
-                ext_data = extract_data(res_path, 'candoit', metric, mode = ExtractDataMode.MeandStd if not bootStrap else ExtractDataMode.BootStrap, candoit_mode=mode)
-                toPlot[algo]["samples"].append(ext_data['candoit']["samples"])
-                toPlot[algo]["means"].append(ext_data['candoit']["mean"])
-                toPlot[algo]["confidences"].append(ext_data['candoit']["confidence"])
+                ext_data = extract_data(res_path, 'candoit', n, metric, mode = ExtractDataMode.MeandStd if not bootStrap else ExtractDataMode.BootStrap, candoit_mode = mode, extrafield=extrafield)
+                a = 'candoit'
             else:
-                ext_data = extract_data(res_path, algo, metric, mode = ExtractDataMode.MeandStd if not bootStrap else ExtractDataMode.BootStrap)
-                toPlot[algo]["samples"].append(ext_data[algo]["samples"])
-                toPlot[algo]["means"].append(ext_data[algo]["mean"])
-                toPlot[algo]["confidences"].append(ext_data[algo]["confidence"])
-            # toPlot[algo.value]["samples"].append(ext_data[algo.value]["samples"])
-            # toPlot[algo.value]["means"].append(ext_data[algo.value]["mean"])
-            # toPlot[algo.value]["confidences"].append(ext_data[algo.value]["confidence"])
+                ext_data = extract_data(res_path, algo, n, metric, mode = ExtractDataMode.MeandStd if not bootStrap else ExtractDataMode.BootStrap, extrafield=extrafield)
+                a = algo
+            toPlot[algo]["samples"].append(ext_data[a]["samples"])
+            toPlot[algo]["means"].append(ext_data[a]["mean"])
+            toPlot[algo]["confidences"].append(ext_data[a]["confidence"])
             
     if plot_type != plotType.BoxPlot:
         fig, ax = plt.subplots(figsize=(6,4))
@@ -211,10 +234,8 @@ def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotTyp
         plt.xlabel(xLabel)
         plt.ylabel(plotLabel[metric])
         bbox_to_anchor = (0, 1.05, 1, .105)
-        # bbox_to_anchor = (-0.1, 1.05, 1.2, .105)
         plt.legend([plotLabel[algo] for algo in toPlot.keys()], loc=9, bbox_to_anchor=bbox_to_anchor, ncol=7, mode='expand',)
         plt.grid()
-        # plt.title(titleLabel[metric] + ' comparison')
         
     else:
         fig, ax1 = plt.subplots(figsize=(9,6))
@@ -223,8 +244,6 @@ def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotTyp
         N = len(algorithms)
         total_width = N * (box_width + space)
         positions = np.arange(nvars[1] - nvars[0] + 1) * total_width
-
-        # positions = np.arange(len(np.arange(nvars[0], nvars[1]+1))) * (N * (box_width + space)) + (N - 1) * (box_width + space) / 2
 
         boxplots = list()
         box_param = dict(whis=(5, 95), widths=box_width, patch_artist=True, medianprops=dict(color='black'))
@@ -237,7 +256,6 @@ def compare(resfolder, algorithms, metric, nvars, plotStyle, plot_type = plotTyp
                                             boxprops=dict(facecolor=plotStyle[algo]['color'], edgecolor=plotStyle[algo]['color'], linewidth=1),
                                             flierprops=dict(marker='.', markeredgecolor=plotStyle[algo]['color'], fillstyle=None), **box_param))
             
-        # ax1.set_xticks(np.arange(nvars[0],nvars[1]+1))
         ax1.set_xticks(positions + (total_width - space) / 2)
         ax1.set_xticklabels(np.arange(nvars[0],nvars[1]+1))
 
@@ -285,9 +303,10 @@ def confidence_interval(data, confidence_level=0.95, n_resamples = 1000):
     
 if __name__ == '__main__':      
     
-    # To use to plot RS_comparison_nconfounded
-    resfolder = 'AIS_major/AIS_major_S4'
+    resfolder = 'AIS_major/AIS_major_S1'
+    # resfolder = 'AIS_major/AIS_major_S3'
     vars = [5, 12]
+    # vars = [1, 3]
     
     
     bootstrap = True
@@ -301,5 +320,5 @@ if __name__ == '__main__':
                Metric.GRAPH_F1SCORE, Metric.GRAPH_PREC, Metric.GRAPH_RECA, Metric.GRAPH_SHD, Metric.GRAPH_FPR,
                Metric.UNCERTAINTY, Metric.PAGSIZE]
     for metric in metrics:
-        # compare(r, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = '# confounded vars')
-        compare(resfolder, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap)
+        compare(resfolder, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = 'Number of observable variables')
+        # compare(resfolder, algorithms, metric, vars, plot_style, plotType.LinewErrorBar, bootStrap = bootstrap, xLabel = 'Number of interventions', extrafield=True)
