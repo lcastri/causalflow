@@ -1,7 +1,7 @@
-import copy
 import numpy as np
 from itertools import product, combinations
 from copy import deepcopy
+from itertools import combinations
 
 from .pcmci_base import PCMCIbase
 
@@ -171,7 +171,7 @@ class LPCMCI(PCMCIbase):
     as '+'.
     """
 
-    def __init__(self, dataframe, cond_ind_test, system_vars, context_vars, sys_context, verbosity = 0):
+    def __init__(self, dataframe, sys_context, cond_ind_test, verbosity = 0):
         """Class constructor. Store:
                 i)      data
                 ii)     conditional independence test object
@@ -181,12 +181,8 @@ class LPCMCI(PCMCIbase):
         PCMCIbase.__init__(self, dataframe=dataframe, 
                         cond_ind_test=cond_ind_test,
                         verbosity=verbosity)
-        self.system_vars = system_vars
-        self.context_vars = context_vars
         self.sys_context = sys_context
-        self.s_N = len(self.system_vars)
-        self.s_C = len(self.context_vars)
-        
+
 
     def run_lpcmci(self,
                     link_assumptions = None,
@@ -443,156 +439,149 @@ class LPCMCI(PCMCIbase):
 
             # Run through the inner dictionary
             for (i, lag_i), link_ij in links_j.items():
-            # for s in links_j.items():
-            #     if isinstance(s[0], int):
-            #         i, link_ij = s
-            #     else:
-            #         (i, lag_i), link_ij = s
 
-                if self.var_names[i] in self.system_vars:
-                    # Check validity of keys of inner dictionary
-                    if i == j and lag_i == 0:
-                        raise ValueError(f"The dictionary 'link_assumptions[{j}] "\
-                            f"must not have the key ({j}, 0), because this refers "\
-                            "to a self-link.")
+                # Check validity of keys of inner dictionary
+                if i == j and lag_i == 0:
+                    raise ValueError(f"The dictionary 'link_assumptions[{j}] "\
+                        f"must not have the key ({j}, 0), because this refers "\
+                        "to a self-link.")
 
-                    if (not (0 <= i <= self.N - 1)
-                        or not (-self.tau_max <= lag_i <= -self.tau_min)):
-                        raise ValueError("All values of 'link_assumptions' must "\
-                            "be dictionaries whose keys are of the form (i, "\
-                            "lag_i), where i in {0, 1, ..., N-1} with N the "\
-                            "number of component time series and lag_i in "\
-                            "{-tau_max, ..., -tau_min} with tau_max the maximum "\
-                            "considered time lag and tau_min the minimum assumed "\
-                            f"time lag. Here, N = {self.N} and tau_max = "\
-                            f"{self.tau_max} and tau_min = {self.tau_min}.")
+                if (not (0 <= i <= self.N - 1)
+                    or not (-self.tau_max <= lag_i <= -self.tau_min)):
+                    raise ValueError("All values of 'link_assumptions' must "\
+                        "be dictionaries whose keys are of the form (i, "\
+                        "lag_i), where i in {0, 1, ..., N-1} with N the "\
+                        "number of component time series and lag_i in "\
+                        "{-tau_max, ..., -tau_min} with tau_max the maximum "\
+                        "considered time lag and tau_min the minimum assumed "\
+                        f"time lag. Here, N = {self.N} and tau_max = "\
+                        f"{self.tau_max} and tau_min = {self.tau_min}.")
 
-                    # Check for validity of entries. At the same time mark the
-                    # ancestorships in ancs_mat_contemp and ancs_mat
+                # Check for validity of entries. At the same time mark the
+                # ancestorships in ancs_mat_contemp and ancs_mat
 
-                    if link_ij == "":
-
-                        # Check for symmetry of lag zero links
-                        if lag_i == 0:
-
-                            if (self.link_assumptions.get(i) is None
-                                or self.link_assumptions[i].get((j, 0)) is None
-                                or self.link_assumptions[i][(j, 0)] != ""):
-                                raise ValueError("The lag zero links specified by "\
-                                    "'link_assumptions' must be symmetric: Because"\
-                                    f"'link_assumptions'[{j}][({i}, {0})] = '', "\
-                                    " there must also be "\
-                                    f"'link_assumptions'[{i}][({j}, {0})] = ''.")
-                        continue
-
-                    if len(link_ij) != 3:
-                        if lag_i < 0:
-                            raise ValueError("Invalid link: "\
-                                f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
-                                f"{link_ij}. Allowed are: '-?>', '-->', '<?>', "\
-                                "'<->', 'o?>', 'o->'.")
-                        else:
-                            raise ValueError("Invalid link: "\
-                                f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
-                                f"{link_ij}. Allowed are: '-?>', '-->', '<?>', "\
-                                "'<->', 'o?>', 'o->', '<?-', '<--', '<?o', '<--', "\
-                                "'o-o', 'o?o'.")
-
-                    if link_ij[0] == "-":
-
-                        if link_ij[2] != ">":
-                            raise ValueError("Invalid link: "\
-                                f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
-                                f"{link_ij}. The first character '-', which says "\
-                                f"that ({i}, {lag_i}) is an ancestor (cause) of "\
-                                f"({j}, 0). Hence, ({j}, 0) is a non-ancestor "\
-                                f"(non-cause) of ({i}, {lag_i}) and the third "\
-                                "character must be '>'.")
-
-                        # Mark the ancestorship
-                        if lag_i == 0:
-                            ancs_mat_contemp[i, j] = 1
-                        for Delta_t in range(0, self.tau_max + 1 - abs(lag_i)):
-                            ancs_mat[self.N*(abs(lag_i) + Delta_t) + i,
-                                self.N*Delta_t + j] = 1
-
-                    elif link_ij[0] in ["<", "o"]:
-
-                        if lag_i < 0:
-
-                            if link_ij[2] != ">":
-                                raise ValueError("Invalid link: "\
-                                    f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
-                                    f"{link_ij}. Since {lag_i} < 0, ({j}, 0) "\
-                                    f"cannot be an ancestor (cause) of "\
-                                    f"({i}, {lag_i}). Hence, the third character "\
-                                    f"must be '>'.")
-
-                        else:
-
-                            if link_ij[2] not in ["-", ">", "o"]:
-                                raise ValueError("Invalid link: "\
-                                    f"'link_assumptions'[{j}][({i}, {0})] = "\
-                                    f"{link_ij}. The third character must be one "\
-                                    "of the following: 1) '-', which says that "\
-                                    f"({j}, 0) is an ancestor (cause) of "\
-                                    f"({i}, {0}). 2) '>', which says that "\
-                                    f"({j}, 0) is a non-ancestor (non-cause) of "\
-                                    f"({i}, {0}). 3) 'o', which says that it is "\
-                                    f"unknown whether or not ({j}, {0}) is an "\
-                                    f"ancestor (cause) of ({i}, {0}).")
-
-                            if link_ij[2] == "-":
-
-                                if link_ij[0] != "<":
-                                    raise ValueError("Invalid link: "\
-                                        f"'link_assumptions'[{j}][({i}, {0})] = "\
-                                        f"{link_ij}. The third character is '-', "\
-                                        f"which says that ({j}, {0}) is an "\
-                                        f"ancestor (cause) of ({i}, 0). Hence, "\
-                                        f"({i}, 0) is a non-ancestor (non-cause) "\
-                                        f"of ({j}, {0}) and the first character "\
-                                        "must be '<'.")
-
-                                # Mark the ancestorship
-                                ancs_mat_contemp[j, i] = 1
-                                for Delta_t in range(0, self.tau_max + 1):
-                                    ancs_mat[self.N*Delta_t + j,
-                                        self.N*Delta_t + i] = 1
-
-                    else:
-                        raise ValueError(f"Invalid link: "\
-                            f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
-                            f"{link_ij}. The first character must be one of the "\
-                            f"following: 1) '-', which says that ({i}, {lag_i}) "\
-                            f"is an ancestor (cause) of ({j}, 0). 2) '<', which "\
-                            f"says that ({i}, {lag_i}) is a non-ancestor "\
-                            f"(non-cause) of ({j}, 0). 3) 'o', which says that it"\
-                            f"is unknown whether or not ({i}, {lag_i}) is an "\
-                            f"ancestor (cause) of ({j}, {0}).")
-
-                    if link_ij[1] not in ["-", "?"]:
-                        raise ValueError("Invalid link: "\
-                            f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
-                            f"{link_ij}. The second character must be one of the "\
-                            "following: 1) '-', which says that the link "\
-                            f"({i}, {lag_i}) {link_ij} ({j}, 0) is definitely "\
-                            "part of the graph. 2) '?', which says that link "\
-                            "might be but does not need to be part of the graph.")
+                if link_ij == "":
 
                     # Check for symmetry of lag zero links
                     if lag_i == 0:
 
                         if (self.link_assumptions.get(i) is None
                             or self.link_assumptions[i].get((j, 0)) is None
-                            or self.link_assumptions[i][(j, 0)] != self._reverse_link(link_ij)):
-                            raise ValueError(f"The lag zero links specified by "\
-                                "'link_assumptions' must be symmetric: Because "\
+                            or self.link_assumptions[i][(j, 0)] != ""):
+                            raise ValueError("The lag zero links specified by "\
+                                "'link_assumptions' must be symmetric: Because"\
+                                f"'link_assumptions'[{j}][({i}, {0})] = '', "\
+                                " there must also be "\
+                                f"'link_assumptions'[{i}][({j}, {0})] = ''.")
+                    continue
+
+                if len(link_ij) != 3:
+                    if lag_i < 0:
+                        raise ValueError("Invalid link: "\
+                            f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
+                            f"{link_ij}. Allowed are: '-?>', '-->', '<?>', "\
+                            "'<->', 'o?>', 'o->'.")
+                    else:
+                        raise ValueError("Invalid link: "\
+                            f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
+                            f"{link_ij}. Allowed are: '-?>', '-->', '<?>', "\
+                            "'<->', 'o?>', 'o->', '<?-', '<--', '<?o', '<--', "\
+                            "'o-o', 'o?o'.")
+
+                if link_ij[0] == "-":
+
+                    if link_ij[2] != ">":
+                        raise ValueError("Invalid link: "\
+                            f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
+                            f"{link_ij}. The first character '-', which says "\
+                            f"that ({i}, {lag_i}) is an ancestor (cause) of "\
+                            f"({j}, 0). Hence, ({j}, 0) is a non-ancestor "\
+                            f"(non-cause) of ({i}, {lag_i}) and the third "\
+                            "character must be '>'.")
+
+                    # Mark the ancestorship
+                    if lag_i == 0:
+                        ancs_mat_contemp[i, j] = 1
+                    for Delta_t in range(0, self.tau_max + 1 - abs(lag_i)):
+                        ancs_mat[self.N*(abs(lag_i) + Delta_t) + i,
+                            self.N*Delta_t + j] = 1
+
+                elif link_ij[0] in ["<", "o"]:
+
+                    if lag_i < 0:
+
+                        if link_ij[2] != ">":
+                            raise ValueError("Invalid link: "\
+                                f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
+                                f"{link_ij}. Since {lag_i} < 0, ({j}, 0) "\
+                                f"cannot be an ancestor (cause) of "\
+                                f"({i}, {lag_i}). Hence, the third character "\
+                                f"must be '>'.")
+
+                    else:
+
+                        if link_ij[2] not in ["-", ">", "o"]:
+                            raise ValueError("Invalid link: "\
                                 f"'link_assumptions'[{j}][({i}, {0})] = "\
-                                f"'{link_ij}' there must also be "\
-                                f"'link_assumptions'[{i}][({j}, {0})] = "\
-                                f"'{self._reverse_link(link_ij)}'.")
-                # else:
+                                f"{link_ij}. The third character must be one "\
+                                "of the following: 1) '-', which says that "\
+                                f"({j}, 0) is an ancestor (cause) of "\
+                                f"({i}, {0}). 2) '>', which says that "\
+                                f"({j}, 0) is a non-ancestor (non-cause) of "\
+                                f"({i}, {0}). 3) 'o', which says that it is "\
+                                f"unknown whether or not ({j}, {0}) is an "\
+                                f"ancestor (cause) of ({i}, {0}).")
+
+                        if link_ij[2] == "-":
+
+                            if link_ij[0] != "<":
+                                raise ValueError("Invalid link: "\
+                                    f"'link_assumptions'[{j}][({i}, {0})] = "\
+                                    f"{link_ij}. The third character is '-', "\
+                                    f"which says that ({j}, {0}) is an "\
+                                    f"ancestor (cause) of ({i}, 0). Hence, "\
+                                    f"({i}, 0) is a non-ancestor (non-cause) "\
+                                    f"of ({j}, {0}) and the first character "\
+                                    "must be '<'.")
+
+                            # Mark the ancestorship
+                            ancs_mat_contemp[j, i] = 1
+                            for Delta_t in range(0, self.tau_max + 1):
+                                ancs_mat[self.N*Delta_t + j,
+                                    self.N*Delta_t + i] = 1
+
+                else:
+                    raise ValueError(f"Invalid link: "\
+                        f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
+                        f"{link_ij}. The first character must be one of the "\
+                        f"following: 1) '-', which says that ({i}, {lag_i}) "\
+                        f"is an ancestor (cause) of ({j}, 0). 2) '<', which "\
+                        f"says that ({i}, {lag_i}) is a non-ancestor "\
+                        f"(non-cause) of ({j}, 0). 3) 'o', which says that it"\
+                        f"is unknown whether or not ({i}, {lag_i}) is an "\
+                        f"ancestor (cause) of ({j}, {0}).")
+
+                if link_ij[1] not in ["-", "?"]:
+                    raise ValueError("Invalid link: "\
+                        f"'link_assumptions'[{j}][({i}, {lag_i})] = "\
+                        f"{link_ij}. The second character must be one of the "\
+                        "following: 1) '-', which says that the link "\
+                        f"({i}, {lag_i}) {link_ij} ({j}, 0) is definitely "\
+                        "part of the graph. 2) '?', which says that link "\
+                        "might be but does not need to be part of the graph.")
+
+                # Check for symmetry of lag zero links
+                if lag_i == 0:
+
+                    if (self.link_assumptions.get(i) is None
+                        or self.link_assumptions[i].get((j, 0)) is None
+                        or self.link_assumptions[i][(j, 0)] != self._reverse_link(link_ij)):
+                        raise ValueError(f"The lag zero links specified by "\
+                            "'link_assumptions' must be symmetric: Because "\
+                            f"'link_assumptions'[{j}][({i}, {0})] = "\
+                            f"'{link_ij}' there must also be "\
+                            f"'link_assumptions'[{i}][({j}, {0})] = "\
+                            f"'{self._reverse_link(link_ij)}'.")
 
         # Check for contemporaneous cycles
         ancs_mat_contemp_to_N = np.linalg.matrix_power(ancs_mat_contemp, self.N)
@@ -603,24 +592,17 @@ class LPCMCI(PCMCIbase):
         # Check for almost directed cycles
         ancs_mat_summed = np.linalg.inv(np.eye(ancs_mat.shape[0], dtype = "int32") - ancs_mat)
         for j, links_j in self.link_assumptions.items():
-            # for (i, lag_i), link_ij in links_j.items():
-            for s in links_j.items():
-                if isinstance(s[0], int):
-                    i, link_ij = s
-                else:
-                    (i, lag_i), link_ij = s
-
-                if self.var_names[i] in self.system_vars:
-                    if (link_ij != ""
-                        and link_ij[0] == "<"
-                        and ancs_mat_summed[self.N*abs(lag_i) + i, j] != 0):
-                        raise ValueError(f"Inconsistency in 'link_assumptions': "\
-                            f"Since 'link_assumptions'[{j}][({i}, {lag_i})] "\
-                            f"= {link_ij}, variable ({i}, {lag_i}) is a "\
-                            f"non-ancestor (non-cause) of ({j}, 0). At the same "\
-                            "time, however, 'link_assumptions' specifies a "\
-                            f"directed path (causal path) from ({i}, {lag_i}) to "\
-                            f"({j}, 0).")
+            for (i, lag_i), link_ij in links_j.items():
+                if (link_ij != ""
+                    and link_ij[0] == "<"
+                    and ancs_mat_summed[self.N*abs(lag_i) + i, j] != 0):
+                    raise ValueError(f"Inconsistency in 'link_assumptions': "\
+                        f"Since 'link_assumptions'[{j}][({i}, {lag_i})] "\
+                        f"= {link_ij}, variable ({i}, {lag_i}) is a "\
+                        f"non-ancestor (non-cause) of ({j}, 0). At the same "\
+                        "time, however, 'link_assumptions' specifies a "\
+                        f"directed path (causal path) from ({i}, {lag_i}) to "\
+                        f"({j}, 0).")
 
         # Replace absent entries by ''
         for j in range(self.N):
@@ -630,13 +612,9 @@ class LPCMCI(PCMCIbase):
                     if (tau_i > 0 or i != j)}
             else:
                 for (i, tau_i) in product(range(self.N), range(self.tau_min, self.tau_max+1)):
-                    if self.var_names[i] in self.context_vars:
-                        if self.link_assumptions[j].get((i, '*')) is None:
-                            self.link_assumptions[j][(i, '*')] = ""
-                    else:
-                        if (tau_i > 0 or i != j):
-                            if self.link_assumptions[j].get((i, -tau_i)) is None:
-                                self.link_assumptions[j][(i, -tau_i)] = ""
+                    if (tau_i > 0 or i != j):
+                        if self.link_assumptions[j].get((i, -tau_i)) is None:
+                            self.link_assumptions[j][(i, -tau_i)] = ""
 
     def _initialize_run_memory(self):
         """Function for initializing various memory variables for storing the current graph, sepsets etc."""
@@ -645,29 +623,18 @@ class LPCMCI(PCMCIbase):
         # Syntax: self.graph_dict[j][(i, -tau)] gives the string representing the link from X^i_{t-tau} to X^j_t
         self.graph_dict = {}
         for j in range(self.N):
-            if self.var_names[j] not in self.context_vars: 
-                self.graph_dict[j] = {(i, 0): "o?o" for i in range(self.s_N) if j != i}
-                # self.graph_dict[j] = {(i, 0): "o?o" for i in range(self.N) if j != i and self.var_names[j] not in self.context_vars and self.var_names[i] not in self.context_vars}
 
-                if self.max_cond_px == 0 and self.update_middle_marks:
-                    self.graph_dict[j].update({(i, -tau): "oL>" for i in range(self.s_N) for tau in range(1, self.tau_max + 1)})
-                else:
-                    self.graph_dict[j].update({(i, -tau): "o?>" for i in range(self.s_N) for tau in range(1, self.tau_max + 1)})
-                    
-                self.graph_dict[j].update({(i, '*'): "-->" for i in range(self.s_N, self.s_N + self.s_C) if j != i})
-                
+            self.graph_dict[j] = {(i, 0): "o?o" for i in range(self.N) if j != i}
+
+            if self.max_cond_px == 0 and self.update_middle_marks:
+                self.graph_dict[j].update({(i, -tau): "oL>" for i in range(self.N) for tau in range(1, self.tau_max + 1)})
             else:
-                self.graph_dict[j] = {(i, 0): "o?o" for i in range(self.s_N) if j != i}
-                
-                if self.max_cond_px == 0 and self.update_middle_marks:
-                    self.graph_dict[j].update({(i, -tau): "oL>" for i in range(self.s_N) for tau in range(1, self.tau_max + 1)})
-                else:
-                    self.graph_dict[j].update({(i, -tau): "o?>" for i in range(self.s_N) for tau in range(1, self.tau_max + 1)})
-                
+                self.graph_dict[j].update({(i, -tau): "o?>" for i in range(self.N) for tau in range(1, self.tau_max + 1)})
 
         # Initialize the nested dictionary for storing separating sets
         # Syntax: self.sepsets[j][(i, -tau)] stores separating sets of X^i_{t-tau} to X^j_t. For tau = 0, i < j.
-        self.sepsets = {j: {(i, -tau): set() for i in range(self.N) if self.var_names[i] not in self.context_vars for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}
+        self.sepsets = {j: {(i, -tau): set() for i in range(self.N) for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}
+
         # Initialize dictionaries for storing known ancestorships, non-ancestorships, and ambiguous ancestorships
         # Syntax: self.def_ancs[j] contains the set of all known ancestors of X^j_t. Equivalently for the others
         self.def_ancs = {j: set() for j in range(self.N)}
@@ -677,20 +644,12 @@ class LPCMCI(PCMCIbase):
         # Initialize nested dictionaries for saving the maximal p-value among all conditional independence tests of a given
         # pair of variables as well as the corresponding test statistic values and conditioning set cardinalities
         # Syntax: As for self.sepsets
-        self.pval_max = {j: {(i, -tau): -np.inf for i in range(self.s_N) for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}
-        self.pval_max_val = {j: {(i, -tau): np.inf for i in range(self.s_N) for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}
-        self.pval_max_card = {j: {(i, -tau): -np.inf for i in range(self.s_N) for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}                                        
+        self.pval_max = {j: {(i, -tau): -np.inf for i in range(self.N) for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}
+        self.pval_max_val = {j: {(i, -tau): np.inf for i in range(self.N) for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}
+        self.pval_max_card = {j: {(i, -tau): -np.inf for i in range(self.N) for tau in range(self.tau_max + 1) if (tau > 0 or i < j)} for j in range(self.N)}                                        
         # Initialize a nested dictionary for caching na-pds-sets
         # Syntax: self._na_pds_t[(i, t_i)][(j, t_j)] stores na_pds_t((i, t_i), (j, t_j))
-        self._na_pds_t = {(j, -tau_j): {} for j in range(self.s_N) for tau_j in range(self.tau_max + 1)}
-        
-        for j in range(self.s_N):
-            for i in range(self.s_N, self.s_N + self.s_C):
-                self.sepsets[j][(i, '*')] = set()
-                self.pval_max[j][(i, '*')] = -np.inf
-                self.pval_max_val[j][(i, '*')] = +np.inf
-                self.pval_max_card[j][(i, '*')] = -np.inf
-                self._na_pds_t[(i, '*')] = {}
+        self._na_pds_t = {(j, -tau_j): {} for j in range(self.N) for tau_j in range(self.tau_max + 1)}
 
         # Initialize a variable for remembering the maximal cardinality among all calculated na-pds-sets, as well as the
         # maximial cardinality of any search set in the non-ancestral phase
@@ -730,10 +689,7 @@ class LPCMCI(PCMCIbase):
         """
 
         for j, links_j in self.link_assumptions.items():
-            # for (i, lag_i), link in self.link_assumptions[j].items():
-            for (i, lag_i), link in links_j.items():
-            # for s in links_j.items():
-            #     if isinstance(s, tuple:)
+            for (i, lag_i), link in self.link_assumptions[j].items():
 
                 # Apply background knowledge
                 if link != "" and link[1] == "?" and lag_i < 0 and self.max_cond_px == 0 and self.update_middle_marks:
@@ -743,10 +699,11 @@ class LPCMCI(PCMCIbase):
 
                 # If background knowledge amounts to absence of link, set the corresponding entries in
                 # self.pval_max to 2, in self.pval_max_val to -np.inf, and in self.pval_max_card to None to np.inf
-                if (link == "" and lag_i != '*' and (lag_i < 0 or i < j)) or (link == "" and lag_i == '*'):
+                if link == "" and (lag_i < 0 or i < j):
                     self.pval_max[j][(i, lag_i)] = np.inf
                     self.pval_max_val[j][(i, lag_i)] = -np.inf
                     self.pval_max_card[j][(i, lag_i)] = np.inf
+                           
 
     def _run_ancestral_removal_phase(self, prelim = False):
         """Run an ancestral edge removal phase, this is Algorithm S2"""
@@ -780,9 +737,12 @@ class LPCMCI(PCMCIbase):
 
             # Generate the prioritized link list
             if self.auto_first:
+
                 link_list = [product(range(self.N), range(-self.tau_max, 0))]
                 link_list = link_list + [product(range(self.N), range(self.N), range(-lag, -lag + 1)) for lag in range(0, self.tau_max + 1)]
+
             else:
+
                 link_list = [product(range(self.N), range(self.N), range(-lag, -lag + 1)) for lag in range(0, self.tau_max + 1)]
 
 
@@ -818,9 +778,6 @@ class LPCMCI(PCMCIbase):
                         continue
                     # ... X > Y
                     if self._is_smaller(Y, X):
-                        continue
-                    # ... either X or Y is a context variable
-                    if self.var_names[X[0]] in self.context_vars or self.var_names[Y[0]] in self.context_vars:
                         continue
 
                     # Get the current link
@@ -901,7 +858,7 @@ class LPCMCI(PCMCIbase):
                             S_search_YX = self._sort_search_set(S_search_YX, Y)
                         if test_X:
                             S_search_XY = self._sort_search_set(S_search_XY, X)
-
+                            
                     # Run through all cardinality p_pc subsets of S_search_YX
                     if test_Y:
 
@@ -915,6 +872,22 @@ class LPCMCI(PCMCIbase):
                             # Build the full conditioning set
                             Z = set(S_pc)
                             Z = Z.union(S_default_YX)
+                            
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # !  whenever there is a intervention (system) variable
+                            # !  add to the conditioning set also ALL its intervention (context) variables
+                            # !  this is to model the context variable at different time steps as a single
+                            # !  context variable that confounds all the system variables 
+                            Zadd = set()
+                            for z in Z:
+                                if self.var_names[z[0]] in self.sys_context:
+                                    c = self.sys_context[self.var_names[z[0]]]
+                                    for tau_i in range(self.tau_max + 1):
+                                        Zadd.add((self.var_names.index(c), -tau_i))
+                                        S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
+                            Z = Z.union(Zadd)
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
                             # Test conditional independence of X and Y given Z
                             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z), 
@@ -923,8 +896,8 @@ class LPCMCI(PCMCIbase):
                             if self.verbosity >= 2:
                                 Xp = (self.var_names[X[0]], X[1])
                                 Yp = (self.var_names[Y[0]], Y[1])
-                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) if self.var_names[z[0]] not in self.context_vars else self.var_names[z[0]] for z in S_default_YX])
-                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) if self.var_names[z[0]] not in self.context_vars else self.var_names[z[0]] for z in S_pc])
+                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default_YX])
+                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_pc])
                                 print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
                                 print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
                                 if not dependent: print(f"\t  independent")
@@ -960,6 +933,22 @@ class LPCMCI(PCMCIbase):
                             # Build the full conditioning set
                             Z = set(S_pc)
                             Z = Z.union(S_default_XY)
+                            
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            # !  whenever there is a intervention (system) variable
+                            # !  add to the conditioning set also ALL its intervention (context) variables
+                            # !  this is to model the context variable at different time steps as a single
+                            # !  as a single context variables that confounds all the system variables 
+                            Zadd = set()
+                            for z in Z:
+                                if self.var_names[z[0]] in self.sys_context:
+                                    c = self.sys_context[self.var_names[z[0]]]
+                                    for tau_i in range(self.tau_max):
+                                        Zadd.add((self.var_names.index(c), -tau_i))
+                                        S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
+                            Z = Z.union(Zadd)
+                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            
 
                             # Test conditional independence of X and Y given Z
                             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z), 
@@ -968,11 +957,12 @@ class LPCMCI(PCMCIbase):
                             if self.verbosity >= 2:
                                 Xp = (self.var_names[X[0]], X[1])
                                 Yp = (self.var_names[Y[0]], Y[1])
-                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) if self.var_names[z[0]] not in self.context_vars else self.var_names[z[0]] for z in S_default_XY])
-                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) if self.var_names[z[0]] not in self.context_vars else self.var_names[z[0]] for z in S_pc])
+                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default_XY])
+                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_pc])
                                 print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
                                 print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
                                 if not dependent: print(f"\t  independent")
+                                # print(f"\t- is {Y} ANC({X})?\n\t  {X} ⊥ {Y} | S_def = {' '.join([str(z) for z in S_default_XY])}, S_pc = {' '.join([str(z) for z in S_pc])}\n\t  val = {round(val,2)} / pval = {round(pval,4)}")
 
                             # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
                             # values and conditioning set cardinalities
@@ -991,7 +981,7 @@ class LPCMCI(PCMCIbase):
 
                                 if self.break_once_separated:
                                     break
-
+                                                       
                 # for pair in links
 
                 ##########################################################################################################
@@ -1729,9 +1719,9 @@ class LPCMCI(PCMCIbase):
 
                 if self.verbosity >= 1:
                     if (i, lag_i) in self.def_ancs[j]:
-                        print("{:10} Removing ({}, {:2}) as anc of {}".format("Update:", self.var_names[i], lag_i, (self.var_names[j], 0)))
+                        print("{:10} Removing ({}, {:2}) as anc of {}".format("Update:", i, lag_i, (j, 0)))
                     if (i, lag_i) in self.def_non_ancs[j]:
-                        print("{:10} Removing ({}, {:2}) as non-anc of {}".format("Update:", self.var_names[i], lag_i, (self.var_names[j], 0)))
+                        print("{:10} Removing ({}, {:2}) as non-anc of {}".format("Update:", i, lag_i, (j, 0)))
 
                 self.def_ancs[j].discard((i, lag_i))
                 self.def_non_ancs[j].discard((i, lag_i))
@@ -1746,7 +1736,7 @@ class LPCMCI(PCMCIbase):
                     # self.def_non_ancs[i].discard((j, 0))
 
                 if self.verbosity >= 1 and (i, lag_i) not in self.ambiguous_ancestorships[j]:
-                    print("{:10} Marking ancestorship of ({}, {:2}) to {} as ambiguous".format("Update:", self.var_names[i], lag_i, (self.var_names[j], 0)))
+                    print("{:10} Marking ancestorship of ({}, {:2}) to {} as ambiguous".format("Update:", i, lag_i, (j, 0)))
 
                 self.ambiguous_ancestorships[j].add((i, lag_i))
 
@@ -1764,7 +1754,7 @@ class LPCMCI(PCMCIbase):
                     put_head_or_tail = True
 
                 if self.verbosity >= 1 and (i, lag_i) not in self.def_non_ancs[j]:
-                    print("{:10} Marking ({}, {:2}) as non-anc of {}".format("Update:", self.var_names[i], lag_i, (self.var_names[j], 0)))  
+                    print("{:10} Marking ({}, {:2}) as non-anc of {}".format("Update:", i, lag_i, (j, 0)))  
 
                 self.def_non_ancs[j].add((i, lag_i))
 
@@ -1778,14 +1768,14 @@ class LPCMCI(PCMCIbase):
                     put_head_or_tail = True
 
                 if self.verbosity >= 1 and (i, lag_i) not in self.def_ancs[j]:
-                    print("{:10} Marking ({}, {:2}) as anc of {}".format("Update:", self.var_names[i], lag_i, (self.var_names[j], 0)))
+                    print("{:10} Marking ({}, {:2}) as anc of {}".format("Update:", i, lag_i, (j, 0)))
 
                 self.def_ancs[j].add((i, lag_i))
 
                 if lag_i == 0:
 
                     if self.verbosity >= 1 and (j, 0) not in self.def_non_ancs[i]:
-                        print("{:10} Marking {} as non-anc of {}".format("Update:",(self.var_names[j], 0), (self.var_names[i], 0)))
+                        print("{:10} Marking {} as non-anc of {}".format("Update:",(j, 0), (i, 0)))
 
                     self.def_non_ancs[i].add((j, 0))
 
@@ -1844,18 +1834,18 @@ class LPCMCI(PCMCIbase):
                     # ... it is a non-future adjacency of A
                     if len(link) > 0
                     # ... and is not B
-                    and ((self.var_names[var] not in self.context_vars and (var, lag + lag_A) != B) or (self.var_names[var] in self.context_vars and (var, lag) != B)) 
+                    and (var, lag + lag_A) != B
                     # ... and is not before t - tau_max
-                    and ((self.var_names[var] not in self.context_vars and (lag + lag_A) >= -self.tau_max) or (self.var_names[var] not in self.context_vars))
+                    and (lag + lag_A) >= -self.tau_max
                     # ... and is not after both A and B
                     # ... (i.e. is not after time t)
-                    and ((self.var_names[var] not in self.context_vars and (lag + lag_A) <= 0) or (self.var_names[var] not in self.context_vars))
+                    and (lag + lag_A) <= 0
                     # ... and is not a definite non-ancestor of A,
                     #     which implies that it is not a definite descendant of A,
                     and link[0] != "<"
                     # ... and is not a definite descendant of B
                     #     (i.e., B is not a definite ancestor of W)
-                    and (var_B, lag_B - (lag if self.var_names[var] not in self.context_vars else 0 + lag_A)) not in self.def_ancs[var]
+                    and (var_B, lag_B - (lag + lag_A)) not in self.def_ancs[var]
                     }
 
         # Compute na_pds_t_2(A, B)
@@ -1864,19 +1854,19 @@ class LPCMCI(PCMCIbase):
         C1_list = set()
         for ((var, lag), link) in self.graph_full_dict[var_A].items():
 
-            node = (var, lag + lag_A) if self.var_names[var] not in self.context_vars else (var, lag)
+            node = (var, lag + lag_A)
 
             # node is added to C1_list if, in addition to being adjacent to A, ...
             # ... it is not B
-            if ((self.var_names[var] not in self.context_vars and (var, lag + lag_A) == B) or (self.var_names[var] in self.context_vars and (var, lag) == B)):
+            if (var, lag + lag_A) == B:
                 continue
 
             # ... it is not before t - tau_max
-            if ((self.var_names[var] not in self.context_vars and (lag + lag_A) < -self.tau_max) or (self.var_names[var] not in self.context_vars)):
+            if (lag + lag_A) < -self.tau_max:
                 continue
 
             # ... it is not after B
-            if (lag if self.var_names[var] not in self.context_vars else 0 + lag_A) > lag_B:
+            if (lag + lag_A) > lag_B:
                 continue
 
             # ... it is not a definite ancestor of A
@@ -1889,7 +1879,7 @@ class LPCMCI(PCMCIbase):
 
             # ... it is not a definite non-ancestor of B,
             #     which implies that it is not a definite descendant of B
-            if (var, (lag if self.var_names[var] not in self.context_vars else 0 + lag_A) - lag_B) in self.def_non_ancs[var_B]:
+            if (var, (lag + lag_A) - lag_B) in self.def_non_ancs[var_B]:
                 continue
 
             # If all tests are passed, node is added to C1_list
@@ -1912,10 +1902,9 @@ class LPCMCI(PCMCIbase):
                 visited.add((current_node, previous_node))
 
                 for (var, lag) in self.graph_full_dict[current_node[0]]:
-                    
-                    if self.var_names[var] in self.context_vars: continue
 
                     next_node = (var, lag + current_node[1])
+
                     if next_node[1] < -self.tau_max:
                         continue
                     if next_node[1] > 0:
@@ -1928,7 +1917,6 @@ class LPCMCI(PCMCIbase):
                         continue
                     if next_node == A:
                         continue
-
 
                     link_l = self._get_link(next_node, current_node)
                     link_r = self._get_link(previous_node, current_node)
@@ -2045,14 +2033,7 @@ class LPCMCI(PCMCIbase):
 
         # Treat A - B - C as the same triple as C - B - A
         # Convention: A is before C or, if they are contemporaneous, the index of A is smaller than that of C
-        a = deepcopy(A)
-        b = deepcopy(B)
-        c = deepcopy(C)
-        if a[1] == '*': a = (a[0], 0)
-        if b[1] == '*': b = (b[0], 0)
-        if c[1] == '*': c = (c[0], 0)
-
-        if c[1] < a[1] or (c[1] == a[1] and c[0] < a[0]):
+        if C[1] < A[1] or (C[1] == A[1] and C[0] < A[0]):
             return self._B_not_in_SepSet_AC(C, B, A)
 
         # Remember all separating sets that we will find
@@ -2076,16 +2057,16 @@ class LPCMCI(PCMCIbase):
             search_C = self._sort_search_set(search_C, C)
 
         # Test for independence given all subsets of non-future adjacencies of A
-        if a[1] < c[1]:
+        if A[1] < C[1]:
             max_p_A = min([len(search_A), self.max_cond_px, self.max_p_global]) + 1
         else:
             max_p_A = min([len(search_A), self.max_p_global]) + 1
 
         # Shift lags
-        search_A = [(var, lag - c[1] if lag != '*' else lag) for (var, lag) in search_A]
-        search_C = [(var, lag - c[1] if lag != '*' else lag) for (var, lag) in search_C]
-        Z_add = {(var, lag - c[1] if lag != '*' else lag) for (var, lag) in Z_add}
-        X = (A[0], a[1] - c[1])
+        search_A = [(var, lag - C[1]) for (var, lag) in search_A]
+        search_C = [(var, lag - C[1]) for (var, lag) in search_C]
+        Z_add = {(var, lag - C[1]) for (var, lag) in Z_add}
+        X = (A[0], A[1] - C[1])
         Y = (C[0], 0)
 
         for p in range(max_p_A):
@@ -2107,8 +2088,8 @@ class LPCMCI(PCMCIbase):
                     tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                 if self.verbosity >= 2:
-                    print("B not in sepSetAC(A):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
-                          ((self.var_names[X[0]], X[1]), (self.var_names[Y[0]], Y[1]), ' '.join([str((self.var_names[z[0]], z[1])) for z in Z_add]), ' '.join([str((self.var_names[z[0]], z[1])) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
+                    print("BnotinSepSetAC(A):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                        (X, Y, ' '.join([str(z) for z in Z_add]), ' '.join([str(z) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
 
                 # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
                 # values and conditioning set cardinalities
@@ -2140,9 +2121,8 @@ class LPCMCI(PCMCIbase):
                 if self.verbosity >= 2:
                     # print("BnotinSepSetAC(C):    %s ⊥ %s  |  Z = %s: val = %.2f / pval = % .4f" %
                     #     (X, Y, ' '.join([str(z) for z in list(Z)]), val, pval))
-                    print("B not in sepSetAC(C):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
-                          ((self.var_names[X[0]], X[1]), (self.var_names[Y[0]], Y[1]), ' '.join([str((self.var_names[z[0]], z[1])) for z in Z_add]), ' '.join([str((self.var_names[z[0]], z[1])) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
-                        # (X, Y, ' '.join([str(z) for z in Z_add]), ' '.join([str(z) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
+                    print("BnotinSepSetAC(C):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                        (X, Y, ' '.join([str(z) for z in Z_add]), ' '.join([str(z) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
 
                 # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
                 # values and conditioning set cardinalities
@@ -2157,7 +2137,7 @@ class LPCMCI(PCMCIbase):
 
         # Count number of sepsets and number of sepsets that contain B
         n_sepsets = len(all_sepsets)
-        n_sepsets_with_B = len([1 for Z in all_sepsets if (B[0], b[1] - c[1]) in Z])
+        n_sepsets_with_B = len([1 for Z in all_sepsets if (B[0], B[1] - C[1]) in Z])
 
         return True if 2*n_sepsets_with_B < n_sepsets else False
 
@@ -2167,14 +2147,7 @@ class LPCMCI(PCMCIbase):
 
         # Treat A - B - C as the same triple as C - B - A
         # Convention: A is before C or, if they are contemporaneous, the index of A is smaller than that of C
-        a = deepcopy(A)
-        b = deepcopy(B)
-        c = deepcopy(C)
-        if a[1] == '*': a = (a[0], 0)
-        if b[1] == '*': b = (b[0], 0)
-        if c[1] == '*': c = (c[0], 0)
-
-        if c[1] < a[1] or (c[1] == a[1] and c[0] < a[0]):
+        if C[1] < A[1] or (C[1] == A[1] and C[0] < A[0]):
             return self._B_in_SepSet_AC(C, B, A)
 
         link_AB = self._get_link(A, B)
@@ -2214,7 +2187,7 @@ class LPCMCI(PCMCIbase):
                 search_C = self._sort_search_set(search_C, C)
 
             # Test for independence given all subsets of non-future adjacencies of A
-            if a[1] < c[1]:
+            if A[1] < C[1]:
                 max_p_A = min([len(search_A), self.max_cond_px, self.max_p_global]) + 1
             else:
                 max_p_A = min([len(search_A), self.max_p_global]) + 1
@@ -2223,7 +2196,7 @@ class LPCMCI(PCMCIbase):
             search_A = [(var, lag - C[1]) for (var, lag) in search_A]
             search_C = [(var, lag - C[1]) for (var, lag) in search_C]
             Z_add = {(var, lag - C[1]) for (var, lag) in Z_add}
-            X = (A[0], a[1] - c[1])
+            X = (A[0], A[1] - C[1])
             Y = (C[0], 0)
 
             for p in range(max_p_A):
@@ -2296,7 +2269,7 @@ class LPCMCI(PCMCIbase):
 
             # Count number of sepsets and number of sepsets that contain B
             n_sepsets = len(all_sepsets)
-            n_sepsets_with_B = len([1 for Z in all_sepsets if (B[0], b[1] - c[1]) in Z])
+            n_sepsets_with_B = len([1 for Z in all_sepsets if (B[0], B[1] - C[1]) in Z])
 
             return True if 2*n_sepsets_with_B > n_sepsets else False
 
@@ -2305,26 +2278,9 @@ class LPCMCI(PCMCIbase):
         """Return all known parents of all nodes in node_list"""
 
         if self.parents_of_lagged or A[1] == B[1]:
-            outA = set()
-            for ((var, lag), link) in self.graph_dict[A[0]].items():
-                if self.var_names[var] not in self.context_vars:
-                    if len(link) > 0 and link[0] == "-" and lag + A[1] >= -self.tau_max:
-                        outA.add((var, lag + A[1]))
-                else:
-                    # if self.var_names[A[0]] in self.sys_context.keys() and A[1] == 0 and link == '-->':
-                    if link == '-->': outA.add((var, lag))
-            outB = set()
-            for ((var, lag), link) in self.graph_dict[B[0]].items():
-                if self.var_names[var] not in self.context_vars:
-                    if len(link) > 0 and link[0] == "-" and lag + B[1] >= -self.tau_max:
-                        outB.add((var, lag + B[1]))
-                else:
-                    # if B[0] in self.sys_context.keys() and B[1] == 0 and link == '-->':
-                    if link == '-->': outB.add((var, lag))
-            return outA.union(outB)
 
-            # out = {(var, lag + A[1]) for ((var, lag), link) in self.graph_dict[A[0]].items() if len(link) > 0 and link[0] == "-" and lag + A[1] >= -self.tau_max}
-            # return out.union({(var, lag + B[1]) for ((var, lag), link) in self.graph_dict[B[0]].items() if len(link) > 0 and link[0] == "-" and lag + B[1] >= -self.tau_max})
+            out = {(var, lag + A[1]) for ((var, lag), link) in self.graph_dict[A[0]].items() if len(link) > 0 and link[0] == "-" and lag + A[1] >= -self.tau_max}
+            return out.union({(var, lag + B[1]) for ((var, lag), link) in self.graph_dict[B[0]].items() if len(link) > 0 and link[0] == "-" and lag + B[1] >= -self.tau_max})
 
         else:
             if A[1] < B[1]:
@@ -2366,12 +2322,9 @@ class LPCMCI(PCMCIbase):
 
                 if link == "":
                     continue
-                elif self.var_names[j] in self.context_vars or self.var_names[i] in self.context_vars:
-                    continue
 
                 X = (i, lag_i)
                 Y = (j, 0)
-                
 
                 # Apply above rule for A = X and B = Y
                 link_XY = self._get_link(X, Y)
@@ -2423,16 +2376,8 @@ class LPCMCI(PCMCIbase):
 
         Return True if X is smaller than Y, else return False
         """
-        x = deepcopy(X)
-        y = deepcopy(Y)
-        # ! (1) in this way the * is treaten as 0
-        if x[1] == '*': x = (x[0], 0)
-        if y[1] == '*': y = (y[0], 0)
-        # ! (1) in this way the * is treaten as same of the other node
-        if x[1] == '*': x = (x[0], y[1])
-        if y[1] == '*': y = (y[0], x[1])
 
-        return (x[1] < y[1]) or (x[1] == y[1] and x[0] < y[0])           
+        return (X[1] < Y [1]) or (X[1] == Y[1] and X[0] < Y[0])           
 
 
     def _get_a_pds_t(self, A, B):
@@ -2440,30 +2385,20 @@ class LPCMCI(PCMCIbase):
 
         # Unpack A and assert that A is at lag 0
         var_A, lag_A = A
-        
-        out = set()
-        
-        for ((var, lag), link) in self.graph_dict[var_A].items():
-            if self.var_names[var] not in self.context_vars:
-                if len(link) > 0 and (var, lag + lag_A) != B and lag + lag_A >= -self.tau_max and link[0] != "<":
-                    out.add((var, lag + lag_A))
-            else:
-                out.add((var, lag))
 
         # Compute a_pds_t(A, B) according to the current graph
-        # return {(var, lag + lag_A)
-        #             # W = (var, lag) is in a_pds_t(A, B) if ...
-        #             for ((var, lag), link) in self.graph_dict[var_A].items()
-        #             # ... it is a non-future adjacency of A
-        #             if len(link) > 0
-        #             # ... and it is not B
-        #             and (var, lag + lag_A) != B
-        #             # ... it is not before t - self.tau_max
-        #             and lag + lag_A >= -self.tau_max
-        #             # ... and it is not a definite non-ancestor of A
-        #             and link[0] != "<"
-        #             }
-        return out
+        return {(var, lag + lag_A)
+                    # W = (var, lag) is in a_pds_t(A, B) if ...
+                    for ((var, lag), link) in self.graph_dict[var_A].items()
+                    # ... it is a non-future adjacency of A
+                    if len(link) > 0
+                    # ... and it is not B
+                    and (var, lag + lag_A) != B
+                    # ... it is not before t - self.tau_max
+                    and lag + lag_A >= -self.tau_max
+                    # ... and it is not a definite non-ancestor of A
+                    and link[0] != "<"
+                    }
 
 
     def _get_ancs(self, node_list):
@@ -2518,10 +2453,7 @@ class LPCMCI(PCMCIbase):
     ########################################################################################################################
 
     def _apply_APR(self, only_lagged):
-        # ! Replace:
-        # ! - all edges A -!> B by A --> B;
-        # ! - all edges A -L> B with A > B by A --> B;
-        # ! - all edges A -R> B with A < B by A --> B.
+        """Return all orientations implied by orientation rule APR"""
 
         # Build the output list
         out = []
@@ -2548,18 +2480,13 @@ class LPCMCI(PCMCIbase):
 
                     # Write the new link from A to B to the output list
                     out.append(self._get_pair_key_and_new_link(A, B, "-->"))
-                    
-                    if self.verbosity > 1:
-                        print(f"\t- {self.var_names[A[0]], A[1]} {link_AB} {self.var_names[B[0]], B[1]} ==> {self.var_names[A[0]], A[1]} --> {self.var_names[B[0]], B[1]}")
 
         # Return the output list
         return out
 
     def _apply_ER01(self, only_lagged):
-        # ! For all unshielded triples A **> B o*+ C:
-        # ! If Sac (separating set of A and C) is weakly minimal and B ∈ Sac
-        # ! then mark the edge between B and C for orientation as B -*> C.
-        
+        """Return all orientations implied by orientation rule R1^prime"""
+
         # Build the output list
         out = []
 
@@ -2572,23 +2499,25 @@ class LPCMCI(PCMCIbase):
             if only_lagged and B[1] == C[1]:
                     continue
 
+            # if self.verbosity >= 2:
+            #     print("ER01: ", (A, B, C))
+
             # Check whether the rule applies
             if self._B_in_SepSet_AC(A, B, C):
+
+                if self.verbosity >= 2:
+                    print(f"{B} in sepset of {A} and {C}")
 
                 # Prepare the new link from B to C and append it to the output list
                 link_BC = self._get_link(B, C)
                 new_link_BC = "-" + link_BC[1] + ">"
                 out.append(self._get_pair_key_and_new_link(B, C, new_link_BC))
-                
-                if self.verbosity > 1:
-                    print(f"\t- {self.var_names[A[0]], A[1]} **> {self.var_names[B[0]], B[1]} o*+ {self.var_names[C[0]], C[1]} and {self.var_names[B[0]], B[1]} in Sac ==> {self.var_names[B[0]], B[1]} -*> {self.var_names[C[0]], C[1]}")
 
         # Return the output list
         return out
 
     def _apply_ER02(self, only_lagged):
-        # ! For all A -*> B **> C with A +*o C and for all A **> B -*> C with A +*o C: 
-        # ! Mark the edge between A and C for orientation as A +*> C.
+        """Return all orientations implied by orientation rule R2^prime"""
 
         # Build the output list
         out = []
@@ -2608,9 +2537,7 @@ class LPCMCI(PCMCIbase):
             new_link_AC = link_AC[0] + link_AC[1] + ">"
             out.append(self._get_pair_key_and_new_link(A, C, new_link_AC))
 
-            # print("ER02", A, self._get_link(A, B), B, self._get_link(B, C), C, self._get_link(A, C), new_link_AC)
-            if self.verbosity > 1:
-                print(f"\t- {self.var_names[A[0]], A[1]} +*> {self.var_names[C[0]], C[1]}")
+            # print("Rule 2", A, self._get_link(A, B), B, self._get_link(B, C), C, self._get_link(A, C), new_link_AC)
 
         # Return the output list
         return out
@@ -2951,23 +2878,10 @@ class LPCMCI(PCMCIbase):
                 for Z in sepsets:      
 
                     # Construct the conditioning set to test
-                    # Z_test = Z.union(Z_add).difference({A, B})
-                    # Z_test = {(var, lag - delta_lag) for (var, lag) in Z_test if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
-                    # Z_add2 = {(var, lag - delta_lag) for (var, lag) in Z_add.difference({A, B}) if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
-                    tmp_Z_test = Z.union(Z_add).difference({A, B})
-                    Z_test = set()
-                    for (var, lag) in tmp_Z_test:
-                        if self.var_names[var] in self.context_vars:
-                            Z_test.add((var, lag))
-                        elif lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max:
-                            Z_test.add((var, lag - delta_lag))
-                    Z_add2 = set()
-                    for (var, lag) in Z_add.difference({A, B}):
-                        if self.var_names[var] in self.context_vars:
-                            Z_test.add((var, lag))
-                        elif lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max:
-                            Z_test.add((var, lag - delta_lag))
-                            
+                    Z_test = Z.union(Z_add).difference({A, B})
+                    Z_test = {(var, lag - delta_lag) for (var, lag) in Z_test if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
+                    Z_add2 = {(var, lag - delta_lag) for (var, lag) in Z_add.difference({A, B}) if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
+
                     # Test conditional independence of X and Y given Z
                     # val, pval = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z_test), tau_max = self.tau_max)
                     val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z_test), 
@@ -3023,21 +2937,9 @@ class LPCMCI(PCMCIbase):
                 for Z in sepsets:
 
                     # Construct the conditioning set to test
-                    tmp_Z_test = Z.union(Z_add).difference({C, B})
-                    Z_test = set()
-                    for (var, lag) in tmp_Z_test:
-                        if self.var_names[var] in self.context_vars:
-                            Z_test.add((var, lag))
-                        elif lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max:
-                            Z_test.add((var, lag - delta_lag))
-                    Z_add2 = set()
-                    for (var, lag) in Z_add.difference({A, B}):
-                        if self.var_names[var] in self.context_vars:
-                            Z_test.add((var, lag))
-                        elif lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max:
-                            Z_test.add((var, lag - delta_lag))
-                    # Z_test = {(var, lag - delta_lag) for (var, lag) in Z_test if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
-                    # Z_add2 = {(var, lag - delta_lag) for (var, lag) in Z_add.difference({A, B}) if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
+                    Z_test = Z.union(Z_add).difference({C, B})
+                    Z_test = {(var, lag - delta_lag) for (var, lag) in Z_test if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
+                    Z_add2 = {(var, lag - delta_lag) for (var, lag) in Z_add.difference({A, B}) if lag - delta_lag <= 0 and lag - delta_lag >= -self.tau_max}
 
                     # Test conditional independence of X and Y given Z
                     # val, pval = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z_test), tau_max = self.tau_max)
@@ -3278,8 +3180,8 @@ class LPCMCI(PCMCIbase):
 
         for j in range(self.N):
             for ((i, lag_i), link) in self.graph_dict[j].items():
-                if len(link) > 0 and ((lag_i != '*' and lag_i < 0) or (lag_i == '*') or i < j):
-                    print("({},{:2}) {} {}".format(i, lag_i, link, (j, 0)))
+                if len(link) > 0 and (lag_i < 0 or i < j):
+                    print("({},{:2}) {} {}".format(self.var_names[i], lag_i, link, (self.var_names[j], 0)))
 
 
     def _get_link(self, A, B):
@@ -3287,19 +3189,8 @@ class LPCMCI(PCMCIbase):
 
         (var_A, lag_A) = A
         (var_B, lag_B) = B
-        
-        # ! (1) in this way the * is treaten as 0
-        # lag_A = lag_A if lag_A != '*' else 0
-        # lag_B = lag_B if lag_B != '*' else 0
-        # ! (1) in this way the * is treaten as same of the other node
-        # lag_A = lag_A if lag_A != '*' else lag_B
-        # lag_B = lag_B if lag_B != '*' else lag_A
-        
-        if self.var_names[var_A] in self.context_vars:
-            return self.graph_dict[var_B][(var_A, '*')]
-        elif self.var_names[var_B] in self.context_vars:
-            return self.graph_dict[var_A][(var_B, '*')]
-        elif abs(lag_A - lag_B) > self.tau_max:
+
+        if abs(lag_A - lag_B) > self.tau_max:
             return ""
         elif lag_A <= lag_B:
             return self.graph_dict[var_B][(var_A, lag_A - lag_B)]
@@ -3412,22 +3303,17 @@ class LPCMCI(PCMCIbase):
 
         (var_A, lag_A) = A
         (var_B, lag_B) = B
-        # ! (1) in this way the * is treaten as 0
-        # lag_A = lag_A if lag_A != '*' else 0
-        # lag_B = lag_B if lag_B != '*' else 0
-        # ! (1) in this way the * is treaten as same of the other node
-        lag_A = lag_A if lag_A != '*' else lag_B
-        lag_B = lag_B if lag_B != '*' else lag_A
 
         def _shift(Z, lag_B):
-            tmp = []
-            for (var, lag) in Z:
-                if self.var_names[var] in self.context_vars:
-                    tmp.append((var, lag))
-                else:
-                    tmp.append((var, lag + lag_B))
-            # return frozenset([(var, lag + lag_B) for (var, lag) in Z])
-            return frozenset(tmp)
+            return frozenset([(var, lag + lag_B) for (var, lag) in Z])
+        # def _shift(Z, lag_B):
+        #     s = []
+        #     for (var, lag) in Z:
+        #         s.append((var, lag + lag_B))
+        #         if self.var_names[var] in self.sys_context:
+        #             s.append((self.var_names[self.sys_context[self.var_names[var]]], lag + lag_B))
+                    
+        #     return frozenset(s)
 
         if lag_A < lag_B:
             out = {(_shift(Z, lag_B), status) for (Z, status) in self.sepsets[var_B][(var_A, lag_A - lag_B)]}
@@ -3459,7 +3345,7 @@ class LPCMCI(PCMCIbase):
                     self.graph_full_dict[j][(var, lag)] = link
 
                     # Add the future adjacencies 
-                    if self.var_names[var] not in self.context_vars and lag < 0:
+                    if lag < 0:
                         self.graph_full_dict[var][(j, -lag)] = self._reverse_link(link)
 
         # Return nothing
@@ -3504,22 +3390,12 @@ class LPCMCI(PCMCIbase):
 
     def _dict2graph(self):
         """Convert self.graph_dict to graph array of shape (N, N, self.tau_max + 1)."""
-        # ! here I think it is very important to understand how to treat the context var
+
         graph = np.zeros((self.N, self.N, self.tau_max + 1), dtype='U3')
         for j in range(self.N):
             for adj in self.graph_dict[j]:
                 (i, lag_i) = adj
-                # if lag_i == '*': 
-                #     # ! (1) add the context only at lag = 0
-                #     lag_i = 0
-                    # graph[i, j, abs(lag_i)] = self.graph_dict[j][adj]
-                if lag_i == '*': 
-                    # ! (2) add the context to all the time lag
-                    for l in range(self.tau_max+1):
-                        graph[i, j, abs(l)] = self._reverse_link(self.graph_dict[j][adj])
-                    
-                else:
-                    graph[i, j, abs(lag_i)] = self.graph_dict[j][adj]
+                graph[i, j, abs(lag_i)] = self.graph_dict[j][adj]
 
         return graph
 
@@ -3597,25 +3473,11 @@ class LPCMCI(PCMCIbase):
                                  (j, lag_j - righmost_lag),
                                  (k, lag_k - righmost_lag))
                         largest_lag = min(lag_i - righmost_lag, lag_j - righmost_lag, lag_k - righmost_lag)
-                        if match not in matched_triples and -self.tau_max <= largest_lag <= 0:
-                            to_add = tuple()
-                            for node in match:
-                                if self.var_names[node[0]] in self.context_vars:
-                                    to_add = to_add + ((node[0], '*'),)
-                                else:
-                                    to_add = to_add + (node,)
-                                    
-                            matched_triples.append(to_add)   
-                            
-        # ! I think it is important to ensure that the context variable is not in the middle
-        out = deepcopy(matched_triples)
-        for matched_triple in matched_triples:          
-            if self.var_names[matched_triple[1][0]] in self.context_vars:
-                out.remove(matched_triple)
-            elif self.var_names[matched_triple[0][0]] in self.context_vars and self.var_names[matched_triple[2][0]] in self.context_vars and matched_triple[0][0] == matched_triple[2][0]:
-                out.remove(matched_triple)
+                        if match not in matched_triples and \
+                            -self.tau_max <= largest_lag <= 0:
+                            matched_triples.append(match)                       
                 
-        return out  
+        return matched_triples  
 
 
     def _find_quadruples(self, pattern_ij, pattern_jk, pattern_ik, 
@@ -3745,14 +3607,11 @@ class LPCMCI(PCMCIbase):
                 #for next_node in self.graph_full_dict[start_node[0]]:
                 for (var, lag) in self.graph_full_dict[start_node[0]].keys():
 
-                    if self.var_names[var] in self.context_vars:
-                        next_node = (var, lag)
-                    else:
-                        next_node = (var, lag + start_node[1])
+                    next_node = (var, lag + start_node[1])
 
                     # Consider only nodes that ...
                     # ... are within the allowed time frame
-                    if next_node[1] != '*' and (next_node[1] < -self.tau_max or next_node[1] > 0):
+                    if next_node[1] < -self.tau_max or next_node[1] > 0:
                         continue
                     # ... have not been visited yet
                     if next_node in path_taken:
@@ -3799,7 +3658,7 @@ class LPCMCI(PCMCIbase):
     def _get_pval_max_val(self, X, Y):
         """Return the test statistic value of that independence test for X and Y which, among all such tests, has the largest p-value."""
 
-        if (X[1] != '*' and X[1] < 0) or X[0] < Y[0]:
+        if X[1] < 0 or X[0] < Y[0]:
             return self.pval_max_val[Y[0]][X]
         else:
             return self.pval_max_val[X[0]][Y]    

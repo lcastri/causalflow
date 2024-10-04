@@ -84,5 +84,4 @@ class DYNOTEARS(CausalDiscoveryMethod):
                 lag = abs(s[2])
                 if lag >= self.min_lag and lag <= self.max_lag:
                     tmp_dag.add_source(t, s[0], abs(s[1]), 0, s[2])
-        # tmp_dag.remove_unneeded_features()
         return tmp_dag

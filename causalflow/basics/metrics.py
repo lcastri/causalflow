@@ -1,5 +1,4 @@
 from copy import deepcopy
-from causalflow.graph.DAG import DAG
 
 
 def fully_connected_dag(features, min_lag, max_lag, alsoOrient = False):

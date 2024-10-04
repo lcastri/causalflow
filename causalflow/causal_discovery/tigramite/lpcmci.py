@@ -1,7 +1,6 @@
 import numpy as np
 from itertools import product, combinations
 from copy import deepcopy
-from itertools import combinations
 
 from .pcmci_base import PCMCIbase
 
@@ -171,7 +170,7 @@ class LPCMCI(PCMCIbase):
     as '+'.
     """
 
-    def __init__(self, dataframe, sys_context, cond_ind_test, verbosity = 0):
+    def __init__(self, dataframe, cond_ind_test, verbosity = 0):
         """Class constructor. Store:
                 i)      data
                 ii)     conditional independence test object
@@ -181,8 +180,6 @@ class LPCMCI(PCMCIbase):
         PCMCIbase.__init__(self, dataframe=dataframe, 
                         cond_ind_test=cond_ind_test,
                         verbosity=verbosity)
-        self.sys_context = sys_context
-
 
     def run_lpcmci(self,
                     link_assumptions = None,
@@ -703,56 +700,6 @@ class LPCMCI(PCMCIbase):
                     self.pval_max[j][(i, lag_i)] = np.inf
                     self.pval_max_val[j][(i, lag_i)] = -np.inf
                     self.pval_max_card[j][(i, lag_i)] = np.inf
-                    
-    # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
-    # def _test_context(self, X, Y, Z, S_pc, S_default):
-    #     if self.verbosity > 1:
-    #         print(f"\tcontext test")
-    
-    #     S_context = [(s, -tau_i) for s in self.sys_context.keys() for tau_i in range(0, self.tau_max + 1) if (self.var_names.index(s), -tau_i) != X and (self.var_names.index(s), -tau_i) != Y]
-    #     max_attempt = len(S_context)
-    #     for r in range(0, max_attempt):
-    #         for combo in combinations(S_context, r+1):
-    #             Z_s = set()
-    #             Z_c = set()
-    #             newS_pc = deepcopy(S_pc)
-    #             for s in combo:
-    #                 s_idx = (self.var_names.index(s[0]), s[1])
-    #                 c_idx = (self.var_names.index(self.sys_context[s[0]]), s[1])
-    #                 if s_idx == X or s_idx == Y: continue
-    #                 if s_idx in Z: continue
-    #                 Z_s.add(s_idx)
-    #                 Z_c.add(c_idx)
-    #                 newS_pc = newS_pc + (s_idx,)
-    #                 newS_pc = newS_pc + (c_idx,)
-                    
-    #                 newZ = Z.union(Z_s).union(Z_c)
-                
-    #             if len(Z_s) == 0 and len(Z_c) == 0: continue
-                
-    #             # Test conditional independence of X and Y given Z
-    #             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(newZ), 
-    #                 tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
-
-    #             if self.verbosity >= 2:
-    #                 Xp = (self.var_names[X[0]], X[1])
-    #                 Yp = (self.var_names[Y[0]], Y[1])
-    #                 S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default])
-
-    #                 S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in newS_pc])
-    #                 print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
-    #                 print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
-    #                 if not dependent: print(f"\t  independent")
-
-    #             # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
-    #             # values and conditioning set cardinalities
-    #             self._update_pval_val_card_dicts(X, Y, pval, val, len(Z))
-
-    #             # Check whether test result was significant
-    #             if not dependent and self.break_once_separated: # pval > self.pc_alpha:
-    #                 return False, newZ
-    #     return True, None
-    # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~           
 
     def _run_ancestral_removal_phase(self, prelim = False):
         """Run an ancestral edge removal phase, this is Algorithm S2"""
@@ -775,10 +722,8 @@ class LPCMCI(PCMCIbase):
             # Verbose output
             if self.verbosity >= 1:
                 if p_pc == 0:
-                    print("\n##")
-                    print("## Starting test phase")
-                    print("##\n")
-                print(f"p = {p_pc}")
+                    print("\nStarting test phase\n")
+                print("p = {}".format(p_pc))
 
             # Variables to memorize the occurence and absence of certain events in the below edge removal phase
             has_converged = True
@@ -831,19 +776,13 @@ class LPCMCI(PCMCIbase):
 
                     # Get the current link
                     link = self._get_link(X, Y)
-                    if self.verbosity > 1:
-                        Xp = (self.var_names[X[0]], X[1])
-                        Yp = (self.var_names[Y[0]], Y[1])
-                        print(f"\nLink {Xp} {link} {Yp} ")
 
                     # Moreover exclude the current link if ...
                     # ... X and Y are not adjacent anymore
                     if link == "":
-                        if self.verbosity > 1: print("\t- not adjacent anymore")
                         continue
                     # ... the link is definitely part of G
                     if link[1] == "-":
-                        if self.verbosity > 1: print("\t- definitely part of G")
                         continue
 
                     ######################################################################################################
@@ -907,7 +846,7 @@ class LPCMCI(PCMCIbase):
                             S_search_YX = self._sort_search_set(S_search_YX, Y)
                         if test_X:
                             S_search_XY = self._sort_search_set(S_search_XY, X)
-                            
+
                     # Run through all cardinality p_pc subsets of S_search_YX
                     if test_Y:
 
@@ -921,35 +860,14 @@ class LPCMCI(PCMCIbase):
                             # Build the full conditioning set
                             Z = set(S_pc)
                             Z = Z.union(S_default_YX)
-                            
-                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # !  whenever there is a intervention (system) variable
-                            # !  add to the conditioning set also ALL its intervention (context) variables
-                            # !  this is to model the context variable at different time steps as a single
-                            # !  context variable that confounds all the system variables 
-                            Zadd = set()
-                            for z in Z:
-                                if self.var_names[z[0]] in self.sys_context:
-                                    c = self.sys_context[self.var_names[z[0]]]
-                                    for tau_i in range(self.tau_max + 1):
-                                        Zadd.add((self.var_names.index(c), -tau_i))
-                                        S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
-                            Z = Z.union(Zadd)
-                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
                             # Test conditional independence of X and Y given Z
                             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z), 
                                 tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                             if self.verbosity >= 2:
-                                Xp = (self.var_names[X[0]], X[1])
-                                Yp = (self.var_names[Y[0]], Y[1])
-                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default_YX])
-                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_pc])
-                                print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
-                                print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
-                                if not dependent: print(f"\t  independent")
+                                print("ANC(Y):    %s _|_ %s  |  S_def = %s, S_pc = %s: val = %.2f / pval = % .4f" %
+                                    (X, Y, ' '.join([str(z) for z in S_default_YX]), ' '.join([str(z) for z in S_pc]), val, pval))
 
                             # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
                             # values and conditioning set cardinalities
@@ -963,21 +881,11 @@ class LPCMCI(PCMCIbase):
                                 self._save_sepset(X, Y, (frozenset(Z), "wm"))
             
                                 # Verbose output
-                                # if self.verbosity >= 1:
-                                #     print(f"\t  {X} ⊥ {Y} | {' '.join([str(z) for z in S_pc]) if len(S_pc) > 0 else str({})} U {' '.join([str(z) for z in S_default_YX]) if len(S_default_YX) > 0 else str({})}")
+                                if self.verbosity >= 1:
+                                    print("({},{:2}) {:11} {} given {} union {}".format(X[0], X[1], "independent", Y, S_pc, S_default_YX))
 
                                 if self.break_once_separated:
                                     break
-                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # else:
-                            #     if self.sys_context != []:
-                            #         dependent, z = self._test_context(X, Y, Z, S_pc, S_default_YX)
-                            #         if not dependent:
-                            #             # Mark the edge from X to Y for removal and save sepset
-                            #             to_remove[Y[0]][X] = True
-                            #             self._save_sepset(X, Y, (frozenset(z), "wm"))
-                            #             break
-                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
 
                     # Run through all cardinality p_pc subsets of S_search_XY
                     if test_X:
@@ -992,36 +900,14 @@ class LPCMCI(PCMCIbase):
                             # Build the full conditioning set
                             Z = set(S_pc)
                             Z = Z.union(S_default_XY)
-                            
-                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # !  whenever there is a intervention (system) variable
-                            # !  add to the conditioning set also ALL its intervention (context) variables
-                            # !  this is to model the context variable at different time steps as a single
-                            # !  as a single context variables that confounds all the system variables 
-                            Zadd = set()
-                            for z in Z:
-                                if self.var_names[z[0]] in self.sys_context:
-                                    c = self.sys_context[self.var_names[z[0]]]
-                                    for tau_i in range(self.tau_max):
-                                        Zadd.add((self.var_names.index(c), -tau_i))
-                                        S_pc = S_pc + ((self.var_names.index(c), -tau_i),)
-                            Z = Z.union(Zadd)
-                            # !  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            
 
                             # Test conditional independence of X and Y given Z
                             val, pval, dependent = self.cond_ind_test.run_test(X = [X], Y = [Y], Z = list(Z), 
                                 tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                             if self.verbosity >= 2:
-                                Xp = (self.var_names[X[0]], X[1])
-                                Yp = (self.var_names[Y[0]], Y[1])
-                                S_defp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_default_XY])
-                                S_pcp = ' '.join([str((self.var_names[z[0]], z[1])) for z in S_pc])
-                                print(f"\t- {Xp} ⊥ {Yp} | S_def = {str('{')}{S_defp}{str('}')} U S_pc = {str('{')}{S_pcp}{str('}')}")
-                                print(f"\t  val = {round(val,2)} / pval = {round(pval,4)}")
-                                if not dependent: print(f"\t  independent")
-                                # print(f"\t- is {Y} ANC({X})?\n\t  {X} ⊥ {Y} | S_def = {' '.join([str(z) for z in S_default_XY])}, S_pc = {' '.join([str(z) for z in S_pc])}\n\t  val = {round(val,2)} / pval = {round(pval,4)}")
+                                print("ANC(X):    %s _|_ %s  |  S_def = %s, S_pc = %s: val = %.2f / pval = % .4f" %
+                                    (X, Y, ' '.join([str(z) for z in S_default_XY]), ' '.join([str(z) for z in S_pc]), val, pval))
 
                             # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
                             # values and conditioning set cardinalities
@@ -1035,29 +921,17 @@ class LPCMCI(PCMCIbase):
                                 self._save_sepset(X, Y, (frozenset(Z), "wm"))
             
                                 # Verbose output
-                                # if self.verbosity >= 1:
-                                #     print(f"\t  {X} ⊥ {Y} | {' '.join([str(z) for z in S_pc]) if len(S_pc) > 0 else str({})} U {' '.join([str(z) for z in S_default_XY]) if len(S_default_XY) > 0 else str({})}")
+                                if self.verbosity >= 1:
+                                    print("({},{:2}) {:11} {} given {} union {}".format(X[0], X[1], "independent", Y, S_pc, S_default_XY))
 
                                 if self.break_once_separated:
                                     break
-                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            # else:
-                            #     if self.sys_context != []:
-                            #         dependent, z = self._test_context(X, Y, Z, S_pc, S_default_XY)
-                            #         if not dependent:
-                            #             # Mark the edge from X to Y for removal and save sepset
-                            #             to_remove[Y[0]][X] = True
-                            #             self._save_sepset(X, Y, (frozenset(z), "wm"))
-                            #             break
-                            # # FIXME:  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                 
-                            
-                            
+
                 # for pair in links
 
                 ##########################################################################################################
                 ### Remove edges marked for removal in to_remove #########################################################
 
-                    
                 # Run through all of the nested dictionary
                 for j in range(self.N):
                     for (i, lag_i) in to_remove[j].keys():
@@ -1070,16 +944,7 @@ class LPCMCI(PCMCIbase):
 
             # Verbose output
             if self.verbosity >= 1:
-                # print("\n##")
-                # print("## Test phase complete")
-                # print("##\n")
-                print("\n##############################")
-                print("## Test phase complete")
-                print(f"Any removal: {any_removal}")
-                print(f"Converged: {has_converged}")
-                print("##############################")
-                # print("## Test phase complete")
-                # print("##\n")
+                    print("\nTest phase complete")
 
             ##############################################################################################################
             ### Orientations and next step ###############################################################################
@@ -1330,7 +1195,7 @@ class LPCMCI(PCMCIbase):
                             tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                         if self.verbosity >= 2:
-                            print("Non-ANC(Y):    %s ⊥ %s  |  S_def = %s, S_pc = %s: val = %.2f / pval = % .4f" %
+                            print("Non-ANC(Y):    %s _|_ %s  |  S_def = %s, S_pc = %s: val = %.2f / pval = % .4f" %
                                 (X, Y, ' '.join([str(z) for z in S_default_YX]), ' '.join([str(z) for z in S_pc]), val, pval))
 
                         # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
@@ -1375,7 +1240,7 @@ class LPCMCI(PCMCIbase):
                                 tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                             if self.verbosity >= 2:
-                                print("Non-ANC(X):    %s ⊥ %s  |  S_def = %s, S_pc = %s: val = %.2f / pval = % .4f" %
+                                print("Non-ANC(X):    %s _|_ %s  |  S_def = %s, S_pc = %s: val = %.2f / pval = % .4f" %
                                     (X, Y, ' '.join([str(z) for z in S_default_XY]), ' '.join([str(z) for z in S_pc]), val, pval))
 
                             # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
@@ -1467,10 +1332,8 @@ class LPCMCI(PCMCIbase):
 
         # Verbose output
         if self.verbosity >= 1:
-            print("\n##")
-            print("## Starting orientation phase")
-            print(f"## with rule list: {rule_list}")
-            print("##")
+            print("\nStarting orientation phase")
+            print("with rule list: ", rule_list)
 
         # Remember whether this call to _run_orientation_phase has made any update to G
         restarted_once = False
@@ -1501,7 +1364,7 @@ class LPCMCI(PCMCIbase):
 
                 # Verbose output
                 if self.verbosity >= 1:
-                    print(f"\nApplying rule {rule}:")
+                    print("\n{}:".format(rule))
 
                 # Exhaustively apply the rule to the graph...
                 orientations = self._apply_rule(rule, only_lagged)
@@ -1562,7 +1425,7 @@ class LPCMCI(PCMCIbase):
 
             ###########################################################################################################
             ### Removals, update middle marks, update ancestral information ###########################################
-                
+
             # Remove links
             for (i, j, lag_i) in links_to_remove:
                 self._write_link((i, lag_i), (j, 0), "", verbosity = self.verbosity)
@@ -1630,9 +1493,7 @@ class LPCMCI(PCMCIbase):
 
         # Verbose output
         if self.verbosity >= 1:
-            print("\n##############################")
-            print("## Orientation phase complete")
-            print("##############################")
+            print("\nOrientation phase complete")
 
         # No return value
         return restarted_once
@@ -2060,7 +1921,7 @@ class LPCMCI(PCMCIbase):
                     tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                 if self.verbosity >= 2:
-                    print("MakeMin:    %s ⊥ %s  |  Z_A = %s: val = %.2f / pval = % .4f" %
+                    print("MakeMin:    %s _|_ %s  |  Z_A = %s: val = %.2f / pval = % .4f" %
                         (X, Y, ' '.join([str(z) for z in list(Z_A)]), val, pval))
 
                 # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
@@ -2158,7 +2019,7 @@ class LPCMCI(PCMCIbase):
                     tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                 if self.verbosity >= 2:
-                    print("BnotinSepSetAC(A):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                    print("BnotinSepSetAC(A):    %s _|_ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
                         (X, Y, ' '.join([str(z) for z in Z_add]), ' '.join([str(z) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
 
                 # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
@@ -2189,9 +2050,9 @@ class LPCMCI(PCMCIbase):
                     tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                 if self.verbosity >= 2:
-                    # print("BnotinSepSetAC(C):    %s ⊥ %s  |  Z = %s: val = %.2f / pval = % .4f" %
+                    # print("BnotinSepSetAC(C):    %s _|_ %s  |  Z = %s: val = %.2f / pval = % .4f" %
                     #     (X, Y, ' '.join([str(z) for z in list(Z)]), val, pval))
-                    print("BnotinSepSetAC(C):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                    print("BnotinSepSetAC(C):    %s _|_ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
                         (X, Y, ' '.join([str(z) for z in Z_add]), ' '.join([str(z) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
 
                 # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
@@ -2288,9 +2149,9 @@ class LPCMCI(PCMCIbase):
                         tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
                     
                     if self.verbosity >= 2:
-                        # print("BinSepSetAC(A):    %s ⊥ %s  |  Z = %s: val = %.2f / pval = % .4f" %
+                        # print("BinSepSetAC(A):    %s _|_ %s  |  Z = %s: val = %.2f / pval = % .4f" %
                         #     (X, Y, ' '.join([str(z) for z in list(Z)]), val, pval))
-                        print("BinSepSetAC(A):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                        print("BinSepSetAC(A):    %s _|_ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
                             (X, Y, ' '.join([str(z) for z in Z_add]), ' '.join([str(z) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
 
                     # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
@@ -2321,9 +2182,9 @@ class LPCMCI(PCMCIbase):
                         tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
                     
                     if self.verbosity >= 2:
-                        # print("BinSepSetAC(C):     %s ⊥ %s  |  Z = %s: val = %.2f / pval = % .4f" %
+                        # print("BinSepSetAC(C):     %s _|_ %s  |  Z = %s: val = %.2f / pval = % .4f" %
                         #     (X, Y, ' '.join([str(z) for z in list(Z)]), val, pval))
-                        print("BinSepSetAC(C):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                        print("BinSepSetAC(C):    %s _|_ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
                             (X, Y, ' '.join([str(z) for z in Z_add]), ' '.join([str(z) for z in {node for node in Z_raw if node != X and node != Y}]), val, pval))
 
                     # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic
@@ -2569,14 +2430,14 @@ class LPCMCI(PCMCIbase):
             if only_lagged and B[1] == C[1]:
                     continue
 
-            # if self.verbosity >= 2:
-            #     print("ER01: ", (A, B, C))
+            if self.verbosity >= 2:
+                print("ER01: ", (A, B, C))
 
             # Check whether the rule applies
             if self._B_in_SepSet_AC(A, B, C):
 
                 if self.verbosity >= 2:
-                    print(f"{B} in sepset of {A} and {C}")
+                    print(" --> in sepset ")
 
                 # Prepare the new link from B to C and append it to the output list
                 link_BC = self._get_link(B, C)
@@ -2958,9 +2819,9 @@ class LPCMCI(PCMCIbase):
                         tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                     if self.verbosity >= 2:
-                        # print("ER00a(part1):    %s ⊥ %s  |  Z_test = %s: val = %.2f / pval = % .4f" %
+                        # print("ER00a(part1):    %s _|_ %s  |  Z_test = %s: val = %.2f / pval = % .4f" %
                         #     (X, Y, ' '.join([str(z) for z in list(Z_test)]), val, pval))
-                        print("ER00a(part1):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                        print("ER00a(part1):    %s _|_ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
                             (X, Y, ' '.join([str(z) for z in Z_add2]), ' '.join([str(z) for z in Z_test]), val, pval))
 
                     # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic values and
@@ -3017,9 +2878,9 @@ class LPCMCI(PCMCIbase):
                         tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                     if self.verbosity >= 2:
-                        # print("ER00a(part2):    %s ⊥ %s  |  Z_test = %s: val = %.2f / pval = % .4f" %
+                        # print("ER00a(part2):    %s _|_ %s  |  Z_test = %s: val = %.2f / pval = % .4f" %
                         #     (X, Y, ' '.join([str(z) for z in list(Z_test)]), val, pval))
-                        print("ER00a(part2):    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                        print("ER00a(part2):    %s _|_ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
                             (X, Y, ' '.join([str(z) for z in Z_add2]), ' '.join([str(z) for z in Z_test]), val, pval))
 
                     # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic values and
@@ -3127,9 +2988,9 @@ class LPCMCI(PCMCIbase):
                         tau_max = self.tau_max, alpha_or_thres=self.pc_alpha)
 
                     if self.verbosity >= 2:
-                        # print("ER00b:    %s ⊥ %s  |  Z_test = %s: val = %.2f / pval = % .4f" %
+                        # print("ER00b:    %s _|_ %s  |  Z_test = %s: val = %.2f / pval = % .4f" %
                         #     (X, Y, ' '.join([str(z) for z in list(Z_test)]), val, pval))
-                        print("ER00b:    %s ⊥ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
+                        print("ER00b:    %s _|_ %s  |  Z_add = %s, Z = %s: val = %.2f / pval = % .4f" %
                             (X, Y, ' '.join([str(z) for z in Z_add2]), ' '.join([str(z) for z in Z_test]), val, pval))
 
                     # Accordingly update dictionaries that keep track of the maximal p-value and the corresponding test statistic values and
@@ -3251,7 +3112,7 @@ class LPCMCI(PCMCIbase):
         for j in range(self.N):
             for ((i, lag_i), link) in self.graph_dict[j].items():
                 if len(link) > 0 and (lag_i < 0 or i < j):
-                    print("({},{:2}) {} {}".format(self.var_names[i], lag_i, link, (self.var_names[j], 0)))
+                    print("({},{:2}) {} {}".format(i, lag_i, link, (j, 0)))
 
 
     def _get_link(self, A, B):
@@ -3346,7 +3207,8 @@ class LPCMCI(PCMCIbase):
         if lag_A < lag_B:
 
             if verbosity >= 1:
-                print(f"Updating link ({self.var_names[var_A]}, {lag_A - lag_B}) {self.graph_dict[var_B][(var_A, lag_A - lag_B)]} ({self.var_names[var_B]}, 0) ==> ({self.var_names[var_A]}, {lag_A - lag_B}) {new_link if new_link != '' else '   '} ({self.var_names[var_B]}, 0)")
+                print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_A, lag_A - lag_B, self.graph_dict[var_B][(var_A, lag_A - lag_B)], var_B, 0, var_A, lag_A - lag_B, new_link, var_B, 0))
+                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_B][(var_A, lag_A - lag_B)], var_A, lag_A - lag_B, (var_B, 0), new_link))
 
             self.graph_dict[var_B][(var_A, lag_A - lag_B)] = new_link
 
@@ -3354,8 +3216,10 @@ class LPCMCI(PCMCIbase):
         elif lag_A == lag_B:
 
             if verbosity >= 1:
-                print(f"Updating link ({self.var_names[var_A]}, 0) {self.graph_dict[var_B][(var_A, 0)]} ({self.var_names[var_B]}, 0) ==> ({self.var_names[var_A]}, 0) {new_link if new_link != '' else '   '} ({self.var_names[var_B]}, 0)")
-                print(f"Updating link ({self.var_names[var_B]}, 0) {self.graph_dict[var_A][(var_B, 0)]} ({self.var_names[var_A]}, 0) ==> ({self.var_names[var_B]}, 0) {self._reverse_link(new_link) if self._reverse_link(new_link) != '' else '   '} ({self.var_names[var_A]}, 0)")
+                print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_A, lag_A - lag_B, self.graph_dict[var_B][(var_A, 0)], var_B, 0, var_A, 0, new_link, var_B, 0))
+                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_B][(var_A, 0)], var_A, 0, (var_B, 0), new_link))
+                print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_B, 0, self.graph_dict[var_A][(var_B, 0)], var_A, 0, var_B, 0, self._reverse_link(new_link), var_A, 0))
+                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_A][(var_B, 0)], var_B, 0, (var_A, 0), self._reverse_link(new_link)))
 
             self.graph_dict[var_B][(var_A, 0)] = new_link
             self.graph_dict[var_A][(var_B, 0)] = self._reverse_link(new_link)
@@ -3363,7 +3227,8 @@ class LPCMCI(PCMCIbase):
         else:
 
             if verbosity >= 1:
-                print(f"Updating link ({self.var_names[var_B]}, {lag_B - lag_A}) {self.graph_dict[var_A][(var_B, lag_B - lag_A)]} ({self.var_names[var_A]}, 0) ==> ({self.var_names[var_B]}, {lag_B - lag_A}) {self._reverse_link(new_link) if self._reverse_link(new_link) != '' else '   '} ({self.var_names[var_A]}, 0)")
+                print("{:10} ({},{:2}) {:3} ({},{:2}) ==> ({},{:2}) {:3} ({},{:2}) ".format("Writing:", var_B, lag_B - lag_A, self.graph_dict[var_A][(var_B, lag_B - lag_A)], var_A, 0, var_B, lag_B - lag_A, self._reverse_link(new_link), var_A, 0))
+                #print("Replacing {:3} from ({},{:2}) to {} with {:3}".format(self.graph_dict[var_A][(var_B, lag_B - lag_A)], var_B, lag_B - lag_A, (var_A, 0), self._reverse_link(new_link)))
 
             self.graph_dict[var_A][(var_B, lag_B - lag_A)] = self._reverse_link(new_link)
 
@@ -3376,14 +3241,6 @@ class LPCMCI(PCMCIbase):
 
         def _shift(Z, lag_B):
             return frozenset([(var, lag + lag_B) for (var, lag) in Z])
-        # def _shift(Z, lag_B):
-        #     s = []
-        #     for (var, lag) in Z:
-        #         s.append((var, lag + lag_B))
-        #         if self.var_names[var] in self.sys_context:
-        #             s.append((self.var_names[self.sys_context[self.var_names[var]]], lag + lag_B))
-                    
-        #     return frozenset(s)
 
         if lag_A < lag_B:
             out = {(_shift(Z, lag_B), status) for (Z, status) in self.sepsets[var_B][(var_A, lag_A - lag_B)]}

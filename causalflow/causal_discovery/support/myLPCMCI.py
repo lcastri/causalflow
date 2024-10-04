@@ -1,4 +1,5 @@
-from tigramite.pcmci import PCMCI as pcmci
+# from tigramite.lpcmci import LPCMCI as lpcmci
+from causalflow.causal_discovery.tigramite.mylpcmci import LPCMCI as lpcmci
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
 import numpy as np
@@ -7,14 +8,16 @@ from causalflow.basics.constants import *
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
+from tigramite.plotting import plot_time_series_graph
 
-class PCMCIplus(CausalDiscoveryMethod):
+class LPCMCI(CausalDiscoveryMethod):
     """
-    PCMCI+ causal discovery method.
+    LPCMCI causal discovery method.
     """
     def __init__(self, 
-                 data: Data, 
+                 data: Data,
                  min_lag, max_lag, 
+                 sys_context,
                  val_condtest: CondIndTest, 
                  verbosity: CPLevel,
                  alpha = 0.05, 
@@ -22,7 +25,7 @@ class PCMCIplus(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        PCMCI+ class constructor
+        LPCMCI class constructor
 
         Args:
             data (Data): data to analyse
@@ -30,7 +33,7 @@ class PCMCIplus(CausalDiscoveryMethod):
             max_lag (int): maximum time lag
             val_condtest (CondIndTest): validation method
             verbosity (CPLevel): verbosity level
-            alpha (float, optional): significance level. Defaults to 0.05.
+            alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             clean_cls (bool): Clean console bit. Default to True.
@@ -42,12 +45,13 @@ class PCMCIplus(CausalDiscoveryMethod):
         d = vector(data.d)
         
         # init pcmci
-        self.pcmci = pcmci(dataframe = pp.DataFrame(data = d, var_names = data.features),
-                           cond_ind_test = val_condtest,
-                           verbosity = verbosity.value)
+        self.lpcmci = lpcmci(dataframe = pp.DataFrame(data = d, var_names = data.features),
+                             sys_context = sys_context,
+                             cond_ind_test = val_condtest,
+                             verbosity = verbosity.value)
         
 
-    def run(self, link_assumptions=None) -> DAG:
+    def run(self, link_assumptions = None) -> DAG:
         """
         Run causal discovery algorithm
 
@@ -58,14 +62,15 @@ class PCMCIplus(CausalDiscoveryMethod):
         CP.info('\n')
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
-
-        self.result = self.pcmci.run_pcmciplus(link_assumptions=link_assumptions,
-                                               tau_max = self.max_lag,
-                                               tau_min = 0,
-                                               pc_alpha = self.alpha)
-                
+        self.result = self.lpcmci.run_lpcmci(link_assumptions = link_assumptions,
+                                             tau_max = self.max_lag,
+                                             tau_min = self.min_lag,
+                                             pc_alpha = self.alpha)
+        
         self.CM = self._to_DAG()
         
+        plot_time_series_graph(self.result['graph'])
+    
         if self.resfolder is not None: self.logger.close()
         return self.CM
     

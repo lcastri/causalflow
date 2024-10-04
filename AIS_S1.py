@@ -2,15 +2,15 @@ from copy import deepcopy
 import json
 import os
 import random
-from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
-# from tigramite.independence_tests.parcorr import ParCorr
+# from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
+from tigramite.independence_tests.parcorr import ParCorr
 # from tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
 from causalflow.basics.constants import ImageExt
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 # from causalflow.causal_discovery.FPCMCI import FPCMCI
 # from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOIT_pcmciplus
-from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
 # from causalflow.causal_discovery.baseline.PCMCI import PCMCI
 # from causalflow.causal_discovery.baseline.PCMCIplus import PCMCIplus
 from causalflow.preprocessing.data import Data
@@ -28,7 +28,7 @@ import gc
 import shutil
 import ast
 
-TIMEOUT = 15*60
+TIMEOUT = 5*60
 TIMEOUT_DPAG = 3*60
 
 def remove_directory(directory_path):
@@ -60,12 +60,11 @@ def run_algo(algo, name):
         return algo.run()
     elif name == Algo.CAnDOIT.value:
         return algo.run(remove_unneeded=False, nofilter=True)
-    
+
 @timeout_decorator.timeout(TIMEOUT_DPAG)
 def generate_DPAG():
     return RS.get_DPAG()
 
-        
 def fill_res(r):
     res = {}
     res['done'] = True
@@ -105,9 +104,9 @@ def fill_res(r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "AIS_major/AIS_major_S4"
+    resdir = "AIS_major/AIS_major_S1"
     alpha = 0.05
-    nfeature = range(11, 13)
+    nfeature = range(5, 13)
     nrun = 25
     
     # RandomDAG params 
@@ -119,8 +118,9 @@ if __name__ == '__main__':
     max_c = 0.5
     link_density = 3
     max_exp = 2
-    functions = ['', 'sin', 'cos', 'abs']
-    operators = ['+', '-', '*']
+    functions = ['']
+    operators = ['+', '-']
+    n_hidden_confounders = 0
     
     for n in nfeature:
         for nr in range(nrun):
@@ -147,7 +147,6 @@ if __name__ == '__main__':
                         min_lag = int(data[nr]['min_lag'])
                         max_lag = int(data[nr]['max_lag'])
                         d_obs = Data(os.getcwd() + '/' + resfolder + '/obs_data.csv')
-                        d_obs_wH = Data(os.getcwd() + '/' + resfolder + '/obs_data_wH.csv')
                         d_int = dict()
                         # List all files in the folder and filter files that start with 'interv_' and end with '.csv'
                         potentialIntervention = ast.literal_eval(data[nr]['potential_interventions'])
@@ -170,10 +169,8 @@ if __name__ == '__main__':
                         data[nr] = {}
                         
                         
-                        n_hidden_confounders = random.randint(1, 2)
                         min_lag = 0
-                        # max_lag = random.randint(1, 3)
-                        max_lag = random.randint(1, 2)
+                        max_lag = random.randint(1, 3)
                         os.makedirs(resfolder, exist_ok = True)
                         
                         # Noise params 
@@ -184,11 +181,10 @@ if __name__ == '__main__':
                         RS = RandomGraph(nvars = n, nsamples = nsample_obs + nsample_int, 
                                        link_density = link_density, coeff_range = (min_c, max_c), max_exp = max_exp, 
                                        min_lag = min_lag, max_lag = max_lag, noise_config = random.choice([noise_uniform, noise_gaussian, noise_weibull]),
-                                       functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders, n_confounded_vars = link_density)
+                                       functions = functions, operators = operators, n_hidden_confounders = n_hidden_confounders)
                         RS.gen_equations()
                         RS.ts_dag(withHidden = True, save_name = resfolder + '/gt_complete')
                         try:
-                            generate_DPAG()
                             RS.ts_dag(withHidden = False, save_name = resfolder + '/gt')       
                         except timeout_decorator.timeout_decorator.TimeoutError:
                             gc.collect()
@@ -221,7 +217,7 @@ if __name__ == '__main__':
                                         min_lag = 0, 
                                         max_lag = max_lag, 
                                         sys_context = [],
-                                        val_condtest = GPDC(significance = 'analytic'),
+                                        val_condtest = ParCorr(significance = 'analytic'),
                                         verbosity = CPLevel.INFO,
                                         alpha = alpha,
                                         neglect_only_autodep = False,
@@ -234,8 +230,8 @@ if __name__ == '__main__':
                             elapsed_lpcmci = time() - new_start
                             lpcmci_time = str(timedelta(seconds = elapsed_lpcmci))
                             print(lpcmci_time)
-                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=1)
-                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=1)
+                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                            lpcmci_cm.ts_dag(save_name = lpcmci.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
                             lpcmci.save()
                             gc.collect()
                             
@@ -268,7 +264,7 @@ if __name__ == '__main__':
                                 
                                 d_int = dict()
                                 for intvar in potentialIntervention:
-                                    i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs_wH.d)
+                                    i = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
                                     d_int[intvar] = i[intvar]
                                     d_int[intvar].plot_timeseries(resfolder + '/interv_' + intvar + '.png')
                                     d_int[intvar].save_csv(resfolder + '/interv_' + intvar + '.csv')
@@ -291,10 +287,7 @@ if __name__ == '__main__':
                     #########################################################################################################################
                     # CAnDOIT                        
                     if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
-                        intAttempt = [False for _ in potentialIntervention]
-                        intDone = [False for _ in potentialIntervention]
-                        removed = False
-                        foundBest = False
+                        noIntervention = True
                         for selected_intvar in potentialIntervention:
                             tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar == selected_intvar}
                                                     
@@ -306,7 +299,7 @@ if __name__ == '__main__':
                                             min_lag = 0, 
                                             max_lag = max_lag, 
                                             sel_method = TE(TEestimator.Gaussian), 
-                                            val_condtest = GPDC(significance = 'analytic'),
+                                            val_condtest = ParCorr(significance = 'analytic'),
                                             verbosity = CPLevel.INFO,
                                             neglect_only_autodep = False,
                                             resfolder = resfolder + f"/candoit_{selected_intvar}",
@@ -314,14 +307,13 @@ if __name__ == '__main__':
                                             exclude_context = True)
                             try:
                                 new_start = time()
-                                intAttempt[list(potentialIntervention).index(selected_intvar)] = True
                                 candoit_cm = run_algo(candoit, 'candoit')
                                 # candoit_cm = candoit.run(remove_unneeded=False, nofilter=True)
                                 elapsed_candoit = time() - new_start
                                 candoit_time = str(timedelta(seconds = elapsed_candoit))
                                 print(candoit_time)
-                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=1)
-                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=1)
+                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PNG, node_size=6, min_width=2, max_width=5, x_disp=0.5)
+                                candoit_cm.ts_dag(save_name = candoit.ts_dag_path, img_extention = ImageExt.PDF, node_size=6, min_width=2, max_width=5, x_disp=0.5)
                                 gc.collect()
                             
                                 res = fill_res({"time": candoit_time, 
@@ -329,20 +321,14 @@ if __name__ == '__main__':
                                                 "graph": candoit_cm.get_Graph()})
                                 
                                 data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
-                                intDone[list(potentialIntervention).index(selected_intvar)] = True
-                                                                           
+                                noIntervention = False
+                                    
                                 # Save the dictionary back to a JSON file
                                 with open(filename, 'w') as file:
                                     json.dump(data, file)
-                                    
-                                if (data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.FPR.value}"] < data[nr][Algo.LPCMCI.value][f"graph_{Metric.FPR.value}"] and 
-                                    data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.F1SCORE.value}"] > data[nr][Algo.LPCMCI.value][f"graph_{Metric.F1SCORE.value}"] and
-                                    data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.SHD.value}"] < data[nr][Algo.LPCMCI.value][f"graph_{Metric.SHD.value}"]):
-                                    foundBest = True
-                                    break
-
+                                                                 
                             except timeout_decorator.timeout_decorator.TimeoutError:
-                                if all(intAttempt) and not any(intDone):
+                                if noIntervention:
                                     gc.collect()
                                     remove_directory(os.getcwd() + '/' + resfolder)
                                     
@@ -350,18 +336,14 @@ if __name__ == '__main__':
                                     
                                     with open(filename, 'w') as file:
                                         json.dump(data, file)
-                                        
-                                    removed = True
                                     
                                 continue
-                    if not removed or foundBest:
-                        data[nr]['done'] = True
-                        # Save the dictionary back to a JSON file
-                        with open(filename, 'w') as file:
-                            json.dump(data, file)
-                        break
-                    else:
-                        continue
+
+                    data[nr]['done'] = True
+                    # Save the dictionary back to a JSON file
+                    with open(filename, 'w') as file:
+                        json.dump(data, file)
+                    break
                     
                 except Exception as e:
                     traceback_info = traceback.format_exc()

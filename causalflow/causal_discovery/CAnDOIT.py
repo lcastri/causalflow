@@ -2,16 +2,15 @@ import copy
 import pickle
 import numpy as np
 import pandas as pd
-from tigramite.independence_tests.independence_tests_base import CondIndTest
-from causalflow.causal_discovery.FPCMCI import FPCMCI
+from causalflow.causal_discovery.tigramite.independence_tests.independence_tests_base import CondIndTest
 from causalflow.selection_methods.SelectionMethod import SelectionMethod
 from causalflow.CPrinter import CPLevel, CP
 from causalflow.basics.constants import *
-from causalflow.graph.DAG import DAG
-from causalflow.causal_discovery.myPCMCI import myPCMCI
+from causalflow.basics.utils import *
 from causalflow.preprocessing.data import Data 
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
-
+from causalflow.causal_discovery.support.myLPCMCI import LPCMCI
+from causalflow.graph.DAG import DAG
 
 class CAnDOIT(CausalDiscoveryMethod):
     """
@@ -36,8 +35,7 @@ class CAnDOIT(CausalDiscoveryMethod):
                  resfolder = None,
                  neglect_only_autodep = False,
                  exclude_context = True,
-                 plot_data = False,
-                 clean_cls = True):
+                 plot_data = False):
         """
         CAnDOIT class contructor
 
@@ -54,22 +52,38 @@ class CAnDOIT(CausalDiscoveryMethod):
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             exclude_context (bool, optional): Bit for neglecting context variables. Defaults to False.
-            clean_cls (bool): Clean console bit. Default to True.
-
         """
         
         self.obs_data = observation_data
+        self.systems = observation_data.features
+        self.contexts = []
+        self.sys_context = {}
+        for k in intervention_data.keys():
+            self.contexts.append("C" + k)
+            self.sys_context[k] = "C" + k
+        self.vars = self.systems + self.contexts
+        
         self.f_alpha = f_alpha
         self.sel_method = sel_method
         self.val_condtest = val_condtest
         self.exclude_context = exclude_context
-        super().__init__(self.obs_data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
+        super().__init__(self.obs_data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
         
         # Create filter and validator data
         self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
         
-        self.validator = myPCMCI(self.alpha, self.min_lag, self.max_lag, self.val_condtest, verbosity, self.CM.sys_context)
-    
+        
+        CP.info("\n")
+        CP.info(DASH)
+        CP.info("Observational data length: " + str(observation_data.T))
+        CP.info("Interventional data length: " + str(sum([d.T for d in intervention_data.values()])))
+        CP.info("Min lag time: " + str(min_lag))
+        CP.info("Max lag time: " + str(max_lag))
+        CP.info("Filter significance level: " + str(f_alpha))
+        CP.info("PCMCI significance level: " + str(alpha))
+        CP.info("Selection method: " + sel_method.name)
+        
+            
     @property    
     def isThereInterv(self):
         """
@@ -78,21 +92,76 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             bool: flag to identify if an intervention is present or not
         """
-        return len(list(self.CM.sys_context.keys())) > 0
+        return len(list(self.sys_context.keys())) > 0
+    
+    
+    def JCI_assumptions(self):
+        """
+        Initialises the algorithm initial causal structure with the JCI assumptions 
+        """
+        # ! JCI Assmpution 1: No system variable causes any context variable
+        # ! JCI Assmpution 2: No context variable is confounded with a system variable
+        # ! JCI Assmpution 3: The context distribution contains no (conditional) independences
+
+        knowledge = {self.vars.index(f): dict() for f in self.vars}
         
+        # ! JCI Assmpution 1
+        for k in self.contexts:
+            for x in self.systems:
+                for tau_i in range(0, self.max_lag + 1):
+                    knowledge[self.vars.index(k)][(self.vars.index(x), -tau_i)] = ''
+            
+        # ! JCI Assmpution 2
+        for k in self.contexts:
+            for x in self.systems:
+                if x not in self.sys_context or (x in self.sys_context and k != self.sys_context[x]):
+                    for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(x)][(self.vars.index(k), -tau_i)] = ''
+                elif x in self.sys_context and k == self.sys_context[x]:
+                    knowledge[self.vars.index(x)][(self.vars.index(k), 0)] = '-->'
+                    knowledge[self.vars.index(k)][(self.vars.index(x), 0)] = '<--'
+                    for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(x)][(self.vars.index(k), -tau_i)] = ''
+                    for tau_i in range(1, self.max_lag + 1): knowledge[self.vars.index(k)][(self.vars.index(x), -tau_i)] = ''
+        
+        # ! JCI Assmpution 3
+        for k1 in self.contexts:
+            for k2 in remove_from_list(self.contexts, k1):
+                knowledge[self.vars.index(k1)][(self.vars.index(k2), 0)] = '<->'
+                # for tau_i in range(0, self.max_lag + 1): knowledge[self.vars.index(k1)][(self.vars.index(k2), -tau_i)] = '<->'
+        
+        # ! This models the context variables as chain across different time steps
+        for k in self.contexts:
+            for tau_i in range(1, self.max_lag + 1):
+                knowledge[self.vars.index(k)][(self.vars.index(k), -tau_i)] = '-->' if tau_i == 1 else ''
+        
+                          
+                
+                                              
+        out = {}
+        for j in range(len(self.vars)):
+            inner_dict = {} 
+            
+            for i in range(len(self.vars)):
+                for tau_i in range(0, self.max_lag + 1):
+                    if tau_i > 0 or i != j:
+                        value = "o?>" if tau_i > 0 else "o?o"
+                        inner_dict[(i, -tau_i)] = value
+                           
+            out[j] = inner_dict
+
+        for j, links_j in knowledge.items():
+            for (i, lag_i), link_ij in links_j.items():
+                if link_ij == "":
+                    del out[j][(i, lag_i)]
+                else: 
+                    out[j][(i, lag_i)] = link_ij
+        return out
+    
 
     def run_filter(self):
         """
         Run filter method
         """
-        CP.info("\n")
-        CP.info(DASH)
         CP.info("Selecting relevant features among: " + str(self.filter_data.features))
-        CP.info("Selection method: " + self.sel_method.name)
-        CP.info("Significance level: " + str(self.f_alpha))
-        CP.info("Max lag time: " + str(self.max_lag))
-        CP.info("Min lag time: " + str(self.min_lag))
-        CP.info("Data length: " + str(self.filter_data.T))
        
         self.sel_method.initialise(self.obs_data, self.f_alpha, self.min_lag, self.max_lag, self.CM)
         self.CM = self.sel_method.compute_dependencies()
@@ -100,7 +169,7 @@ class CAnDOIT(CausalDiscoveryMethod):
     
     def run_validator(self, link_assumptions = None):
         """
-        Runs Validator (PCMCI)
+        Runs Validator (LPCMCI)
 
         Args:
             link_assumptions (dict, optional): link assumption with context. Defaults to None.
@@ -108,37 +177,17 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             DAG: causal model with context
         """
-        # Run PC algorithm on selected links
-        tmp_dag = self.validator.run_pc(self.validator_data, self.min_lag, link_assumptions)
-        tmp_dag.sys_context = self.CM.sys_context
-        
-        if tmp_dag.autodep_nodes:
-        
-            # Remove context from parents
-            tmp_dag.remove_context()
-            
-            tmp_link_assumptions = tmp_dag.get_link_assumptions()
-            
-            # Auto-dependency Check
-            tmp_dag = self.validator.check_autodependency(self.obs_data, tmp_dag, tmp_link_assumptions, self.min_lag)
-            
-            # Add again context for final MCI test on obs and inter data
-            tmp_dag.add_context()
-        
-        # Causal Model
-        causal_model = self.validator.run_mci(self.validator_data, tmp_dag, self.min_lag)
-        causal_model = self._change_score_and_pval(tmp_dag, causal_model) 
+        self.validator = LPCMCI(self.validator_data,
+                                self.min_lag, self.max_lag,
+                                self.sys_context,
+                                self.val_condtest,
+                                CP.verbosity,
+                                self.alpha)
+        causal_model = self.validator.run(link_assumptions)
+        causal_model.sys_context = self.CM.sys_context      
+ 
         return causal_model
-    
-    
-    def _change_score_and_pval(self, orig_cm: DAG, dest_cm: DAG):
-        for t in dest_cm.g:
-            if dest_cm.g[t].is_autodependent:
-                for s in dest_cm.g[t].autodependency_links:
-                    dest_cm.g[t].sources[s][SCORE] = orig_cm.g[t].sources[s][SCORE]
-                    dest_cm.g[t].sources[s][PVAL] = orig_cm.g[t].sources[s][PVAL]
-        return dest_cm
-    
+      
     
     def run(self, remove_unneeded = True, nofilter = False) -> DAG:
         """
@@ -147,61 +196,46 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             DAG: causal model
         """
+               
+        link_assumptions = None
+            
+        if not nofilter:
+            ## 1. FILTER
+            self.run_filter()
         
-        if not self.isThereInterv:
+            # list of selected features based on filter dependencies
+            self.CM.remove_unneeded_features()
+            if not self.CM.features: return None, None
             
-            fpcmci = FPCMCI(self.obs_data,
-                            self.min_lag,
-                            self.max_lag,
-                            self.sel_method,
-                            self.val_condtest,
-                            CP.verbosity,
-                            self.f_alpha,
-                            self.alpha,
-                            self.resfolder,
-                            self.neglect_only_autodep)
-            self.CM = fpcmci.run()
-            
-        else:
+            self.obs_data.shrink(self.CM.features)
+            f_dag = copy.deepcopy(self.CM)
         
-            link_assumptions = None
-            
-            if not nofilter:
-                ## 1. FILTER
-                self.run_filter()
-            
-                # list of selected features based on filter dependencies
-                self.CM.remove_unneeded_features()
-                if not self.CM.features: return None, None
-                
-                self.obs_data.shrink(self.CM.features)
-                f_dag = copy.deepcopy(self.CM)
-            
-                ## 2. VALIDATOR
-                # Add dependencies corresponding to the context variables 
-                # ONLY if the the related system variable is still present
-                self.CM.add_context() 
+            ## 2. VALIDATOR
+            # Add dependencies corresponding to the context variables 
+            # ONLY if the the related system variable is still present
+            self.CM.add_context_cont() 
 
-                # shrink dataframe d by using the filter result
-                self.validator_data.shrink(self.CM.features)
+            # shrink dataframe d by using the filter result
+            self.validator_data.shrink(self.CM.features)
+                    
+            # selected links to check by the validator
+            link_assumptions = self.CM.get_link_assumptions_cont()
                 
-                # selected links to check by the validator
-                link_assumptions = self.CM.get_link_assumptions()
+        else:
+            # fullg = DAG(self.validator_data.features, self.min_lag, self.max_lag, False)
+            # fullg.sys_context = self.CM.sys_context
+            link_assumptions = self.JCI_assumptions()
             
-            # calculate dependencies on selected links
-            self.CM = self.run_validator(link_assumptions)
-                   
-            # list of selected features based on validator dependencies
-            if remove_unneeded: self.CM.remove_unneeded_features()
-            if self.exclude_context: self.CM.remove_context()
+        # calculate dependencies on selected links
+        self.CM = self.run_validator(link_assumptions)
+               
+        # list of selected features based on validator dependencies
+        if remove_unneeded: self.CM.remove_unneeded_features()
+        if self.exclude_context: self.CM.remove_context_cont()
+
+        self.save()
             
-            # Print and save final causal model
-            if not nofilter: self.__print_differences(f_dag, self.CM)
-            self.save()
-            
-        if self.resfolder is not None: self.logger.close()
         return self.CM
-    
             
     
     def load(self, res_path):
@@ -237,37 +271,6 @@ class CAnDOIT(CausalDiscoveryMethod):
                     pickle.dump(res, resfile)
             else:
                 CP.warning("Causal model impossible to save")
-     
-
-    def __print_differences(self, old_dag : DAG, new_dag : DAG):
-        """
-        Print difference between old and new dependencies
-
-        Args:
-            old_dep (DAG): old dag
-            new_dep (DAG): new dag
-        """
-        # Check difference(s) between validator and filter dependencies
-        list_diffs = list()
-        tmp = copy.deepcopy(old_dag)
-        for t in tmp.g:
-            if t not in new_dag.g:
-                list_diffs.append(t)
-                continue
-                
-            for s in tmp.g[t].sources:
-                if s not in new_dag.g[t].sources:
-                    list_diffs.append((s[0], s[1], t))
-        
-        if list_diffs:
-            CP.info("\n")
-            CP.info(DASH)
-            CP.info("Difference(s):")
-            for diff in list_diffs: 
-                if type(diff) is tuple:
-                    CP.info("Removed (" + str(diff[0]) + " -" + str(diff[1]) +") --> (" + str(diff[2]) + ")")
-                else:
-                    CP.info(diff + " removed")
                 
                 
     def _prepare_data(self, obser_data, inter_data, plot_data):
@@ -300,8 +303,8 @@ class CAnDOIT(CausalDiscoveryMethod):
             self.CM.sys_context[int_var] = context_varname
             
             # Create context variable data
+            # context_data = np.ones(shape=int_data.d[int_var].shape)
             context_data = int_data.d[int_var]
-            # FIXME: context_start = len(validator_data) - 1
             context_start = len(validator_data)
             context_end = context_start + len(context_data)
             context_vars[context_varname] = {'data': context_data, 'start': context_start, 'end': context_end}
@@ -317,3 +320,62 @@ class CAnDOIT(CausalDiscoveryMethod):
         
         if plot_data: validator_data.plot_timeseries()
         return filter_data, validator_data
+    
+    
+    # def _check_autodependency(self, data: Data, dag: DAG, link_assumptions, min_lag) -> DAG:
+    #     """
+    #     Run MCI test on observational data using the causal structure computed by the validator 
+
+    #     Args:
+    #         data (Data): Data obj to analyse
+    #         dag (DAG): causal model
+    #         link_assumptions (dict): prior assumptions on causal model links. Defaults to None.
+
+    #     Returns:
+    #         (DAG): estimated causal model
+    #     """
+        
+    #     CP.info("\n##")
+    #     CP.info("## Auto-dependency check on observational data")
+    #     CP.info("##")
+        
+    #     # build tigramite dataset
+    #     vector = np.vectorize(float)
+    #     d = vector(data.d)
+    #     dataframe = pp.DataFrame(data = d, var_names = data.features)
+        
+    #     # init and run pcmci
+    #     self.val_method = PCMCI(dataframe = dataframe,
+    #                           cond_ind_test = self.val_condtest,
+    #                           verbosity = 0)
+        
+    #     # _int_link_assumptions = self.val_method._set_link_assumptions(link_assumptions, min_lag, self.max_lag)
+
+    #     # Set the maximum condition dimension for Y and X
+    #     max_conds_py = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
+    #     max_conds_px = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
+        
+    #     # Get the parents that will be checked
+    #     _int_parents = self.val_method._get_int_parents(dag.get_Adj(indexed = True))
+
+    #     # Get the conditions as implied by the input arguments
+    #     links_tocheck = self.val_method._iter_indep_conds(_int_parents, link_assumptions, max_conds_py, max_conds_px)
+    #     for j, i, tau, Z in links_tocheck:
+    #         if data.features[j] not in dag.autodep_nodes or j != i: continue
+    #         else:
+    #             # Set X and Y (for clarity of code)
+    #             X = [(i, tau)]
+    #             Y = [(j, 0)]
+                
+    #             CP.info("\tlink: (" + data.features[i] + " " + str(tau) + ") -?> (" + data.features[j] + "):")
+    #             # Run the independence tests and record the results
+    #             val, pval = self.val_method.cond_ind_test.run_test(X, Y, Z = Z, tau_max = self.max_lag)
+    #             if pval > self.alpha:
+    #                 dag.del_source(data.features[j], data.features[j], abs(tau))
+    #                 CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- removed")
+    #             else:
+    #                 dag.g[data.features[j]].sources[(data.features[i], abs(tau))][SCORE] = val
+    #                 dag.g[data.features[j]].sources[(data.features[i], abs(tau))][PVAL] = pval
+    #                 CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- ok")
+                
+    #     return dag

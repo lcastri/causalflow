@@ -2,17 +2,11 @@ from copy import deepcopy
 import json
 import os
 import random
-# from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
-from tigramite.independence_tests.parcorr import ParCorr
-# from tigramite.independence_tests.gpdc import GPDC
+from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from causalflow.CPrinter import CPLevel
 from causalflow.basics.constants import ImageExt
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
-# from causalflow.causal_discovery.FPCMCI import FPCMCI
-# from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT as CAnDOIT_pcmciplus
-from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
-# from causalflow.causal_discovery.baseline.PCMCI import PCMCI
-# from causalflow.causal_discovery.baseline.PCMCIplus import PCMCIplus
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
@@ -23,12 +17,12 @@ import timeout_decorator
 
 from time import time
 from datetime import timedelta
-from res_statistics_new import *
+from AIS_plotting import *
 import gc
 import shutil
 import ast
 
-TIMEOUT = 10*60
+TIMEOUT = 15*60
 TIMEOUT_DPAG = 3*60
 
 def remove_directory(directory_path):
@@ -105,9 +99,9 @@ def fill_res(r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "AIS_major/AIS_major_S2"
+    resdir = "AIS_major/AIS_major_S4"
     alpha = 0.05
-    nfeature = range(12, 13)
+    nfeature = range(11, 13)
     nrun = 25
     
     # RandomDAG params 
@@ -119,8 +113,8 @@ if __name__ == '__main__':
     max_c = 0.5
     link_density = 3
     max_exp = 2
-    functions = ['']
-    operators = ['+', '-']
+    functions = ['', 'sin', 'cos', 'abs']
+    operators = ['+', '-', '*']
     
     for n in nfeature:
         for nr in range(nrun):
@@ -172,7 +166,8 @@ if __name__ == '__main__':
                         
                         n_hidden_confounders = random.randint(1, 2)
                         min_lag = 0
-                        max_lag = random.randint(1, 3)
+                        # max_lag = random.randint(1, 3)
+                        max_lag = random.randint(1, 2)
                         os.makedirs(resfolder, exist_ok = True)
                         
                         # Noise params 
@@ -220,7 +215,7 @@ if __name__ == '__main__':
                                         min_lag = 0, 
                                         max_lag = max_lag, 
                                         sys_context = [],
-                                        val_condtest = ParCorr(significance = 'analytic'),
+                                        val_condtest = GPDC(significance = 'analytic'),
                                         verbosity = CPLevel.INFO,
                                         alpha = alpha,
                                         neglect_only_autodep = False,
@@ -292,6 +287,8 @@ if __name__ == '__main__':
                     if Algo.CAnDOIT.value not in data[nr] or (Algo.CAnDOIT.value in data[nr] and not data[nr][Algo.CAnDOIT.value]['done']):
                         intAttempt = [False for _ in potentialIntervention]
                         intDone = [False for _ in potentialIntervention]
+                        removed = False
+                        foundBest = False
                         for selected_intvar in potentialIntervention:
                             tmp_d_int = {intvar: d_int[intvar] for intvar in d_int.keys() if intvar == selected_intvar}
                                                     
@@ -303,7 +300,7 @@ if __name__ == '__main__':
                                             min_lag = 0, 
                                             max_lag = max_lag, 
                                             sel_method = TE(TEestimator.Gaussian), 
-                                            val_condtest = ParCorr(significance = 'analytic'),
+                                            val_condtest = GPDC(significance = 'analytic'),
                                             verbosity = CPLevel.INFO,
                                             neglect_only_autodep = False,
                                             resfolder = resfolder + f"/candoit_{selected_intvar}",
@@ -327,11 +324,17 @@ if __name__ == '__main__':
                                 
                                 data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"] = res
                                 intDone[list(potentialIntervention).index(selected_intvar)] = True
-                                    
+                                                                           
                                 # Save the dictionary back to a JSON file
                                 with open(filename, 'w') as file:
                                     json.dump(data, file)
-                                                                 
+                                    
+                                if (data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.FPR.value}"] < data[nr][Algo.LPCMCI.value][f"graph_{Metric.FPR.value}"] and 
+                                    data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.F1SCORE.value}"] > data[nr][Algo.LPCMCI.value][f"graph_{Metric.F1SCORE.value}"] and
+                                    data[nr][f"{Algo.CAnDOIT.value}__{selected_intvar}"][f"graph_{Metric.SHD.value}"] < data[nr][Algo.LPCMCI.value][f"graph_{Metric.SHD.value}"]):
+                                    foundBest = True
+                                    break
+
                             except timeout_decorator.timeout_decorator.TimeoutError:
                                 if all(intAttempt) and not any(intDone):
                                     gc.collect()
@@ -341,14 +344,18 @@ if __name__ == '__main__':
                                     
                                     with open(filename, 'w') as file:
                                         json.dump(data, file)
+                                        
+                                    removed = True
                                     
                                 continue
-
-                    data[nr]['done'] = True
-                    # Save the dictionary back to a JSON file
-                    with open(filename, 'w') as file:
-                        json.dump(data, file)
-                    break
+                    if not removed or foundBest:
+                        data[nr]['done'] = True
+                        # Save the dictionary back to a JSON file
+                        with open(filename, 'w') as file:
+                            json.dump(data, file)
+                        break
+                    else:
+                        continue
                     
                 except Exception as e:
                     traceback_info = traceback.format_exc()

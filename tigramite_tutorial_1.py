@@ -7,7 +7,7 @@ from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 from causalflow.causal_discovery.tigramite.independence_tests.parcorr import ParCorr as myParCorr
 from tigramite.independence_tests.parcorr import ParCorr
 from causalflow.CPrinter import CPLevel
-from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
 # from causalflow.causal_discovery.CAnDOIT_pcmciplus import CAnDOIT
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator

@@ -6,7 +6,7 @@ from causalflow.graph.DAG import DAG
 from causalflow.selection_methods.SelectionMethod import SelectionMethod
 from causalflow.CPrinter import CPLevel, CP
 from causalflow.basics.constants import *
-from causalflow.causal_discovery.myPCMCI import myPCMCI
+from causalflow.causal_discovery.support.myPCMCI import myPCMCI
 from causalflow.preprocessing.data import Data 
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 

@@ -47,6 +47,7 @@ class RandomGraph:
             operators (list, optional): list of possible operators between variables. Defaults to ['+', '-', '*'].
             functions (list, optional): list of possible functions. Defaults to ['','sin', 'cos', 'exp', 'abs', 'pow'].
             n_hidden_confounders (int, optional): Number of hidden confounders. Defaults to 0.
+            n_confounded_vars (int, optional): Number of confounded variables. If None, n_confounded_vars will be set as random.randint(2, nvars). Defaults to None.
 
         Raises:
             ValueError: max_exp cannot be None if functions list contains pow
@@ -70,7 +71,6 @@ class RandomGraph:
         self.functions = functions
         self.equations = {var: list() for var in self.obsVar + self.hiddenVar}
         self.confounders = {h: list() for h in self.hiddenVar}
-        # self.potentialIntervention = {h: {'type': None, 'vars': list()} for h in self.hiddenVar}
         self.dependency_graph = {var: set() for var in self.obsVar + self.hiddenVar}
         self.PAG = None
 
@@ -230,7 +230,6 @@ class RandomGraph:
             n_confounded = random.randint(2, self.Nobs) if self.n_confounded is None else self.n_confounded 
             
             if isContemporaneous:
-                # self.potentialIntervention[hid]['type'] = 'contemporaneous'
                 lag = random.randint(self.min_lag, self.max_lag)
                 confVar = list()
                 while tmp_n_confounded < n_confounded:
@@ -240,9 +239,7 @@ class RandomGraph:
                         tmp_n_confounded += 1
                         firstvar_choice.remove(variable)
                         confVar.append(variable)
-                                            
-                        # self.potentialIntervention[hid]['vars'].append(variable)
-                        
+                                                                    
                         function = random.choice(self.functions)
                         coefficient = random.uniform(self.coeff_range[0], self.coeff_range[1])
                         operator = random.choice(self.operators)
@@ -252,8 +249,8 @@ class RandomGraph:
                         else:
                             term = (operator, coefficient, function, hid, lag)
                             
-                        # NOTE: This is to remove the true link between confounded variable for ensuring 
-                        # that the link due to the confounder is classified as spurious
+                        #! NOTE: This is to remove the true link between confounded variable for ensuring 
+                        #! that the link due to the confounder is classified as spurious
                         if len(confVar) > 1:
                             for source in confVar:
                                 tmp = copy.deepcopy(confVar)
@@ -296,14 +293,13 @@ class RandomGraph:
                         var_choice.remove(variable)
                         if firstConf:
                             firstvar_choice.remove(variable)
-                            # self.potentialIntervention[hid]['vars'].append(variable)
                             firstConf = False
                             source = variable
                         else:
                             targets.append((variable, lag))
                             
-                            # NOTE: This is to remove the true link between confounded variable for ensuring 
-                            # that the link due to the confounder is classified as spurious
+                            #! NOTE: This is to remove the true link between confounded variable for ensuring 
+                            #! that the link due to the confounder is classified as spurious
                             if (source, lag - sourceLag) in self.get_Adj()[variable]:
                                 self.equations[variable] = list(filter(lambda item: item[3] != source and item[3] != lag - sourceLag, self.equations[variable]))
                         
@@ -513,10 +509,6 @@ class RandomGraph:
             np_data[0:self.max_lag, :] = starting_point[len(starting_point)-self.max_lag:,:]
 
             for t in range(self.max_lag, T):
-                # if t < self.max_lag:
-                #     for target, eq in self.equations.items():
-                #         np_data[t, self.variables.index(target)] = self.noise[t, self.variables.index(target)]
-                # else:
                 for target, eq in self.equations.items():
                     if target != int_var:
                         np_data[t, self.variables.index(target)] = self.__evaluate_equation(eq, t, np_data)

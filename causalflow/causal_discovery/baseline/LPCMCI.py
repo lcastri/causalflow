@@ -1,4 +1,3 @@
-# from tigramite.lpcmci import LPCMCI as lpcmci
 from causalflow.causal_discovery.tigramite.lpcmci import LPCMCI as lpcmci
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
@@ -17,7 +16,6 @@ class LPCMCI(CausalDiscoveryMethod):
     def __init__(self, 
                  data: Data,
                  min_lag, max_lag, 
-                 sys_context,
                  val_condtest: CondIndTest, 
                  verbosity: CPLevel,
                  alpha = 0.05, 
@@ -46,7 +44,6 @@ class LPCMCI(CausalDiscoveryMethod):
         
         # init pcmci
         self.lpcmci = lpcmci(dataframe = pp.DataFrame(data = d, var_names = data.features),
-                             sys_context = sys_context,
                              cond_ind_test = val_condtest,
                              verbosity = verbosity.value)
         
@@ -91,7 +88,6 @@ class LPCMCI(CausalDiscoveryMethod):
                 for lag in range(lags):
                     if self.result['graph'][s][t,lag] != '':
                         arrowtype = self.result['graph'][s][t,lag]
-                        # print(f'({self.data.features[s]}, -{lag}) {arrowtype} {self.data.features[t]}')
                         
                         if arrowtype == LinkType.Bidirected.value:
                             if ((vars[s], abs(lag)) in tmp_dag.g[vars[t]].sources and 

@@ -5,7 +5,7 @@ import pandas as pd
 from tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
 from causalflow.basics.constants import ImageExt
-from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator

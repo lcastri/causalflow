@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import json
-from AIS_major_plotting import Metric, Algo
+from AIS_plotting import Metric, Algo
 from sklearn.utils import resample
 
 

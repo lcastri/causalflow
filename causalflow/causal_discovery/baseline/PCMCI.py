@@ -90,7 +90,6 @@ class PCMCI(CausalDiscoveryMethod):
                 for lag in range(lags):
                     if self.result['graph'][s][t,lag] != '':
                         arrowtype = self.result['graph'][s][t,lag]
-                        # print(f'({self.data.features[s]}, -{lag}) {arrowtype} {self.data.features[t]}')
                         
                         if arrowtype == LinkType.Bidirected.value:
                             if ((vars[s], abs(lag)) in tmp_dag.g[vars[t]].sources and 

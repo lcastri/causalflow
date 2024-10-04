@@ -3,11 +3,11 @@ from itertools import combinations
 import json
 import os
 import random
-from tigramite.independence_tests.parcorr import ParCorr
+from tigramite.independence_tests.gpdc_torch import GPDCtorch as GPDC
 from causalflow.CPrinter import CPLevel
 from causalflow.basics.constants import ImageExt
 from causalflow.causal_discovery.baseline.LPCMCI import LPCMCI
-from causalflow.causal_discovery.CAnDOIT_lpcmci import CAnDOIT
+from causalflow.causal_discovery.CAnDOIT import CAnDOIT
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.random_system.RandomGraph import NoiseType, RandomGraph
@@ -18,7 +18,7 @@ import timeout_decorator
 
 from time import time
 from datetime import timedelta
-from res_statistics_new import *
+from AIS_plotting import *
 import gc
 import shutil
 import ast
@@ -98,7 +98,7 @@ def fill_res(r):
     
 if __name__ == '__main__':
     # Simulation params
-    resdir = "AIS_major/AIS_major_S3"
+    resdir = "AIS_major/AIS_major_S5"
     alpha = 0.05
     nfeature = 5
     nrun = 25
@@ -111,8 +111,8 @@ if __name__ == '__main__':
     max_c = 0.5
     link_density = 3
     max_exp = 2
-    functions = ['']
-    operators = ['+', '-']
+    functions = ['', 'sin', 'cos', 'abs']
+    operators = ['+', '-', '*']
     
     for nr in range(nrun):
         nr = str(nr)
@@ -123,7 +123,7 @@ if __name__ == '__main__':
             try:
                 # Check if the file exists
                 Path(os.getcwd() + "/results/" + resdir).mkdir(parents=True, exist_ok=True)
-                filename = os.getcwd() + "/results/" + resdir + "/S3.json"
+                filename = os.getcwd() + "/results/" + resdir + "/S5.json"
                 resfolder = 'results/' + resdir + '/' + nr
                 if os.path.exists(filename):
                     # File exists, load its contents into a dictionary
@@ -207,7 +207,7 @@ if __name__ == '__main__':
                                     min_lag = 0, 
                                     max_lag = max_lag, 
                                     sys_context = [],
-                                    val_condtest = ParCorr(significance = 'analytic'),
+                                    val_condtest = GPDC(significance = 'analytic'),
                                     verbosity = CPLevel.INFO,
                                     alpha = alpha,
                                     neglect_only_autodep = False,
@@ -297,7 +297,7 @@ if __name__ == '__main__':
                                         min_lag = 0, 
                                         max_lag = max_lag, 
                                         sel_method = TE(TEestimator.Gaussian), 
-                                        val_condtest = ParCorr(significance = 'analytic'),
+                                        val_condtest = GPDC(significance = 'analytic'),
                                         verbosity = CPLevel.INFO,
                                         neglect_only_autodep = False,
                                         resfolder = 'results/' + resdir + '/' + nr + '/' + str(i) + f"/candoit_{candoit_name}",
