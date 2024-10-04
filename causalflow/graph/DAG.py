@@ -126,79 +126,9 @@ class DAG():
                 if self.g[t].intervention_node: del tmp[self.g[t].associated_context]
                 del tmp[t]
         self.g = tmp
-        
+                          
     
-    # FIXME: remove me. this is related to CAnDOIT_lagged
-    def add_context_lagged(self):
-        """
-        Adds context variables
-        """
-        for sys_var, context_var in self.sys_context.items():
-            if sys_var in self.features:
-                
-                # Adding context var to the graph
-                self.g[context_var] = Node(context_var, self.neglect_autodep)
-                
-                # Adding context var to sys var
-                self.g[sys_var].intervention_node = True
-                self.g[sys_var].associated_context = context_var
-                self.add_source(sys_var, context_var, 1, 0, 1)
-                
-        # NOTE: bi-directed link contemporanous link between context vars
-        for sys_var, context_var in self.sys_context.items():
-            if sys_var in self.features:
-                other_context = [value for value in self.sys_context.values() if value != context_var and value in self.features]
-                for other in other_context: self.add_source(context_var, other, 1, 0, 0)
-                    
-                
-    # FIXME: remove me. this is related to CAnDOIT_lagged
-    def remove_context_lagged(self):
-        """
-        Remove context variables
-        """
-        for sys_var, context_var in self.sys_context.items():
-            if sys_var in self.g:
-                
-                # Removing context var from sys var
-                # self.g[sys_var].intervention_node = False
-                self.g[sys_var].associated_context = None
-                self.del_source(sys_var, context_var, 1)
-                
-                # Removing context var from dag
-                del self.g[context_var]
-                
-                    
-    # FIXME: remove me. this is related to CAnDOIT_lagged
-    def get_link_assumptions_lagged(self, autodep_ok = False) -> dict:
-        """
-        Returnes link assumption dictionary
-
-        Args:
-            autodep_ok (bool, optional): If true, autodependecy link assumption = -->. Otherwise -?>. Defaults to False.
-
-        Returns:
-            dict: link assumption dictionary
-        """
-        link_assump = {self.features.index(f): dict() for f in self.features}
-        for t in self.g:
-            for s in self.g[t].sources:
-                if autodep_ok and s[0] == t: # NOTE: new condition added in order to not control twice the autodependency links
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
-                    
-                elif s[0] not in list(self.sys_context.values()):
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-?>'
-                    
-                elif t in self.sys_context.keys() and s[0] == self.sys_context[t]:
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
-                    
-                elif t in self.sys_context.values() and s[0] in self.sys_context.values():
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
-                    
-        return link_assump
-    
-    
-    # FIXME: remove me. this is related to CAnDOIT_cont
-    def add_context_cont(self):
+    def add_context(self):
         """
         Adds context variables
         """
@@ -220,8 +150,7 @@ class DAG():
                 for other in other_context: self.add_source(context_var, other, 1, 0, 0)
         
                     
-    # FIXME: remove me. this is related to CAnDOIT_cont
-    def remove_context_cont(self):
+    def remove_context(self):
         """
         Remove context variables
         """
@@ -234,75 +163,7 @@ class DAG():
                     
                 # Removing context var from dag
                 del self.g[context_var]
-    
-    
-    # FIXME: remove me. this is related to CAnDOIT_cont
-    def get_link_assumptions_cont(self, autodep_ok = False) -> dict:
-        """
-        Returnes link assumption dictionary
-
-        Args:
-            autodep_ok (bool, optional): If true, autodependecy link assumption = -->. Otherwise -?>. Defaults to False.
-
-        Returns:
-            dict: link assumption dictionary
-        """
-        link_assump = {self.features.index(f): dict() for f in self.features}
-        for t in self.g:
-            for s in self.g[t].sources:
-                if autodep_ok and s[0] == t: # NOTE: new condition added in order to not control twice the autodependency links
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
-                    
-                elif s[0] not in list(self.sys_context.values()):
-                    # link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-?>'
-                    if s[1] == 0 and (t, 0) in self.g[s[0]].sources:
-                        link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
-                    elif s[1] == 0 and (t, 0) not in self.g[s[0]].sources:
-                        link_assump[self.features.index(t)][(self.features.index(s[0]),0)] = '-?>'
-                        link_assump[self.features.index(s[0])][(self.features.index(t), 0)] = '<?-'
-                    elif s[1] > 0:
-                        link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-?>'
-                    
-                elif t in self.sys_context.keys() and s[0] == self.sys_context[t]:
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = '-->'
-                    link_assump[self.features.index(s[0])][(self.features.index(t), 0)] = '<--'
-                    
-                elif t in self.sys_context.values() and s[0] in self.sys_context.values():
-                    link_assump[self.features.index(t)][(self.features.index(s[0]), 0)] = 'o-o'
-                    
-        return link_assump
-                             
-                        
-    def add_context(self):
-        """
-        Adds context variables
-        """
-        for sys_var, context_var in self.sys_context.items():
-            if sys_var in self.features:
-                
-                # Adding context var to the graph
-                self.g[context_var] = Node(context_var, self.neglect_autodep)
-                
-                # Adding context var to sys var
-                self.g[sys_var].intervention_node = True
-                self.g[sys_var].associated_context = context_var
-                self.add_source(sys_var, context_var, 1, 0, 1)
-            
-    
-    def remove_context(self):
-        """
-        Remove context variables
-        """
-        for sys_var, context_var in self.sys_context.items():
-            if sys_var in self.g:
-                # Removing context var from sys var
-                # self.g[sys_var].intervention_node = False
-                self.g[sys_var].associated_context = None
-                self.del_source(sys_var, context_var, 1)
-                    
-                # Removing context var from dag
-                del self.g[context_var]
-                                   
+                                                                  
                 
     def get_link_assumptions(self, autodep_ok = False) -> dict:
         """

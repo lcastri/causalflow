@@ -9,7 +9,7 @@ from causalflow.basics.constants import *
 from causalflow.basics.utils import *
 from causalflow.preprocessing.data import Data 
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
-from causalflow.causal_discovery.support.myLPCMCI import LPCMCI
+from causalflow.causal_discovery.support.myLPCMCI import myLPCMCI
 from causalflow.graph.DAG import DAG
 
 class CAnDOIT(CausalDiscoveryMethod):
@@ -177,7 +177,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         Returns:
             DAG: causal model with context
         """
-        self.validator = LPCMCI(self.validator_data,
+        self.validator = myLPCMCI(self.validator_data,
                                 self.min_lag, self.max_lag,
                                 self.sys_context,
                                 self.val_condtest,
@@ -200,6 +200,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         link_assumptions = None
             
         if not nofilter:
+            #FIXME: to include also the filter. for now this is wrong
             ## 1. FILTER
             self.run_filter()
         
@@ -213,7 +214,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             ## 2. VALIDATOR
             # Add dependencies corresponding to the context variables 
             # ONLY if the the related system variable is still present
-            self.CM.add_context_cont() 
+            self.CM.add_context() 
 
             # shrink dataframe d by using the filter result
             self.validator_data.shrink(self.CM.features)
@@ -231,7 +232,7 @@ class CAnDOIT(CausalDiscoveryMethod):
                
         # list of selected features based on validator dependencies
         if remove_unneeded: self.CM.remove_unneeded_features()
-        if self.exclude_context: self.CM.remove_context_cont()
+        if self.exclude_context: self.CM.remove_context()
 
         self.save()
             

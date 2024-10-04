@@ -1,4 +1,3 @@
-# from tigramite.lpcmci import LPCMCI as lpcmci
 from causalflow.causal_discovery.tigramite.mylpcmci import LPCMCI as lpcmci
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
@@ -10,7 +9,7 @@ from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 from tigramite.plotting import plot_time_series_graph
 
-class LPCMCI(CausalDiscoveryMethod):
+class myLPCMCI(CausalDiscoveryMethod):
     """
     LPCMCI causal discovery method.
     """
