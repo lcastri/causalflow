@@ -6,7 +6,7 @@ CausalFlow is a python library for causal analysis from time-series data. It com
 
 |   |  Acronym        |       Full-name             |
 |:-:|-----------------|-----------------------------|
-| <img src=https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | [F-PCMCI](https://github.com/lcastri/fpcmci) | Filtered-PCMCI |
+| <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | [F-PCMCI](https://github.com/lcastri/fpcmci) | Filtered-PCMCI |
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> | CAnDOIT | CAusal Discovery with Observational and Interventional data from Time-series |
 
 </div>
