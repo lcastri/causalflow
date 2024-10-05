@@ -6,7 +6,7 @@ CausalFlow is a python library for causal analysis from time-series data. It com
 
 |   |  Acronym        |       Full-name             |
 |:-:|-----------------|-----------------------------|
-| <img src=https://raw.githubusercontent.com/lcastri/causalflow/main/docs/assets/fpcmci_icon.png" width="15"> | [F-PCMCI](https://github.com/lcastri/fpcmci) | Filtered-PCMCI |
+| <img src=https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | [F-PCMCI](https://github.com/lcastri/fpcmci) | Filtered-PCMCI |
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> | CAnDOIT | CAusal Discovery with Observational and Interventional data from Time-series |
 
 </div>
@@ -16,7 +16,7 @@ Coming soon..
 <!-- * [Documentation](https://lcastri.github.io/fpcmci/) -->
 <!-- * [Tutorials](https://github.com/lcastri/fpcmci/tree/main/tutorials) -->
 
-## <img src="https://raw.githubusercontent.com/lcastri/causalflow/main/docs/assets/fpcmci_icon.png" width="18"> F-PCMCI
+## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="18"> F-PCMCI
 Extension of the state-of-the-art causal discovery method [PCMCI](https://github.com/jakobrunge/tigramite), augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and a hypothetical causal model between them. Then, using the selected features and the hypothetical causal model, the causal discovery is executed. This refined set of variables and the list of potential causal links between them contribute to achieving **faster** and **more accurate** causal discovery.
 
 In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
@@ -125,7 +125,7 @@ Some algorithms are imported from other languages such as R and Java and are the
 | | TCDF | ✅ | ❌ | ❌ |
 | | tsFCI | ✅ | ❌ | ❌ |
 | | VarLiNGAM | ✅ | ❌ | ❌ |
-| <img src="https://raw.githubusercontent.com/lcastri/causalflow/main/docs/assets/fpcmci_icon.png" width="15"> | F-PCMCI | ✅ | ✅ | ❌ |
+| <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> | F-PCMCI | ✅ | ✅ | ❌ |
 | <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> | CAnDOIT | ✅ | ❌ | ✅ |
 
 </div>
@@ -134,7 +134,7 @@ Some algorithms are imported from other languages such as R and Java and are the
 ## Citation
 Please consider citing the following papers depending on which method you use:
 
-* <img src="https://raw.githubusercontent.com/lcastri/causalflow/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
+* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
     L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023). [Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios](https://arxiv.org/abs/2302.10135), Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
     ```
     @inproceedings{castri2023fpcmci,
