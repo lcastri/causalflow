@@ -46,7 +46,6 @@ parcorr = ParCorr(significance='analytic')
 lpcmci = LPCMCI(Data(data_obs, vars = var_names),
                 min_lag = 0,
                 max_lag = tau_max,
-                sys_context=[],
                 val_condtest = parcorr,
                 verbosity = CPLevel.DEBUG,
                 alpha = pc_alpha,
