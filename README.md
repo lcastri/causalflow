@@ -22,16 +22,19 @@ Extension of the state-of-the-art causal discovery method [PCMCI](https://github
 In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
 
 $$
-\begin{cases}
-X_0(t) = 2X_1(t-1) + 3X_3(t-1) + \eta_0\\
-X_1(t) = \eta_1\\
-X_2(t) = 1.1(X_1(t-1))^2 + \eta_2\\
-X_3(t) = X_3(t-1)X_2(t-1) + \eta_3\\
-X_4(t) = X_4(t-1) + X_5(t-1)X_0(t-1) + \eta_4\\
-X_5(t) = \eta_5\\
-X_6(t) = \eta_6\\
-\end{cases}
+\left\{
+\begin{aligned}
+X_0(t) &= 2X_1(t-1) + 3X_3(t-1) + \eta_0 \\
+X_1(t) &= \eta_1 \\
+X_2(t) &= 1.1(X_1(t-1))^2 + \eta_2 \\
+X_3(t) &= X_3(t-1)X_2(t-1) + \eta_3 \\
+X_4(t) &= X_4(t-1) + X_5(t-1)X_0(t-1) + \eta_4 \\
+X_5(t) &= \eta_5 \\
+X_6(t) &= \eta_6
+\end{aligned}
+\right.
 $$
+
 
 ```python
 min_lag = 1
