@@ -22,7 +22,6 @@ Extension of the state-of-the-art causal discovery method [PCMCI](https://github
 In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
 
 $$
-\left\{
 \begin{aligned}
 X_0(t) &= 2X_1(t-1) + 3X_3(t-1) + \eta_0 \\
 X_1(t) &= \eta_1 \\
@@ -32,8 +31,8 @@ X_4(t) &= X_4(t-1) + X_5(t-1)X_0(t-1) + \eta_4 \\
 X_5(t) &= \eta_5 \\
 X_6(t) &= \eta_6
 \end{aligned}
-\right.
 $$
+
 
 
 ```python
@@ -64,13 +63,13 @@ CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the 
 In the following, an example is presented that demonstrates CAnDOIT's capability to incorporate and exploit interventional data. The dataset consists of a 5-variables system defined as follows:
 
 $$
-\begin{cases}
-X_0(t) = \eta_0\\
-X_1(t) = 2.5X_0(t-1) + \eta_1\\
-X_2(t) = 0.5X_0(t-2) \cdot 0.75X_3(t-1) + \eta_2\\
-X_3(t) = 0.7X_3(t-1)X_4(t-2) + \eta_3\\
-X_4(t) = \eta_4\\
-\end{cases}
+\begin{aligned}
+X_0(t) &= \eta_0\\
+X_1(t) &= 2.5X_0(t-1) + \eta_1\\
+X_2(t) &= 0.5X_0(t-2) \cdot 0.75X_3(t-1) + \eta_2\\
+X_3(t) &= 0.7X_3(t-1)X_4(t-2) + \eta_3\\
+X_4(t) &= \eta_4\\
+\end{aligned}
 $$
 
 This system of equation generates the time-series data in the observational case. For the interventional case instead, the equation $X_1(t) = 2.5X_0(t-1) + \eta_1$ was replaced by a hard intervention $X_1(t) = 15$.
