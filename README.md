@@ -94,7 +94,7 @@ for t in range(max_lag, nsample_int):
     d_int1[t, 3] += 0.7 * d_int1[t-1, 3] * d_int1[t-2, 4]
 ```
 
-Ground-truth Causal Model       |  Causal Model by F-PCMCI |  Causal Model by CAnDOIT 
+Ground-truth Causal Model       |  Causal Model by LPCMCI |  Causal Model by CAnDOIT 
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/GT_example_1.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/FPCMCI_example_1.png) |  ![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT_example_1.png)
 | $X_0$ observable | $X_0$ hidden | $X_0$ hidden |
@@ -108,6 +108,8 @@ Although the main contribution of this repository is to present the CAnDOIT and 
 
 * [DYNOTEARS](https://arxiv.org/pdf/2002.00498.pdf) - from the [causalnex](https://github.com/mckinsey/causalnex) package;
 * [PCMCI](http://proceedings.mlr.press/v124/runge20a/runge20a.pdf) - from the [tigramite](https://github.com/jakobrunge/tigramite) package;
+* [PCMCI+](http://auai.org/uai2020/proceedings/579_main_paper.pdf) - from the [tigramite](https://github.com/jakobrunge/tigramite) package;
+* [LPCMCI](https://proceedings.neurips.cc/paper/2020/hash/94e70705efae423efda1088614128d0b-Abstract.html) - from the [tigramite](https://github.com/jakobrunge/tigramite) package;
 * [TCDF](https://www.mdpi.com/2504-4990/1/1/19) - from the [causal_discovery_for_time_series](https://github.com/ckassaad/causal_discovery_for_time_series) package;
 * [tsFCI](https://www.researchgate.net/publication/268324455_On_Causal_Discovery_from_Time_Series_Data_using_FCI) - from the [causal_discovery_for_time_series](https://github.com/ckassaad/causal_discovery_for_time_series) package;
 * [VarLiNGAM](https://www.jmlr.org/papers/volume11/hyvarinen10a/hyvarinen10a.pdf) - from the [lingam](https://github.com/cdt15/lingam?tab=readme-ov-file) package;
