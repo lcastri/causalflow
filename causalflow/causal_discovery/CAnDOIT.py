@@ -220,7 +220,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             self.validator_data.shrink(self.CM.features)
                     
             # selected links to check by the validator
-            link_assumptions = self.CM.get_link_assumptions_cont()
+            link_assumptions = self.CM.get_link_assumptions()
                 
         else:
             # fullg = DAG(self.validator_data.features, self.min_lag, self.max_lag, False)

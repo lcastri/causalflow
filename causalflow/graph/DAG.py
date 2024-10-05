@@ -595,7 +595,10 @@ class DAG():
         return scm
     
     
-    def get_Graph(self) -> dict:   
+    def get_Graph(self) -> dict:
+        """
+        Returns Graph dictionary. E.g. {X1: {(X2, -2): '-->'}, X2: {(X3, -1): '-?>'}, X3: {(X3, -1): '-->'}}
+        """
         scm = {v: dict() for v in self.features}
         for t in self.g:
             for s in self.g[t].sources:
