@@ -1,4 +1,10 @@
-import sys
+"""
+This module provides the FPCMCI class.
+
+Classes:
+    FPCMCI: class containing the FPCMCI causal discovery algorithm.
+"""
+
 import copy
 import pickle
 from tigramite.independence_tests.independence_tests_base import CondIndTest
@@ -12,15 +18,7 @@ from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMet
 
 
 class FPCMCI(CausalDiscoveryMethod):
-    """
-    F-PCMCI causal discovery method.
-
-    F-PCMCI is a causal discovery method that uses observational data to reconstruct causal models
-    from large-scale time series datasets.
-    Starting from a Data object, it selects the main features responsible for the 
-    evolution of the analysed system. Based on the selected features, the framework 
-    outputs a causal model.
-    """
+    """F-PCMCI causal discovery method."""
 
     def __init__(self, 
                  data: Data, 
@@ -33,15 +31,15 @@ class FPCMCI(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        F-PCMCI class contructor
+        Class contructor.
 
         Args:
-            data (Data): data to analyse
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            sel_method (SelectionMethod): selection method
-            val_condtest (CondIndTest): validation method
-            verbosity (CPLevel): verbosity level
+            data (Data): data to analyse.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            sel_method (SelectionMethod): selection method.
+            val_condtest (CondIndTest): validation method.
+            verbosity (CPLevel): verbosity level.
             f_alpha (float, optional): filter significance level. Defaults to 0.05.
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
@@ -57,9 +55,7 @@ class FPCMCI(CausalDiscoveryMethod):
 
 
     def run_filter(self):
-        """
-        Run filter method
-        """
+        """Run filter method."""
         CP.info("\n")
         CP.info(DASH)
         CP.info("Selecting relevant features among: " + str(self.data.features))
@@ -75,10 +71,14 @@ class FPCMCI(CausalDiscoveryMethod):
    
     def run(self, remove_unneeded = True, nofilter = False) -> DAG:
         """
-        Run F-PCMCI
+        Run F-PCMCI.
         
+        Args:
+            remove_unneeded (bool, optional): Bit to remove unneeded (isolated) variables. Defaults to True.
+            nofilter (bool, optional): Bit to run F-PCMCI without filter. Defaults to False.
+
         Returns:
-            DAG: causal model
+            DAG: causal model.
         """
         link_assumptions = None
         
@@ -118,10 +118,10 @@ class FPCMCI(CausalDiscoveryMethod):
     
     def load(self, res_path):
         """
-        Loads previously estimated result 
+        Load previously estimated result.
 
         Args:
-            res_path (str): pickle file path
+            res_path (str): pickle file path.
         """
         with open(res_path, 'rb') as f:
             r = pickle.load(f)
@@ -133,9 +133,7 @@ class FPCMCI(CausalDiscoveryMethod):
             
             
     def save(self):
-        """
-        Save causal discovery result as pickle file if resfolder is set
-        """
+        """Save causal discovery result as pickle file if resfolder is set."""
         if self.respath is not None:
             if self.CM:
                 res = dict()
@@ -153,11 +151,11 @@ class FPCMCI(CausalDiscoveryMethod):
     
     def _print_differences(self, old_dag : DAG, new_dag : DAG):
         """
-        Print difference between old and new dependencies
+        Print difference between old and new dependencies.
 
         Args:
-            old_dep (DAG): old dag
-            new_dep (DAG): new dag
+            old_dep (DAG): old dag.
+            new_dep (DAG): new dag.
         """
         # Check difference(s) between validator and filter dependencies
         list_diffs = list()

@@ -1,9 +1,24 @@
+"""
+This module provides the MovingWindow class to facilitate the entropy-based subsampling methods.
+
+Classes:
+    MovingWindow: A class used by the entropy-based subsampling methods.
+"""
+
 import math
 from scipy.stats import entropy
 
 
 class MovingWindow:
+    """Moving window class used by the entropy-based subsampling methods."""
+    
     def __init__(self, window):
+        """
+        Class constuctor.
+        
+        Args:
+            window (int): moving window size.
+        """
         self.window = window
         self.T, self.dim = window.shape
         self.entropy = None
@@ -11,13 +26,7 @@ class MovingWindow:
         self.opt_samples_index = None
 
     def get_pdf(self):
-        """
-        Compute the probability distribution function from an array of data
-
-        Returns:
-            list: probability distribution function
-        """
-
+        """Compute the probability distribution function from an array of data."""
         counts = {}
 
         for i in range(0, self.T):
@@ -33,33 +42,29 @@ class MovingWindow:
 
 
     def get_entropy(self):
-        """
-        Compute the entropy based on probability distribution function
-        """
+        """Compute the entropy based on probability distribution function."""
         self.entropy = entropy(self.get_pdf(), base = 2)
 
 
     def samples_selector(self, step):
         """
-        Select sample to be taken from a moving window
-
+        Select sample to be taken from a moving window.
 
         Args:
-            step (int): subsampling frequency
+            step (int): subsampling frequency.
 
         Returns:
-            list[int]: list of indexes corresponding to the sample to be taken
+            list[int]: list of indexes corresponding to the sample to be taken.
         """
         return [i for i in range(0, self.T, step)]
 
 
     def optimal_sampling(self, thres):
         """
-        Find the optimal number of sample for a particular moving window
-
+        Find the optimal number of sample for a particular moving window.
 
         Args:
-            thres (float): stopping criteria threshold
+            thres (float): stopping criteria threshold.
         """
         converged = False
         _old_step = 0

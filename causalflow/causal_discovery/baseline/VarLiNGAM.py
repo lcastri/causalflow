@@ -1,3 +1,10 @@
+"""
+This module provides the VarLiNGAM class.
+
+Classes:
+    VarLiNGAM: class containing the VarLiNGAM causal discovery algorithm.
+"""
+
 from lingam.var_lingam import VARLiNGAM
 import numpy as np
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod
@@ -6,9 +13,8 @@ from causalflow.causal_discovery.baseline.pkgs import utils
 
 
 class VarLiNGAM(CausalDiscoveryMethod):
-    """
-    VarLiNGAM causal discovery method.
-    """
+    """VarLiNGAM causal discovery method."""
+    
     def __init__(self, 
                  data, 
                  min_lag,
@@ -19,13 +25,13 @@ class VarLiNGAM(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        VarLiNGAM class constructor
+        Class constructor.
 
         Args:
-            data (Data): data to analyse
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            verbosity (CPLevel): verbosity level
+            data (Data): data to analyse.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            verbosity (CPLevel): verbosity level.
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
@@ -36,10 +42,10 @@ class VarLiNGAM(CausalDiscoveryMethod):
 
     def run(self) -> DAG:
         """
-        Run causal discovery algorithm
+        Run causal discovery algorithm.
 
         Returns:
-            (DAG): estimated causal model
+            (DAG): estimated causal model.
         """
         split_by_causal_effect_sign = True
 
@@ -76,10 +82,10 @@ class VarLiNGAM(CausalDiscoveryMethod):
     
     def _to_DAG(self, graph):
         """
-        Re-elaborates the result in a DAG
+        Re-elaborates the result in a DAG.
         
         Returns:
-            (DAG): result re-elaborated
+            (DAG): result re-elaborated.
         """
         tmp_dag = DAG(self.data.features, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()
@@ -88,5 +94,4 @@ class VarLiNGAM(CausalDiscoveryMethod):
                 lag = abs(s[1])
                 if lag >= self.min_lag and lag <= self.max_lag:
                     tmp_dag.add_source(t, s[0], utils.DSCORE, 0, s[1])
-        # tmp_dag.remove_unneeded_features()
         return tmp_dag

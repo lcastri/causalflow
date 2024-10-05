@@ -1,23 +1,28 @@
+"""
+This module provides the WSFFTStatic class.
+
+Classes:
+    WSFFTStatic: Subsampling method with static window size based on Fourier analysis.
+"""
+
 from scipy.fft import rfft, rfftfreq
 from causalflow.preprocessing.subsampling_methods.EntropyBasedMethod import EntropyBasedMethod
 from causalflow.preprocessing.subsampling_methods.SubsamplingMethod import SSMode, SubsamplingMethod
 import numpy as np
-import pylab as pl
 from math import ceil
 import scipy.signal
 
 
 class WSFFTStatic(SubsamplingMethod, EntropyBasedMethod):
-    """
-    Subsampling method with static window size based on Fourier analysis
-    """
+    """Subsampling method with static window size based on Fourier analysis."""
+    
     def __init__(self, sampling_time, entropy_threshold):
         """
-        WSFFTStatic class constructor
+        Class constructor.
 
         Args:
-            sampling_time (float): timeseries sampling time
-            entropy_threshold (float): entropy threshold
+            sampling_time (float): timeseries sampling time.
+            entropy_threshold (float): entropy threshold.
         """
         SubsamplingMethod.__init__(self, SSMode.WSFFTStatic)
         EntropyBasedMethod.__init__(self, entropy_threshold)
@@ -26,7 +31,7 @@ class WSFFTStatic(SubsamplingMethod, EntropyBasedMethod):
 
     def __fourier_window(self):
         """
-        Compute window size based on Fourier analysis performed on dataframe
+        Compute window size based on Fourier analysis performed on dataframe.
 
         Returns:
             (int): window size
@@ -48,9 +53,7 @@ class WSFFTStatic(SubsamplingMethod, EntropyBasedMethod):
 
 
     def dataset_segmentation(self):
-        """
-        Segments dataset with a fixed window size
-        """
+        """Segments dataset with a fixed window size."""
         seg_res = [i for i in range(0, len(self.df.values), self.ws)]
         self.segments = [(i, i + self.ws) for i in range(0, len(self.df.values) - self.ws, self.ws)]
         if not seg_res.__contains__(len(self.df.values)):
@@ -60,10 +63,10 @@ class WSFFTStatic(SubsamplingMethod, EntropyBasedMethod):
     
     def run(self):
         """
-        Run subsampler
+        Run subsampler.
 
         Returns:
-            (list[int]): indexes of the remaining samples
+            (list[int]): indexes of the remaining samples.
         """
         # define window size
         self.ws = self.__fourier_window()

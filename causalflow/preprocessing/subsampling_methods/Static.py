@@ -1,19 +1,24 @@
+"""
+This module provides the Static class.
+
+Classes:
+    Static: Subsamples data by taking one sample each step-samples.
+"""
+
 from causalflow.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod, SSMode
 
-
 class Static(SubsamplingMethod):
-    """
-    Subsamples data by taking one sample each step-samples
-    """
+    """Subsample data by taking one sample each step-samples."""
+    
     def __init__(self, step):
         """
-        Static class constructor
+        Class constructor.
         
         Args:
-            step (int): integer subsampling step
+            step (int): integer subsampling step.
 
         Raises:
-            ValueError: if step == None
+            ValueError: if step == None.
         """
         super().__init__(SSMode.Static)
         if step is None:
@@ -21,4 +26,5 @@ class Static(SubsamplingMethod):
         self.step = step
 
     def run(self):
+        """Run subsampler."""
         return range(0, len(self.df.values), self.step)

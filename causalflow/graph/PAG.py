@@ -1,11 +1,30 @@
+"""
+This module provides the PAG class.
+
+Classes:
+    PAG: class for facilitating the handling and the creation of PAGs.
+"""
+
 from pgmpy.models import BayesianNetwork
 from itertools import combinations
 import copy
 from collections import defaultdict
 
-
 class PAG():
+    """PAG class."""
+    
     def __init__(self, dag, tau_max, latents) -> None:
+        """
+        Class constructor.
+
+        Args:
+            dag (DAG): DAG to convert.
+            tau_max (int): max time lag.
+            latents (list[str]): list of latent variables.
+
+        Raises:
+            ValueError: latent must be a string
+        """
         if not isinstance(latents, list): raise ValueError('latents must be a list')
         self.link_assumptions = dag
         self.tau_max = tau_max
@@ -18,14 +37,34 @@ class PAG():
         
     
     def convert2Graph(self):
+        """
+        Convert a PAG to a graph representation.
+
+        Returns:
+            dict: Graph representation of a PAG.
+        """
         out = {t: {} for t in self.pag}
         for t in self.pag:
             for s in self.pag[t]:
                 out[t][(s[0], s[1])] = s[2]
         return out
         
+        
     @staticmethod
-    def createDAG(link_assumptions, tau_max):
+    def createDAG(link_assumptions, tau_max) -> BayesianNetwork:
+        """
+        Create a DAG represented by a Baysian Network.
+
+        Args:
+            link_assumptions (dict): DAG link assumptions.
+            tau_max (int): max time lag.
+
+        Raises:
+            ValueError: source not well defined.
+
+        Returns:
+            BayesianNetwork: DAG represented by a Baysian Network.
+        """
         BN = BayesianNetwork()
         BN.add_nodes_from([(t, -l) for t in link_assumptions.keys() for l in range(0, tau_max)])
 
@@ -47,6 +86,16 @@ class PAG():
     
     
     def alreadyChecked(self, source, target):
+        """
+        Check if a link has been already checked.
+
+        Args:
+            source (str): source node
+            target (str): target node
+
+        Returns:
+            (bool, tuple): tuple containing if the link has been checked and, if so, their separation set. Otherwise None.
+        """
         if (source, target) in self.dSepSets: return True, self.dSepSets[(source, target)]
         elif (target, source) in self.dSepSets: return True, self.dSepSets[(target, source)]
         elif ((source[0], source[1] - target[1]), (target[0], 0)) in self.dSepSets: return True, self.dSepSets[((source[0], source[1] - target[1]), (target[0], 0))]
@@ -55,6 +104,12 @@ class PAG():
 
     
     def tsDAG2tsDPAG(self):
+        """
+        Convert a DAG to a Time-series DPAG.
+
+        Returns:
+            dict: Time-series DPAG.
+        """
         self.tsDPAG = {t: [(s[0], s[1], '-->') for s in self.link_assumptions[t] if s[0] not in self.latents] for t in self.link_assumptions.keys() if t not in self.latents}
         
         if len(self.latents) > 0:
@@ -152,11 +207,16 @@ class PAG():
         else:
             print("No latent variable")
         
-
         return self.tsDPAG
 
 
     def find_colliders(self):
+        """
+        Find colliders.
+
+        Returns:
+            list: colliders.
+        """
         colliders = []
         for node in self.tsDPAG.keys():
             parents = [(p[0], p[1]) for p in self.tsDPAG[node]]
@@ -170,12 +230,26 @@ class PAG():
 
 
     def update_link_type(self, parent, target, linktype):
+        """
+        Update link type.
+
+        Args:
+            parent (str): parent node.
+            target (str): target node
+            linktype (str): link type. E.g. --> or -?>.
+        """
         for idx, link in enumerate(self.tsDPAG[target[0]]):
             if link[0] == parent[0] and link[1] == parent[1]:
                 self.tsDPAG[target[0]][idx] = (link[0], link[1], linktype)
             
             
     def find_latent_confounders(self):
+        """
+        Find latent confounders.
+
+        Returns:
+            dict: latent confounders.
+        """
         confounders = {(latent, -t): list(self.tsDAG.successors((latent, -t))) for latent in self.latents for t in range(self.tau_max + 1) if len(list(self.tsDAG.successors((latent, -t)))) > 1}
         
         # Initialize a new dictionary to store unique edges
@@ -204,8 +278,17 @@ class PAG():
         return shrinked_confounders
     
                 
-    def find_d_separators(self, source, target, latents):
-        
+    def find_d_separators(self, source, target):
+        """
+        Find D-Separation set.
+
+        Args:
+            source (str): source node.
+            target (str): target node.
+
+        Returns:
+            (bool, set): (True, separation set) if source and target are d-separated. Otherwise (False, empty set). 
+        """
         paths = self.find_all_paths(source, target)
                
         if len(paths) == 0: 
@@ -235,6 +318,15 @@ class PAG():
         return False, set()
 
     def find_triples_containing_link(self, ambiguous_link):
+        """
+        Find all triples containing a link.
+
+        Args:
+            ambiguous_link (tuple): ambiguous_link
+
+        Returns:
+            set: triples containing the specified link.
+        """
         pag = self.createDAG(self.tsDPAG, self.tau_max)
 
         source, target, _ = ambiguous_link
@@ -250,6 +342,17 @@ class PAG():
     
     # DFS to find all paths
     def find_all_paths(self, start, goal, path=[]):
+        """
+        Find all path from start to goal.
+
+        Args:
+            start (str): starting node.
+            goal (str): goal node.
+            path (list, optional): Found paths. Defaults to [].
+
+        Returns:
+            list: paths
+        """
         path = path + [start]
         if start == goal:
             return [path]

@@ -1,3 +1,11 @@
+"""
+This module provides various classes for Mutual Information-based feature selection analysis.
+
+Classes:
+    MIestimator: support class for handling different Mutual Information estimators.
+    MI: Mutual Information class.
+"""
+
 from enum import Enum
 from causalflow.selection_methods.SelectionMethod import SelectionMethod, CTest, _suppress_stdout
 from idtxl.multivariate_mi import MultivariateMI
@@ -7,6 +15,8 @@ from scipy.stats import shapiro, kstest
 import importlib
 
 class MIestimator(Enum):
+    """MIestimator Enumerator."""
+
     Auto = 'Auto'
     Gaussian = 'JidtGaussianCMI'
     Kraskov = 'JidtKraskovCMI'
@@ -14,12 +24,11 @@ class MIestimator(Enum):
 
 
 class MI(SelectionMethod):
-    """
-    Feature selection method based on Mutual Information analysis
-    """
+    """Feature selection method based on Mutual Information analysis."""
+    
     def __init__(self, estimator: MIestimator):
         """
-        MI class contructor
+        Class contructor.
 
         Args:
             estimator (MIestimator): Gaussian/Kraskov
@@ -30,10 +39,10 @@ class MI(SelectionMethod):
     @property
     def isOpenCLinstalled(self):
         """
-        checks whether the pyopencl pkg is installed
+        Check whether the pyopencl pkg is installed.
 
         Returns:
-            bool: True if pyopencl is installed
+            bool: True if pyopencl is installed.
         """
         try:
             importlib.import_module('pyopencl')
@@ -42,9 +51,7 @@ class MI(SelectionMethod):
             return False
         
     def _select_estimator(self):
-        """
-        selects the MI estimator
-        """
+        """Select the MI estimator."""
         CP.info("\n##")
         CP.info("## MI Estimator selection")
         CP.info("##")
@@ -79,7 +86,7 @@ class MI(SelectionMethod):
 
     def compute_dependencies(self):
         """
-        compute list of dependencies for each target by mutual information analysis
+        Compute list of dependencies for each target by mutual information analysis.
 
         Returns:
             (DAG): dependency dag

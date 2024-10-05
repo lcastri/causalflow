@@ -1,3 +1,10 @@
+"""
+This module provides the TCDF class.
+
+Classes:
+    TCDF: class containing the TCDF causal discovery algorithm.
+"""
+
 from pathlib import Path
 from subprocess import Popen, PIPE
 import os
@@ -9,9 +16,8 @@ from causalflow.causal_discovery.baseline.pkgs import utils
 
 
 class TCDF(CausalDiscoveryMethod):
-    """
-    TCDF causal discovery method.
-    """
+    """TCDF causal discovery method."""
+    
     def __init__(self, 
                  data, 
                  min_lag,
@@ -21,18 +27,17 @@ class TCDF(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        TCDF class constructor
+        Class constructor.
 
         Args:
-            data (Data): data to analyse
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            verbosity (CPLevel): verbosity level
+            data (Data): data to analyse.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            verbosity (CPLevel): verbosity level.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             clean_cls (bool): Clean console bit. Default to True.
         """
-        
         super().__init__(data, min_lag, max_lag, verbosity, resfolder=resfolder, neglect_only_autodep=neglect_only_autodep, clean_cls=clean_cls)
 
 
@@ -44,12 +49,11 @@ class TCDF(CausalDiscoveryMethod):
             learning_rate=0.01,
             cuda=False) -> DAG:
         """
-        Run causal discovery algorithm
+        Run causal discovery algorithm.
 
         Returns:
-            (DAG): estimated causal model
+            (DAG): estimated causal model.
         """
-        
         # Remove all arguments from directory
         dir_path = os.path.dirname(os.path.realpath(__file__))
         Path(dir_path+"/args").mkdir(exist_ok=True)
@@ -101,10 +105,10 @@ class TCDF(CausalDiscoveryMethod):
     
     def _to_DAG(self, graph):
         """
-        Re-elaborates the result in a DAG
+        Re-elaborate the result in a DAG.
 
         Returns:
-            (DAG): result re-elaborated
+            (DAG): result re-elaborated.
         """
         tmp_dag = DAG(self.data.features, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()
@@ -113,5 +117,4 @@ class TCDF(CausalDiscoveryMethod):
                 lag = abs(s[1])
                 if lag >= self.min_lag and lag <= self.max_lag:
                     tmp_dag.add_source(t, s[0], utils.DSCORE, 0, s[1])
-        # tmp_dag.remove_unneeded_features()
         return tmp_dag

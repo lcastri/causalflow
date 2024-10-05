@@ -1,3 +1,10 @@
+"""
+This module provides the PCMCI class.
+
+Classes:
+    PCMCI: class containing the PCMCI causal discovery algorithm.
+"""
+
 from tigramite.pcmci import PCMCI as pcmci
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
@@ -10,9 +17,8 @@ from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMet
 
 
 class PCMCI(CausalDiscoveryMethod):
-    """
-    PCMCI causal discovery method.
-    """
+    """PCMCI causal discovery method."""
+    
     def __init__(self, 
                  data: Data, 
                  min_lag, max_lag, 
@@ -24,14 +30,14 @@ class PCMCI(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        PCMCI class constructor
+        Class constructor.
 
         Args:
-            data (Data): data to analyse
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            val_condtest (CondIndTest): validation method
-            verbosity (CPLevel): verbosity level
+            data (Data): data to analyse.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            val_condtest (CondIndTest): validation method.
+            verbosity (CPLevel): verbosity level.
             pc_alpha (float, optional): PC significance level. Defaults to 0.05.
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
@@ -53,12 +59,11 @@ class PCMCI(CausalDiscoveryMethod):
 
     def run(self) -> DAG:
         """
-        Run causal discovery algorithm
+        Run causal discovery algorithm.
 
         Returns:
-            (DAG): estimated causal model
+            (DAG): estimated causal model.
         """
-        
         CP.info('\n')
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
@@ -76,10 +81,10 @@ class PCMCI(CausalDiscoveryMethod):
     
     def _to_DAG(self):
         """
-        Re-elaborates the PCMCI result in a new dictionary
+        Re-elaborates the PCMCI result in a new dictionary.
 
         Returns:
-            (DAG): pcmci result re-elaborated
+            (DAG): pcmci result re-elaborated.
         """
         vars = self.data.features
         tmp_dag = DAG(vars, self.min_lag, self.max_lag)

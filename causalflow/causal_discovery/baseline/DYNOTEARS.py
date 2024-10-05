@@ -1,12 +1,18 @@
+"""
+This module provides the DYNOTEARS class.
+
+Classes:
+    DYNOTEARS: class containing the DYNOTEARS causal discovery algorithm.
+"""
+
 from causalnex.structure.dynotears import from_pandas_dynamic
 from causalflow.graph.DAG import DAG
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
 
 
 class DYNOTEARS(CausalDiscoveryMethod):
-    """
-    DYNOTEARS causal discovery method.
-    """
+    """DYNOTEARS causal discovery method."""
+    
     def __init__(self, 
                  data, 
                  min_lag,
@@ -17,27 +23,26 @@ class DYNOTEARS(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        DYNOTEARS class constructor
+        Class constructor.
 
         Args:
-            data (Data): data to analyse
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            verbosity (CPLevel): verbosity level
+            data (Data): data to analyse.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            verbosity (CPLevel): verbosity level.
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             clean_cls (bool): Clean console bit. Default to True.
         """
-        
         super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
         
     def run(self) -> DAG:
         """
-        Run DYNOTEARS algorithm
+        Run DYNOTEARS algorithm.
 
         Returns:
-            DAG: causal discovery result
+            DAG: causal discovery result.
         """
         graph_dict = dict()
         for name in self.data.features:
@@ -72,10 +77,10 @@ class DYNOTEARS(CausalDiscoveryMethod):
     
     def _to_DAG(self, graph):
         """
-        Re-elaborates the result in a DAG
+        Re-elaborate the result in a DAG.
 
         Returns:
-            (DAG): result re-elaborated
+            (DAG): result re-elaborated.
         """
         tmp_dag = DAG(self.data.features, self.min_lag, self.max_lag, self.neglect_only_autodep)
         tmp_dag.sys_context = dict()

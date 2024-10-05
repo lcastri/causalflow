@@ -1,3 +1,12 @@
+"""
+This module provides the support classes and various constants.
+
+Classes:
+    LabelType: label type.
+    LinkType: link type.
+    ImageExt: image extention.
+"""
+
 from enum import Enum
 
 SOURCE = 'source'
@@ -15,12 +24,16 @@ LOG_FILENAME = "log.txt"
 
 
 class LabelType(Enum):
+    """LabelType Enumerator."""
+    
     Lag = "Lag"
     Score = "Score"
     NoLabels = "NoLabels"
     
     
 class LinkType(Enum):
+    """LinkType Enumerator."""
+    
     Directed = "-->"
     Uncertain = "o-o"
     Bidirected = "<->"
@@ -28,6 +41,8 @@ class LinkType(Enum):
     
     
 class ImageExt(Enum):
+    """ImageExt Enumerator."""
+    
     PNG = ".png"
     PDF = ".pdf"
     JPG = ".jpg"

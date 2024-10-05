@@ -1,22 +1,28 @@
+"""
+This module provides the WSDynamic class.
+
+Classes:
+    WSDynamic: Subsampling method with dynamic window size based on entropy analysis.
+"""
+
 import ruptures as rpt
 from causalflow.preprocessing.subsampling_methods.EntropyBasedMethod import EntropyBasedMethod
 from causalflow.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod, SSMode
 
 
 class WSDynamic(SubsamplingMethod, EntropyBasedMethod):
-    """
-    Subsampling method with dynamic window size based on entropy analysis
-    """
+    """Subsampling method with dynamic window size based on entropy analysis."""
+    
     def __init__(self, window_min_size, entropy_threshold):
         """
-        WSDynamic class constructor
+        Class constructor.
 
         Args:
-            window_min_size (int): minimun window size
-            entropy_threshold (float): entropy threshold
+            window_min_size (int): minimun window size.
+            entropy_threshold (float): entropy threshold.
 
         Raises:
-            ValueError: if window_min_size == None
+            ValueError: if window_min_size == None.
         """
         SubsamplingMethod.__init__(self, SSMode.WSDynamic)
         EntropyBasedMethod.__init__(self, entropy_threshold)
@@ -25,10 +31,9 @@ class WSDynamic(SubsamplingMethod, EntropyBasedMethod):
         self.wms = window_min_size
         self.ws = None
 
+
     def dataset_segmentation(self):
-        """
-        Segments dataset based on breakpoint analysis and a min window size
-        """
+        """Segment dataset based on breakpoint analysis and a min window size."""
         de = self.create_rounded_copy()
         algo = rpt.Pelt(model = "l2", min_size = self.wms).fit(de)
         seg_res = algo.predict(pen = 10)
@@ -38,10 +43,10 @@ class WSDynamic(SubsamplingMethod, EntropyBasedMethod):
 
     def run(self):
         """
-        Run subsampler
+        Run subsampler.
 
         Returns:
-            (list[int]): indexes of the remaining samples
+            (list[int]): indexes of the remaining samples.
         """
         # build list of segment
         self.dataset_segmentation()

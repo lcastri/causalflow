@@ -1,31 +1,43 @@
+"""
+This module provides various classes for the creation of random system of equations.
+
+Classes:
+    NoiseType: support class for handling different types of noise.
+    PriorityOp: support class for handling different types of operator.
+    RandomGraph: facilitate the creation of random graphs.
+"""
+
 import copy
 from enum import Enum
 import math
 import random
 from matplotlib import pyplot as plt
 import numpy as np
-from causalflow.basics.constants import ImageExt, LinkType
 from causalflow.graph.DAG import DAG
-# from causalflow.graph.PAG_thread import PAG
 from causalflow.graph.PAG import PAG
 from causalflow.preprocessing.data import Data
-import networkx as nx
 
 NO_CYCLES_THRESHOLD = 10
 
 
 class NoiseType(Enum):
+    """NoiseType Enumerator."""
+    
     Uniform = 'uniform'
     Gaussian = 'gaussian'
     Weibull = 'weibull'
     
     
 class PriorityOp(Enum):
+    """PriorityOp Enumerator."""
+    
     M = '*'
     D = '/'
     
 
 class RandomGraph:
+    """RandomGraph Class."""
+    
     def __init__(self, nvars, nsamples, link_density, coeff_range: tuple, 
                  min_lag, max_lag, max_exp = None, noise_config: tuple = None, 
                  operators = ['+', '-', '*'], 
@@ -33,15 +45,15 @@ class RandomGraph:
                  n_hidden_confounders = 0,
                  n_confounded_vars = None):
         """
-        RandomDAG constructor
+        Class constructor.
 
         Args:
-            nvars (int): Number of variable
-            nsamples (int): Number of samples
-            link_density (int): Max number of parents per variable
-            coeff_range (tuple): Coefficient range. E.g. (-1, 1)
-            min_lag (int): Min lagged dependency
-            max_lag (int): Max lagged dependency
+            nvars (int): Number of variable.
+            nsamples (int): Number of samples.
+            link_density (int): Max number of parents per variable.
+            coeff_range (tuple): Coefficient range. E.g. (-1, 1).
+            min_lag (int): Min lagged dependency.
+            max_lag (int): Max lagged dependency.
             max_exp (int): Max permitted exponent used by the 'pow' function. Used only if 'pow' is in the list of functions. Defaults to None.
             noise_config (tuple, optional): Noise configuration, e.g. (NoiseType.Uniform, -0.1, 0.1). Defaults to None.
             operators (list, optional): list of possible operators between variables. Defaults to ['+', '-', '*'].
@@ -50,9 +62,8 @@ class RandomGraph:
             n_confounded_vars (int, optional): Number of confounded variables. If None, n_confounded_vars will be set as random.randint(2, nvars). Defaults to None.
 
         Raises:
-            ValueError: max_exp cannot be None if functions list contains pow
+            ValueError: max_exp cannot be None if functions list contains pow.
         """
-        
         if 'pow' in functions and max_exp is None:
             raise ValueError('max_exp cannot be None if functions list contains pow')
                
@@ -88,10 +99,10 @@ class RandomGraph:
     @property            
     def variables(self):
         """
-        Complete set of variables (observed and hidden)
+        Retrieve the full set of observed and hidden variables.
 
         Returns:
-            list: complete set of variables
+            list: A list containing both observed and hidden variables.
         """
         return self.obsVar + self.hiddenVar 
     
@@ -99,10 +110,10 @@ class RandomGraph:
     @property            
     def Nobs(self):
         """
-        Number of observable variables
+        Return number of observable variables.
 
         Returns:
-            int: number of observable variables
+            int: number of observable variables.
         """
         return len(self.obsVar) 
     
@@ -110,10 +121,10 @@ class RandomGraph:
     @property            
     def N(self):
         """
-        Total number of variables (observed and hidden)
+        Return total number of variables (observed and hidden).
 
         Returns:
-            int: total number of variables
+            int: total number of variables.
         """
         return len(self.obsVar) + len(self.hiddenVar)
     
@@ -121,10 +132,10 @@ class RandomGraph:
     @property
     def obsEquations(self):
         """
-        Equations corresponding to the observed variables
+        Return equations corresponding to the observed variables.
 
         Returns:
-            dict: equations corresponding to the observed variables
+            dict: equations corresponding to the observed variables.
         """
         tmp = copy.deepcopy(self.equations)
         for h in self.hiddenVar: del tmp[h]
@@ -133,13 +144,15 @@ class RandomGraph:
                 
     def __build_equation(self, var_lagged_choice: list, var_contemp_choice: list, target_var):
         """
-        Generates random equations
+        Generate random equations.
 
         Args:
-            var_choice (list): list of possible parents for the target variable
+            var_lagged_choice (list): list of possible lagged parents for the target variable.
+            var_contemp_choice (list): list of possible contemporaneous parents for the target variable.
+            target_var (str): target variable.
 
         Returns:
-            list: equation (list of tuple)
+            list: equation (list of tuple).
         """
         no_cycles_attempt = 0
         equation = []
@@ -173,8 +186,17 @@ class RandomGraph:
     
     def __creates_cycle(self, target_var_lag, variable_lag):
         """
-        Checks if adding an edge from variable_lag to target_var_lag would create a cycle
-        considering only the same time lag
+        Check the presence of cycles.
+        
+        Specifically, it checks whether adding an edge from variable_lag to target_var_lag 
+        creates a cycle considering only the same time lag
+
+        Args:
+            target_var_lag (str): target node.
+            variable_lag (str): source node.
+
+        Returns:
+            bool: True if it finds cycles. Otherwise False.
         """
         target_var, target_lag = target_var_lag
         variable, lag = variable_lag
@@ -199,9 +221,7 @@ class RandomGraph:
 
 
     def gen_equations(self):
-        """
-        Generates random equations using the operator and function lists provided in the constructor 
-        """
+        """Generate random equations using the operator and function lists provided in the constructor."""
         for var in self.obsVar:
             var_lagged_choice = copy.deepcopy(self.obsVar)
             var_contemp_choice = copy.deepcopy(var_lagged_choice)
@@ -218,9 +238,7 @@ class RandomGraph:
                
         
     def __add_conf_links(self):
-        """
-        Adds confounder links to a predefined causal model
-        """
+        """Add confounder links to a predefined causal model."""
         no_cycles_attempt = 0
         self.expected_bidirected_links = list()
         firstvar_choice = copy.deepcopy(self.obsVar)
@@ -272,7 +290,6 @@ class RandomGraph:
                         if not (source, 0) in self.get_Adj()[target]:
                             self.expected_bidirected_links.append({target: (source, 0)})
             else:    
-                # self.potentialIntervention[hid]['type'] = 'lagged'  
                 var_choice = copy.deepcopy(self.obsVar)
                 firstConf = True
                 source = None
@@ -333,9 +350,7 @@ class RandomGraph:
 
 
     def print_equations(self):
-        """
-        Prints the generated equations
-        """
+        """Print the generated equations."""
         toprint = list()
         for target, eq in self.equations.items():
             equation_str = target + '(t) = '
@@ -370,15 +385,15 @@ class RandomGraph:
             
     def __evaluate_term(self, term, t, data):
         """
-        Evaluates single term componing an equation
+        Evaluate single term componing an equation.
 
         Args:
-            term (tuple): term to evaluate
-            t (int): time step
-            data (numpy array): time-series
+            term (tuple): term to evaluate.
+            t (int): time step.
+            data (numpy array): time-series.
 
         Returns:
-            tuple: operator and value of the term
+            tuple: operator and value of the term.
         """
         operator, coefficient, function, variable, *args = term
         if function == '':
@@ -398,13 +413,13 @@ class RandomGraph:
     
     def __handle_priority_operator(self, eq):
         """
-        Evaluates all the terms with operato * ans /
+        Evaluate all the terms with operato * ans /.
 
         Args:
-            eq (list): equation (list of term)
+            eq (list): equation (list of term).
 
         Returns:
-            list: equation with all * and / evaluated
+            list: equation with all * and / evaluated.
         """
         op = '*'
         while (op in eq):
@@ -431,14 +446,15 @@ class RandomGraph:
 
     def __evaluate_equation(self, equation, t, data):
         """
-        Evaluates equation
+        Evaluate equation.
 
         Args:
-            equation (list): equation (list of term)
-            t (int): time step
-
+            equation (list): equation (list of term).
+            t (int): time step.
+            data (numpy array): time-series.
+        
         Returns:
-            float: equation value
+            float: equation value.
         """
         eq = list()
         for i, term in enumerate(equation):
@@ -463,10 +479,10 @@ class RandomGraph:
 
     def gen_obs_ts(self):
         """
-        Generates time-series data
+        Generate time-series data.
 
         Returns:
-            Data: generated data
+            Data: generated data.
         """
         np_data = np.zeros((self.T, self.N))
         for t in range(self.T):
@@ -486,13 +502,14 @@ class RandomGraph:
     
     def gen_interv_ts(self, interventions, obs):
         """
-        Generates time-series corresponding to intervention(s)
+        Generate time-series corresponding to intervention(s).
 
         Args:
-            interventions (dict): dictionary {INT_VAR : {INT_LEN: int_len, INT_VAL: int_val}}
-
+            interventions (dict): dictionary {INT_VAR : {INT_LEN: int_len, INT_VAL: int_val}}.
+            obs (DataFrame): Observational DataFrame.
+        
         Returns:
-            Data: interventional time-series data
+            Data: interventional time-series data.
         """
         starting_point = obs.values
         int_data = dict()
@@ -524,10 +541,10 @@ class RandomGraph:
     
     def get_DPAG(self):
         """
-        Outputs the PAG starting from a DAG
+        Output the PAG starting from a DAG.
 
         Returns:
-            dict: scm
+            dict: scm.
         """
         if self.PAG is None:
             scm = self.get_Adj(withHidden=True)
@@ -537,10 +554,10 @@ class RandomGraph:
     
     def get_Adj(self, withHidden = False):
         """
-        Outputs the Structural Causal Model
+        Output the Structural Causal Model.
 
         Returns:
-            dict: scm
+            dict: scm.
         """
         eqs = self.equations if withHidden else self.obsEquations
         scm = {target : list() for target in eqs.keys()}
@@ -556,24 +573,23 @@ class RandomGraph:
     
     
     def print_SCM(self, withHidden = False):
-        """
-        Prints the Structural Causal Model
-        """
+        """Print the Structural Causal Model."""
         scm = self.get_Adj(withHidden)
         for t in scm: print(t + ' : ' + str(scm[t]))    
           
         
     def intervene(self, int_var, int_len, int_value, obs):
         """
-        Generates intervention on a single variable
+        Generate intervention on a single variable.
 
         Args:
-            int_var (str): variable name
-            int_len (int): intervention length
-            int_value (float): intervention value
-
+            int_var (str): variable name.
+            int_len (int): intervention length.
+            int_value (float): intervention value.
+            obs (DataFrame): Observational DataFrame.
+            
         Returns:
-            Data: interventional time-series data
+            Data: interventional time-series data.
         """
         if not isinstance(int_var, list): int_var = [int_var]
         if not isinstance(int_len, list): int_len = [int_len]
@@ -583,11 +599,12 @@ class RandomGraph:
     
     def ts_dag(self, withHidden = False, save_name = None, randomColors = False):
         """
-        Draws a Time-seris DAG
+        Draw a Time-seris DAG.
 
         Args:
             withHidden (bool, optional): bit to decide whether to output the SCM including the hidden variables or not. Defaults to False.
             save_name (str, optional): figure path. Defaults to None.
+            randomColors (bool, optional): random color for each node. Defaults to False.
         """
         gt = self.get_Adj(withHidden) if withHidden else self.get_DPAG()
         var = self.variables if withHidden else self.obsVar

@@ -1,23 +1,28 @@
+"""
+This module provides the WSStatic class.
+
+Classes:
+    WSStatic: Entropy based subsampling method with static window size.
+"""
+
 from causalflow.preprocessing.subsampling_methods.EntropyBasedMethod import EntropyBasedMethod
 from causalflow.preprocessing.subsampling_methods.SubsamplingMethod import SubsamplingMethod, SSMode
 
 
 class WSStatic(SubsamplingMethod, EntropyBasedMethod):
-    """
-    Entropy based subsampling method with static window size
-    """
+    """Entropy based subsampling method with static window size."""
+    
     def __init__(self, window_size, entropy_threshold):
         """
-        WSStatic class constructor
+        Class constructor.
         
         Args:
-            window_size (int): minimun window size
-            entropy_threshold (float): entropy threshold
+            window_size (int): minimun window size.
+            entropy_threshold (float): entropy threshold.
 
         Raises:
-            ValueError: if window_size == None
+            ValueError: if window_size == None.
         """
-        
         SubsamplingMethod.__init__(self, SSMode.WSDynamic)
         EntropyBasedMethod.__init__(self, entropy_threshold)
         if window_size is None:
@@ -26,9 +31,7 @@ class WSStatic(SubsamplingMethod, EntropyBasedMethod):
 
 
     def dataset_segmentation(self):
-        """
-        Segments dataset with a fixed window size
-        """
+        """Segment dataset with a fixed window size."""
         seg_res = [i for i in range(0, len(self.df.values), self.ws)]
         self.segments = [(i, i + self.ws) for i in range(0, len(self.df.values) - self.ws, self.ws)]
         if not seg_res.__contains__(len(self.df.values)):
@@ -38,10 +41,10 @@ class WSStatic(SubsamplingMethod, EntropyBasedMethod):
 
     def run(self):
         """
-        Run subsampler
+        Run subsampler.
 
         Returns:
-            (list[int]): indexes of the remaining samples
+            (list[int]): indexes of the remaining samples.
         """
         # build list of segment
         self.dataset_segmentation()

@@ -1,3 +1,11 @@
+"""
+This module provides various classes for Transfer Entropy-based feature selection analysis.
+
+Classes:
+    TEestimator: support class for handling different Transfer Entropy estimators.
+    TE: Transfer Entropy class.
+"""
+
 import copy
 from enum import Enum
 import numpy as np
@@ -11,6 +19,8 @@ import importlib
 
 
 class TEestimator(Enum):
+    """TEestimator Enumerator."""
+    
     Auto = 'Auto'
     Gaussian = 'JidtGaussianCMI'
     Kraskov = 'JidtKraskovCMI'
@@ -18,15 +28,14 @@ class TEestimator(Enum):
 
 
 class TE(SelectionMethod):
-    """
-    Feature selection method based on Trasfer Entropy analysis
-    """
+    """Feature selection method based on Trasfer Entropy analysis."""
+    
     def __init__(self, estimator: TEestimator):
         """
-        TE class contructor
+        Class contructor.
 
         Args:
-            estimator (TEestimator): Gaussian/Kraskov
+            estimator (TEestimator): Gaussian/Kraskov.
         """
         super().__init__(CTest.TE)
         self.estimator = estimator
@@ -34,10 +43,10 @@ class TE(SelectionMethod):
     @property
     def isOpenCLinstalled(self):
         """
-        checks whether the pyopencl pkg is installed
+        Check whether the pyopencl pkg is installed.
 
         Returns:
-            bool: True if pyopencl is installed
+            bool: True if pyopencl is installed.
         """
         try:
             importlib.import_module('pyopencl')
@@ -46,9 +55,7 @@ class TE(SelectionMethod):
             return False
         
     def _select_estimator(self):
-        """
-        selects the TE estimator
-        """
+        """Select the TE estimator."""
         CP.info("\n##")
         CP.info("## TE Estimator selection")
         CP.info("##")
@@ -84,10 +91,10 @@ class TE(SelectionMethod):
 
     def compute_dependencies(self):
         """
-        compute list of dependencies for each target by transfer entropy analysis
+        Compute list of dependencies for each target by transfer entropy analysis.
 
         Returns:
-            (DAG): dependency dag
+            (DAG): dependency dag.
         """
         if self.estimator is TEestimator.Auto: self._select_estimator()
 

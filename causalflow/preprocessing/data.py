@@ -1,3 +1,10 @@
+"""
+This module provides the Data class.
+
+Classes:
+    Data: public class for handling data used for the causal discovery.
+"""
+
 import numpy as np
 import pandas as pd
 from matplotlib import gridspec
@@ -8,15 +15,14 @@ from causalflow.preprocessing.subsampling_methods.SubsamplingMethod import Subsa
 
 
 class Data():
-    """
-    Data class manages the preprocess of the data before the causal analysis
-    """
+    """Data class manages the preprocess of the data before the causal analysis."""
+    
     def __init__(self, data, vars = None, fill_nan = True, stand = False, subsampling : SubsamplingMethod = None, show_subsampling = False):
         """
-        Data class constructor
+        Class constructor.
 
         Args:
-            data (str/DataFrame/np.array): it can be a string specifing the path of a csv file to load/pandas.DataFrame/numpy.array
+            data (str/DataFrame/np.array): it can be a string specifing the path of a csv file to load/pandas.DataFrame/numpy.array.
             vars (list(str), optional): List containing variable names. If unset then, 
                 if data = (str/DataFrame) vars = data columns name elif data = np.array vars = [X_0 .. X_N]
                 Defaults to None.
@@ -26,7 +32,7 @@ class Data():
             show_subsampling (bool, optional): If True shows subsampling result. Defaults to False.
 
         Raises:
-            TypeError: if data is not str - DataFrame - ndarray
+            TypeError: if data is not str - DataFrame - ndarray.
         """
         # Data handling
         if type(data) == np.ndarray:
@@ -71,60 +77,60 @@ class Data():
     @property  
     def features(self):
         """
-        Returns list of features
+        Return list of features.
 
         Returns:
-            list(str): list of feature names
+            list(str): list of feature names.
         """
         return list(self.d.columns)
 
     @property
     def pretty_features(self):
         """
-        Returns list of features with LATEX symbols
+        Return list of features with LATEX symbols.
                 
         Returns:
-            list(str): list of feature names
+            list(str): list of feature names.
         """
         return [r'$' + str(v) + '$' for v in self.d.columns]
     
     @property
     def N(self):
         """
-        Number of features
+        Number of features.
         
         Returns:
-            (int): number of features
+            (int): number of features.
         """
         return len(self.d.columns)
 
     @property
     def T(self):
         """
-        Dataframe length
+        Dataframe length.
         
         Returns:
-            (int): dataframe length
+            (int): dataframe length.
         """
         return len(self.d)
                        
             
     def shrink(self, selected_features):
         """
-        Shrinks dataframe d on the selected features
+        Shrink dataframe d on the selected features.
 
         Args:
-            selected_features (list(str)): list of variables
+            selected_features (list(str)): list of variables.
         """
         self.d = self.d[selected_features]
         
                     
     def plot_timeseries(self, savefig = None):
         """
-        Plots timeseries data
+        Plot timeseries data.
         
         Args:
-            savefig (str): figure path
+            savefig (str): figure path.
         """
         # Create grid
         gs = gridspec.GridSpec(self.N, 1)
@@ -146,9 +152,9 @@ class Data():
             
     def save_csv(self, csvpath):
         """
-        Saves timeseries data into a CSV file
+        Save timeseries data into a CSV file.
         
         Args:
-            csvpath (str): CSV path
+            csvpath (str): CSV path.
         """
         self.d.to_csv(csvpath, index=False)

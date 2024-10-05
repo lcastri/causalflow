@@ -1,3 +1,10 @@
+"""
+This module provides the LPCMCI class.
+
+Classes:
+    LPCMCI: class containing the LPCMCI causal discovery algorithm.
+"""
+
 from causalflow.causal_discovery.tigramite.lpcmci import LPCMCI as lpcmci
 from tigramite.independence_tests.independence_tests_base import CondIndTest
 import tigramite.data_processing as pp
@@ -10,9 +17,8 @@ from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMet
 from tigramite.plotting import plot_time_series_graph
 
 class LPCMCI(CausalDiscoveryMethod):
-    """
-    LPCMCI causal discovery method.
-    """
+    """LPCMCI causal discovery method."""
+    
     def __init__(self, 
                  data: Data,
                  min_lag, max_lag, 
@@ -23,14 +29,14 @@ class LPCMCI(CausalDiscoveryMethod):
                  neglect_only_autodep = False,
                  clean_cls = True):
         """
-        LPCMCI class constructor
+        Class constructor.
 
         Args:
-            data (Data): data to analyse
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            val_condtest (CondIndTest): validation method
-            verbosity (CPLevel): verbosity level
+            data (Data): data to analyse.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            val_condtest (CondIndTest): validation method.
+            verbosity (CPLevel): verbosity level.
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
@@ -50,12 +56,11 @@ class LPCMCI(CausalDiscoveryMethod):
 
     def run(self, link_assumptions = None) -> DAG:
         """
-        Run causal discovery algorithm
+        Run causal discovery algorithm.
 
         Returns:
-            (DAG): estimated causal model
+            (DAG): estimated causal model.
         """
-        
         CP.info('\n')
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
@@ -74,10 +79,10 @@ class LPCMCI(CausalDiscoveryMethod):
     
     def _to_DAG(self):
         """
-        Re-elaborates the PCMCI result in a new dictionary
+        Re-elaborate the PCMCI result in a new dictionary.
 
         Returns:
-            (DAG): pcmci result re-elaborated
+            (DAG): lpcmci result re-elaborated.
         """
         vars = self.data.features
         tmp_dag = DAG(vars, self.min_lag, self.max_lag)

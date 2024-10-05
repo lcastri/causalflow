@@ -1,3 +1,10 @@
+"""
+This module provides the CAnDOIT class.
+
+Classes:
+    CAnDOIT: class containing the CAnDOIT causal discovery algorithm.
+"""
+
 import copy
 import pickle
 import numpy as np
@@ -13,16 +20,7 @@ from causalflow.causal_discovery.support.myLPCMCI import myLPCMCI
 from causalflow.graph.DAG import DAG
 
 class CAnDOIT(CausalDiscoveryMethod):
-    """
-    CAnDOIT causal discovery method.
-
-    CAnDOIT is a causal discovery method that uses observational and interventional data to reconstruct 
-    causal models from large-scale time series datasets.
-    Starting from a Data object and it selects the main features responsible for the
-    evolution of the analysed system. Based on the selected features, the framework outputs a causal model.
-    It extends F-PCMCI by introducing the possibility to perform the causal analysis using 
-    observational and interventional data.
-    """
+    """CAnDOIT causal discovery method."""
 
     def __init__(self, 
                  observation_data: Data, 
@@ -35,25 +33,27 @@ class CAnDOIT(CausalDiscoveryMethod):
                  resfolder = None,
                  neglect_only_autodep = False,
                  exclude_context = True,
-                 plot_data = False):
+                 plot_data = False,
+                 clean_cls = True):
         """
-        CAnDOIT class contructor
+        Class contructor.
 
         Args:
-            observation_data (Data): observational data to analyse
-            intervention_data (dict): interventional data to analyse in the form {INTERVENTION_VARIABLE : Data (same variables of observation_data)}
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            sel_method (SelectionMethod): selection method
-            val_condtest (CondIndTest): validation method
-            verbosity (CPLevel): verbosity level
+            observation_data (Data): observational data to analyse.
+            intervention_data (dict): interventional data to analyse in the form {INTERVENTION_VARIABLE : Data (same variables of observation_data)}.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            sel_method (SelectionMethod): selection method.
+            val_condtest (CondIndTest): validation method.
+            verbosity (CPLevel): verbosity level.
             f_alpha (float, optional): filter significance level. Defaults to 0.05.
             alpha (float, optional): PCMCI significance level. Defaults to 0.05.
             resfolder (string, optional): result folder to create. Defaults to None.
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             exclude_context (bool, optional): Bit for neglecting context variables. Defaults to False.
+            plot_data (bool, optional): Bit for plotting your data. Defaults to False.
+            clean_cls (bool): Clean console bit. Default to True.
         """
-        
         self.obs_data = observation_data
         self.systems = observation_data.features
         self.contexts = []
@@ -67,7 +67,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         self.sel_method = sel_method
         self.val_condtest = val_condtest
         self.exclude_context = exclude_context
-        super().__init__(self.obs_data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep)
+        super().__init__(self.obs_data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
         
         # Create filter and validator data
         self.filter_data, self.validator_data = self._prepare_data(self.obs_data, intervention_data, plot_data)
@@ -87,18 +87,16 @@ class CAnDOIT(CausalDiscoveryMethod):
     @property    
     def isThereInterv(self):
         """
-        is there an intervention?
+        Check whether an intervention is present or not.
 
         Returns:
-            bool: flag to identify if an intervention is present or not
+            bool: flag to identify if an intervention is present or not.
         """
         return len(list(self.sys_context.keys())) > 0
     
     
     def JCI_assumptions(self):
-        """
-        Initialises the algorithm initial causal structure with the JCI assumptions 
-        """
+        """Initialise the algorithm initial causal structure with the JCI assumptions."""
         # ! JCI Assmpution 1: No system variable causes any context variable
         # ! JCI Assmpution 2: No context variable is confounded with a system variable
         # ! JCI Assmpution 3: The context distribution contains no (conditional) independences
@@ -158,9 +156,7 @@ class CAnDOIT(CausalDiscoveryMethod):
     
 
     def run_filter(self):
-        """
-        Run filter method
-        """
+        """Run filter method."""
         CP.info("Selecting relevant features among: " + str(self.filter_data.features))
        
         self.sel_method.initialise(self.obs_data, self.f_alpha, self.min_lag, self.max_lag, self.CM)
@@ -169,13 +165,13 @@ class CAnDOIT(CausalDiscoveryMethod):
     
     def run_validator(self, link_assumptions = None):
         """
-        Runs Validator (LPCMCI)
+        Run Validator (LPCMCI).
 
         Args:
             link_assumptions (dict, optional): link assumption with context. Defaults to None.
 
         Returns:
-            DAG: causal model with context
+            DAG: causal model with context.
         """
         self.validator = myLPCMCI(self.validator_data,
                                 self.min_lag, self.max_lag,
@@ -191,12 +187,11 @@ class CAnDOIT(CausalDiscoveryMethod):
     
     def run(self, remove_unneeded = True, nofilter = False) -> DAG:
         """
-        Run CAnDOIT
+        Run CAnDOIT.
         
         Returns:
-            DAG: causal model
+            DAG: causal model.
         """
-               
         link_assumptions = None
             
         if not nofilter:
@@ -241,10 +236,10 @@ class CAnDOIT(CausalDiscoveryMethod):
     
     def load(self, res_path):
         """
-        Loads previously estimated result 
+        Load previously estimated result.
 
         Args:
-            res_path (str): pickle file path
+            res_path (str): pickle file path.
         """
         with open(res_path, 'rb') as f:
             r = pickle.load(f)
@@ -256,9 +251,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             
             
     def save(self):
-        """
-        Save causal discovery result as pickle file if resfolder is set
-        """
+        """Save causal discovery result as pickle file if resfolder is set."""
         if self.respath is not None:
             if self.CM:
                 res = dict()
@@ -276,17 +269,16 @@ class CAnDOIT(CausalDiscoveryMethod):
                 
     def _prepare_data(self, obser_data, inter_data, plot_data):
         """
-        Prepares data for filter and validator phases
+        Prepare data for filter and validator phases.
         
         Args:
-            obser_data (Data): observational data
-            inter_data (Data): interventional data
-            plot_data (bool): boolean bit to plot the generated data
+            obser_data (Data): observational data.
+            inter_data (Data): interventional data.
+            plot_data (bool): boolean bit to plot the generated data.
 
         Returns:
-            Data, Data: filter data obj and validator data obj     
+            Data, Data: filter data obj and validator data obj.
         """
-        
         # Filter phase data preparation
         filter_data = copy.deepcopy(obser_data.d)
         for int_data in inter_data.values(): filter_data = pd.concat([filter_data, int_data.d], axis = 0, ignore_index = True)
@@ -321,62 +313,3 @@ class CAnDOIT(CausalDiscoveryMethod):
         
         if plot_data: validator_data.plot_timeseries()
         return filter_data, validator_data
-    
-    
-    # def _check_autodependency(self, data: Data, dag: DAG, link_assumptions, min_lag) -> DAG:
-    #     """
-    #     Run MCI test on observational data using the causal structure computed by the validator 
-
-    #     Args:
-    #         data (Data): Data obj to analyse
-    #         dag (DAG): causal model
-    #         link_assumptions (dict): prior assumptions on causal model links. Defaults to None.
-
-    #     Returns:
-    #         (DAG): estimated causal model
-    #     """
-        
-    #     CP.info("\n##")
-    #     CP.info("## Auto-dependency check on observational data")
-    #     CP.info("##")
-        
-    #     # build tigramite dataset
-    #     vector = np.vectorize(float)
-    #     d = vector(data.d)
-    #     dataframe = pp.DataFrame(data = d, var_names = data.features)
-        
-    #     # init and run pcmci
-    #     self.val_method = PCMCI(dataframe = dataframe,
-    #                           cond_ind_test = self.val_condtest,
-    #                           verbosity = 0)
-        
-    #     # _int_link_assumptions = self.val_method._set_link_assumptions(link_assumptions, min_lag, self.max_lag)
-
-    #     # Set the maximum condition dimension for Y and X
-    #     max_conds_py = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
-    #     max_conds_px = self.val_method._set_max_condition_dim(None, min_lag, self.max_lag)
-        
-    #     # Get the parents that will be checked
-    #     _int_parents = self.val_method._get_int_parents(dag.get_Adj(indexed = True))
-
-    #     # Get the conditions as implied by the input arguments
-    #     links_tocheck = self.val_method._iter_indep_conds(_int_parents, link_assumptions, max_conds_py, max_conds_px)
-    #     for j, i, tau, Z in links_tocheck:
-    #         if data.features[j] not in dag.autodep_nodes or j != i: continue
-    #         else:
-    #             # Set X and Y (for clarity of code)
-    #             X = [(i, tau)]
-    #             Y = [(j, 0)]
-                
-    #             CP.info("\tlink: (" + data.features[i] + " " + str(tau) + ") -?> (" + data.features[j] + "):")
-    #             # Run the independence tests and record the results
-    #             val, pval = self.val_method.cond_ind_test.run_test(X, Y, Z = Z, tau_max = self.max_lag)
-    #             if pval > self.alpha:
-    #                 dag.del_source(data.features[j], data.features[j], abs(tau))
-    #                 CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- removed")
-    #             else:
-    #                 dag.g[data.features[j]].sources[(data.features[i], abs(tau))][SCORE] = val
-    #                 dag.g[data.features[j]].sources[(data.features[i], abs(tau))][PVAL] = pval
-    #                 CP.info("\t|val = " + str(round(val,3)) + " |pval = " + str(str(round(pval,3))) + " -- ok")
-                
-    #     return dag

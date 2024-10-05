@@ -1,15 +1,22 @@
+"""
+This module provides the Node class.
+
+Classes:
+    Node: class for facilitating the handling and the creation of nodes for a DAG.
+"""
+
 from causalflow.basics.constants import SCORE
 
-
 class Node():
+    """Node class."""
     
     def __init__(self, name, neglect_autodep):
         """
-        Node class contructer
+        Class contructor.
 
         Args:
-            name (str): node name
-            neglect_autodep (bool): flag to decide whether to to skip the node if it is only auto-dependent
+            name (str): node name.
+            neglect_autodep (bool): flag to decide whether to to skip the node if it is only auto-dependent.
         """
         self.name = name
         self.sources = dict()
@@ -22,10 +29,10 @@ class Node():
     @property
     def is_autodependent(self) -> bool:
         """
-        Returns True if the node is autodependent
+        Return True if the node is autodependent.
 
         Returns:
-            bool: Returns True if the node is autodependent. Otherwise False
+            bool: Returns True if the node is autodependent. Otherwise False.
         """
         return self.name in self.sourcelist
     
@@ -33,10 +40,10 @@ class Node():
     @property
     def is_isolated(self) -> bool:
         """
-        Returns True if the node is isolated
+        Return True if the node is isolated.
 
         Returns:
-            bool: Returns True if the node is isolated. Otherwise False
+            bool: Returns True if the node is isolated. Otherwise False.
         """
         if self.neglect_autodep:
             return (self.is_exogenous and not self.has_child) or self.is_only_autodep or self.is_only_autodep_context
@@ -46,10 +53,10 @@ class Node():
     @property
     def is_only_autodep(self) -> bool:
         """
-        Returns True if the node is ONLY auto-dependent
+        Return True if the node is ONLY auto-dependent.
 
         Returns:
-            bool: Returns True if the node is ONLY auto-dependent. Otherwise False
+            bool: Returns True if the node is ONLY auto-dependent. Otherwise False.
         """
         return len(self.sources) == 1 and self.name in self.sourcelist and len(self.children) == 1 and self.name in self.children
     
@@ -57,10 +64,10 @@ class Node():
     @property
     def has_only_context(self) -> bool:
         """
-        Returns True if the node has ONLY the context variable as parent
+        Return True if the node has ONLY the context variable as parent.
 
         Returns:
-            bool: Returns True if the node has ONLY the context variable as parent. Otherwise False
+            bool: Returns True if the node has ONLY the context variable as parent. Otherwise False.
         """
         return len(self.sources) == 1 and self.associated_context in self.sourcelist
     
@@ -68,10 +75,10 @@ class Node():
     @property
     def is_only_autodep_context(self) -> bool:
         """
-        Returns True if the node has ONLY the context variable and itself as parent
+        Return True if the node has ONLY the context variable and itself as parent.
 
         Returns:
-            bool: Returns True if the node has ONLY the context variable and itself as parent. Otherwise False
+            bool: Returns True if the node has ONLY the context variable and itself as parent. Otherwise False.
         """
         return len(self.sources) == 2 and self.name in self.sourcelist and self.associated_context in self.sourcelist and len(self.children) == 1 and self.name in self.children
     
@@ -79,10 +86,10 @@ class Node():
     @property
     def is_exogenous(self) -> bool:
         """
-        Returns True if the node has no parents
+        Return True if the node has no parents.
 
         Returns:
-            bool: Returns True if the node has no parents. Otherwise False
+            bool: Returns True if the node has no parents. Otherwise False.
         """
         return len(self.sources) == 0
         
@@ -90,10 +97,10 @@ class Node():
     @property
     def has_child(self) -> bool:
         """
-        Returns True if the node has at least one child
+        Return True if the node has at least one child.
 
         Returns:
-            bool: Returns True if the node has at least one child. Otherwise False
+            bool: Returns True if the node has at least one child. Otherwise False.
         """
         return len(self.children) > 0
     
@@ -101,10 +108,10 @@ class Node():
     @property
     def sourcelist(self) -> list:
         """
-        Returns list of source names
+        Return list of source names.
 
         Returns:
-            list(str): Returns list of source names
+            list(str): Returns list of source names.
         """
         return [s[0] for s in self.sources]
     
@@ -112,10 +119,10 @@ class Node():
     @property
     def autodependency_links(self) -> list:
         """
-        Returns list of autodependency links
+        Return list of autodependency links.
 
         Returns:
-            list: Returns list of autodependency links
+            list: Returns list of autodependency links.
 
         """
         autodep_links = list()
@@ -129,10 +136,10 @@ class Node():
     @property
     def get_max_autodependent(self) -> float:
         """
-        Returns max score of autodependent link
+        Return max score of autodependent link.
 
         Returns:
-            float: Returns max score of autodependent link
+            float: Returns max score of autodependent link.
         """
         max_score = 0
         max_s = None

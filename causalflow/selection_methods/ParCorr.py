@@ -1,29 +1,33 @@
+"""
+This module provides various classes for Partial Correlation-based feature selection analysis.
+
+Classes:
+    ParCorr: Partial Correlation class.
+"""
+
 from causalflow.selection_methods.SelectionMethod import SelectionMethod, CTest
 from causalflow.CPrinter import CP
 from scipy import stats, linalg
 import numpy as np
 
 class ParCorr(SelectionMethod):
-    """
-    Feature selection method based on Partial Correlation analysis
-    """
+    """Feature selection method based on Partial Correlation analysis."""
+    
     def __init__(self):
-        """
-        ParCorr class contructor
-        """
+        """Class contructor."""
         super().__init__(CTest.Corr)
 
 
     def get_residual(self, covar, target):
         """
-        Calculate residual of the target variable obtaining conditioning on the covar variables
+        Calculate residual of the target variable obtaining conditioning on the covar variables.
 
         Args:
-            covar (np.array): conditioning variables
-            target (np.array): target variable
+            covar (np.array): conditioning variables.
+            target (np.array): target variable.
 
         Returns:
-            (np.array): residual
+            (np.array): residual.
         """
         beta = np.linalg.lstsq(covar, target, rcond=None)[0]
         return target - np.dot(covar, beta)
@@ -31,27 +35,26 @@ class ParCorr(SelectionMethod):
 
     def partial_corr(self, X, Y, Z):
         """
-        Calculate Partial correlation between X and Y conditioning on Z
+        Calculate Partial correlation between X and Y conditioning on Z.
 
         Args:
-            X (np.array): source candidate variable
-            Y (np.array): target variable
-            Z (np.array): conditioning variable
+            X (np.array): source candidate variable.
+            Y (np.array): target variable.
+            Z (np.array): conditioning variable.
 
         Returns:
-            (float, float): partial correlation, p-value
+            (float, float): partial correlation, p-value.
         """
-
         pcorr, pval = stats.pearsonr(self.get_residual(Z, X), self.get_residual(Z, Y))
 
         return pcorr, pval
 
     def compute_dependencies(self):
         """
-        compute list of dependencies for each target by partial correlation analysis
+        Compute list of dependencies for each target by partial correlation analysis.
 
         Returns:
-            (dict): dictonary(TARGET: list SOURCES)
+            (dict): dictonary(TARGET: list SOURCES).
         """
         CP.info("\n##")
         CP.info("## " + self.name + " analysis")

@@ -1,3 +1,10 @@
+"""
+This module provides the myPCMCI class.
+
+Classes:
+    myPCMCI: support class for F-PCMCI.
+"""
+
 from tigramite.pcmci import PCMCI as VAL
 from tigramite.lpcmci import LPCMCI
 from tigramite.independence_tests.independence_tests_base import CondIndTest
@@ -13,18 +20,19 @@ class myPCMCI():
     """
     myPCMCI class.
     
-    It wraps the PCMCI causal disocvery method and augments it with some functionalities for F-PCMCI and CAnDOIT.
+    It wraps the PCMCI causal disocvery method and augments it wth some functionalities for F-PCMCI.
     """
+    
     def __init__(self, alpha, min_lag, max_lag, val_condtest: CondIndTest, verbosity: CPLevel, sys_context = dict(), neglect_only_autodep = False):
         """
-        PCMCI class constructor
+        Class constructor.
 
         Args:
-            alpha (float): significance level
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
-            val_condtest (CondIndTest): validation method
-            verbosity (CPLevel): verbosity level
+            alpha (float): significance level.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
+            val_condtest (CondIndTest): validation method.
+            verbosity (CPLevel): verbosity level.
         """
         self.alpha = alpha
         self.min_lag = min_lag
@@ -40,16 +48,15 @@ class myPCMCI():
 
     def run(self, data: Data, link_assumptions = None):
         """
-        Run causal discovery algorithm
+        Run causal discovery algorithm.
 
         Args:
-            data (Data): Data obj to analyse
+            data (Data): Data obj to analyse.
             link_assumptions (dict, optional): prior assumptions on causal model links. Defaults to None.
 
         Returns:
-            (DAG): estimated causal model
-        """
-        
+            (DAG): estimated causal model.
+        """       
         CP.info('\n')
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
@@ -80,16 +87,15 @@ class myPCMCI():
     
     def run_plus(self, data: Data, link_assumptions = None):
         """
-        Run causal discovery algorithm
+        Run causal discovery algorithm.
 
         Args:
-            data (Data): Data obj to analyse
+            data (Data): Data obj to analyse.
             link_assumptions (dict, optional): prior assumptions on causal model links. Defaults to None.
 
         Returns:
-            (DAG): estimated causal model
+            (DAG): estimated causal model.
         """
-        
         CP.info('\n')
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
@@ -119,10 +125,10 @@ class myPCMCI():
            
     def _to_DAG(self):
         """
-        Re-elaborates the PCMCI result in a new dictionary
+        Re-elaborate the PCMCI result in a new dictionary.
 
         Returns:
-            (DAG): pcmci result re-elaborated
+            (DAG): pcmci result re-elaborated.
         """
         vars = self.result['var_names']
         tmp_dag = DAG(vars, self.min_lag, self.max_lag)

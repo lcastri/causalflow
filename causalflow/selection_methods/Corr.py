@@ -1,21 +1,25 @@
+"""
+This module provides various classes for Correlation-based feature selection analysis.
+
+Classes:
+    Corr: Correlation class.
+"""
+
 from causalflow.selection_methods.SelectionMethod import SelectionMethod, CTest
 from sklearn.feature_selection import f_regression
 from causalflow.CPrinter import CP
 
 class Corr(SelectionMethod):
-    """
-    Feature selection method based on Correlation analysis
-    """
+    """Feature selection method based on Correlation analysis."""
+    
     def __init__(self):
-        """
-        Corr contructor class
-        """
+        """Contructor class."""
         super().__init__(CTest.Corr)
 
 
     def compute_dependencies(self):
         """
-        compute list of dependencies for each target by correlation analysis
+        Compute list of dependencies for each target by correlation analysis.
 
         Returns:
             (dict): dictonary(TARGET: list SOURCES)

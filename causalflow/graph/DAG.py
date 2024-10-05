@@ -1,3 +1,10 @@
+"""
+This module provides the DAG class.
+
+Classes:
+    DAG: class for facilitating the handling and the creation of DAGs.
+"""
+    
 import copy
 import numpy as np
 from causalflow.graph.Node import Node
@@ -8,14 +15,16 @@ from causalflow.graph.netgraph import Graph
 import re
 
 class DAG():
+    """DAG class."""
+    
     def __init__(self, var_names, min_lag, max_lag, neglect_autodep = False, scm = None):
         """
-        DAG constructor
+        DAG constructor.
 
         Args:
-            var_names (list): variable list
-            min_lag (int): minimum time lag
-            max_lag (int): maximum time lag
+            var_names (list): variable list.
+            min_lag (int): minimum time lag.
+            max_lag (int): maximum time lag.
             neglect_autodep (bool, optional): bit to neglect nodes when they are only autodependent. Defaults to False.
             scm (dict, optional): Build the DAG for SCM. Defaults to None.
         """
@@ -37,10 +46,10 @@ class DAG():
     @property
     def features(self) -> list:
         """
-        Features list
+        Return features list.
 
         Returns:
-            list: Features list
+            list: Features list.
         """
         return list(self.g.keys())
     
@@ -48,10 +57,10 @@ class DAG():
     @property
     def pretty_features(self):
         """
-        Returns list of features with LaTeX symbols
+        Return list of features with LaTeX symbols.
                 
         Returns:
-            list(str): list of feature names
+            list(str): list of feature names.
         """
         return [r'$' + str(v) + '$' for v in self.g.keys()]
 
@@ -59,10 +68,10 @@ class DAG():
     @property
     def autodep_nodes(self) -> list:
         """
-        Autodependent nodes list
+        Return the autodependent nodes list.
 
         Returns:
-            list: Autodependent nodes list
+            list: Autodependent nodes list.
         """
         autodeps = list()
         for t in self.g:
@@ -75,10 +84,10 @@ class DAG():
     @property
     def interventions_links(self) -> list:
         """
-        Intervention links list
+        Return the intervention links list.
 
         Returns:
-            list: Intervention link list
+            list: Intervention link list.
         """
         int_links = list()
         for t in self.g:
@@ -90,14 +99,14 @@ class DAG():
     
     def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):
         """
-        Adds source node to a target node
+        Add source node to a target node.
 
         Args:
-            t (str): target node name
-            s (str): source node name
-            score (float): dependency score
-            pval (float): dependency p-value
-            lag (int): dependency lag
+            t (str): target node name.
+            s (str): source node name.
+            score (float): dependency score.
+            pval (float): dependency p-value.
+            lag (int): dependency lag.
         """
         self.g[t].sources[(s, abs(lag))] = {SCORE: score, PVAL: pval, TYPE: mode}
         self.g[s].children.append(t)
@@ -105,21 +114,19 @@ class DAG():
         
     def del_source(self, t, s, lag):
         """
-        Removes source node from a target node
+        Remove source node from a target node.
 
         Args:
-            t (str): target node name
-            s (str): source node name
-            lag (int): dependency lag
+            t (str): target node name.
+            s (str): source node name.
+            lag (int): dependency lag.
         """
         del self.g[t].sources[(s, lag)]
         self.g[s].children.remove(t)
         
         
     def remove_unneeded_features(self):
-        """
-        Removes isolated nodes
-        """
+        """Remove isolated nodes."""
         tmp = copy.deepcopy(self.g)
         for t in self.g.keys():
             if self.g[t].is_isolated: 
@@ -129,9 +136,7 @@ class DAG():
                           
     
     def add_context(self):
-        """
-        Adds context variables
-        """
+        """Add context variables."""
         for sys_var, context_var in self.sys_context.items():
             if sys_var in self.features:
                 
@@ -151,9 +156,7 @@ class DAG():
         
                     
     def remove_context(self):
-        """
-        Remove context variables
-        """
+        """Remove context variables."""
         for sys_var, context_var in self.sys_context.items():
             if sys_var in self.g:
                 # Removing context var from sys var
@@ -167,13 +170,13 @@ class DAG():
                 
     def get_link_assumptions(self, autodep_ok = False) -> dict:
         """
-        Returnes link assumption dictionary
+        Return link assumption dictionary.
 
         Args:
             autodep_ok (bool, optional): If true, autodependecy link assumption = -->. Otherwise -?>. Defaults to False.
 
         Returns:
-            dict: link assumption dictionary
+            dict: link assumption dictionary.
         """
         link_assump = {self.features.index(f): dict() for f in self.features}
         for t in self.g:
@@ -198,10 +201,10 @@ class DAG():
     
     def make_pretty(self) -> dict:
         """
-        Makes variables' names pretty, i.e. $ varname $ with '{' after '_' and '}' at the end of the string.
+        Make variables' names pretty, i.e. $ varname $ with '{' after '_' and '}' at the end of the string.
 
         Returns:
-            dict: pretty DAG
+            dict: pretty DAG.
         """
         def prettify(name):
             return '$' + re.sub(r'_(\w+)', r'_{\1}', name) + '$'
@@ -225,9 +228,12 @@ class DAG():
     
     def dag(self,
             node_layout = 'dot',
-            min_width = 1, max_width = 5,
-            min_score = 0, max_score = 1,
-            node_size = 8, node_color = 'orange',
+            min_width = 1, 
+            max_width = 5,
+            min_score = 0, 
+            max_score = 1,
+            node_size = 8, 
+            node_color = 'orange',
             edge_color = 'grey',
             bundle_parallel_edges = True,
             font_size = 12,
@@ -235,7 +241,7 @@ class DAG():
             save_name = None,
             img_extention = ImageExt.PNG):
         """
-        build a dag
+        Build a dag.
 
         Args:
             node_layout (str, optional): Node layout. Defaults to 'dot'.
@@ -250,6 +256,7 @@ class DAG():
             font_size (int, optional): font size. Defaults to 12.
             label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+            img_extention (ImageExt, optional): Image Extension. Defaults to PNG.
         """
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
@@ -370,8 +377,10 @@ class DAG():
             
    
     def ts_dag(self,
-               min_width = 1, max_width = 5,
-               min_score = 0, max_score = 1,
+               min_width = 1, 
+               max_width = 5,
+               min_score = 0, 
+               max_score = 1,
                node_size = 8,
                x_disp = 2,
                y_disp = 0.5,
@@ -382,7 +391,7 @@ class DAG():
                save_name = None,
                img_extention = ImageExt.PNG):
         """
-        build a timeseries dag
+        Build a timeseries dag.
 
         Args:
             min_width (int, optional): minimum linewidth. Defaults to 1.
@@ -397,8 +406,10 @@ class DAG():
                                              If a list (same dimension of features), each colour will have the specified colour.
                                              Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
+            tail_color (str, optional): tail color. Defaults to 'black'.
             font_size (int, optional): font size. Defaults to 12.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+            img_extention (ImageExt, optional): Image Extension. Defaults to PNG.
         """
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
@@ -495,24 +506,25 @@ class DAG():
 
     def __scale(self, score, min_width, max_width, min_score = 0, max_score = 1):
         """
-        Scales the score of the cause-effect relationship strength to a linewitdth
+        Scale the score of the cause-effect relationship strength to a linewitdth.
 
         Args:
-            score (float): score to scale
-            min_width (float): minimum linewidth
-            max_width (float): maximum linewidth
+            score (float): score to scale.
+            min_width (float): minimum linewidth.
+            max_width (float): maximum linewidth.
             min_score (int, optional): minimum score range. Defaults to 0.
             max_score (int, optional): maximum score range. Defaults to 1.
 
         Returns:
-            (float): scaled score
+            (float): scaled score.
         """
         return ((score - min_score) / (max_score - min_score)) * (max_width - min_width) + min_width
 
 
     def get_skeleton(self) -> np.array:
         """
-        Returns skeleton matrix.
+        Return skeleton matrix.
+        
         Skeleton matrix is composed by 0 and 1.
         1 <- if there is a link from source to target 
         0 <- if there is not a link from source to target 
@@ -529,11 +541,12 @@ class DAG():
     
     def get_val_matrix(self) -> np.array:
         """
-        Returns val matrix.
-        val matrix contains information about the strength of the links componing the causal model.
+        Return val matrix.
+        
+        Val matrix contains information about the strength of the links componing the causal model.
 
         Returns:
-            np.array: val matrix
+            np.array: val matrix.
         """
         r = np.zeros((len(self.features), len(self.features), self.max_lag + 1))
         for t in self.g.keys():
@@ -544,8 +557,9 @@ class DAG():
 
     def get_pval_matrix(self) -> np.array:
         """
-        Returns pval matrix.
-        pval matrix contains information about the pval of the links componing the causal model.
+        Return pval matrix.
+        
+        Pval matrix contains information about the pval of the links componing the causal model.
         
         Returns:
             np.array: pval matrix
@@ -559,11 +573,12 @@ class DAG():
     
     def get_graph_matrix(self) -> np.array:
         """
-        Returns graph matrix.
-        graph matrix contains information about the link type. E.g., -->, <->, ..
+        Return graph matrix.
+        
+        Graph matrix contains information about the link type. E.g., -->, <->, ..
         
         Returns:
-            np.array: graph matrix
+            np.array: graph matrix.
         """
         r = np.full((len(self.features), len(self.features), self.max_lag + 1), '', dtype=object)
         for t in self.g.keys():
@@ -574,13 +589,13 @@ class DAG():
     
     def get_Adj(self, indexed = False) -> dict:   
         """
-        Returns Adjacency dictionary
+        Return Adjacency dictionary.
         
         Args:
             indexed (bool, optional): If true, returns the SCM with index instead of variables' names. Otherwise it uses variables' names. Defaults to False.
 
         Returns:
-            dict: SCM
+            dict: SCM.
         """
         if not indexed:
             scm = {v: list() for v in self.features}
@@ -597,7 +612,10 @@ class DAG():
     
     def get_Graph(self) -> dict:
         """
-        Returns Graph dictionary. E.g. {X1: {(X2, -2): '-->'}, X2: {(X3, -1): '-?>'}, X3: {(X3, -1): '-->'}}
+        Return Graph dictionary. E.g. {X1: {(X2, -2): '-->'}, X2: {(X3, -1): '-?>'}, X3: {(X3, -1): '-->'}}.
+
+        Returns:
+            dict: graph dictionary.
         """
         scm = {v: dict() for v in self.features}
         for t in self.g:

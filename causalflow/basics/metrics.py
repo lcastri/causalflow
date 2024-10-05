@@ -1,10 +1,9 @@
+"""This module provides methods for computing various metrics."""
+
 from copy import deepcopy
 
-
 def fully_connected_dag(features, min_lag, max_lag, alsoOrient = False):
-    """
-    Build a fully connected DAG
-    """
+    """Build a fully connected DAG."""
     if not alsoOrient:
         g = {f: list() for f in features}
         for t in g:
@@ -24,15 +23,13 @@ def fully_connected_dag(features, min_lag, max_lag, alsoOrient = False):
 
 def get_TP(gt, cm, alsoOrient = False):
     """
-    True positive number:
-    edge present in the causal model 
-    and present in the groundtruth
+    Compute true positive number: edge present in the causal model and present in the groundtruth.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        int: true positive
+        int: true positive.
     """
     counter = 0
     if not alsoOrient:
@@ -51,15 +48,13 @@ def get_TP(gt, cm, alsoOrient = False):
  
 def get_TN(gt, min_lag, max_lag, cm, alsoOrient = False):
     """
-    True negative number:
-    edge absent in the groundtruth 
-    and absent in the causal model
+    Compute true negative number: edge absent in the groundtruth and absent in the causal model.
     
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
         
     Returns:
-        int: true negative
+        int: true negative.
     """
     fullg = fully_connected_dag(list(gt.keys()), min_lag, max_lag, alsoOrient)
     counter = 0
@@ -100,15 +95,13 @@ def get_TN(gt, min_lag, max_lag, cm, alsoOrient = False):
      
 def get_FP(gt, cm, alsoOrient = False):
     """
-    False positive number:
-    edge present in the causal model 
-    but absent in the groundtruth
+    Compute false positive number: edge present in the causal model but absent in the groundtruth.
     
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
         
     Returns:
-        int: false positive
+        int: false positive.
     """
     counter = 0
     if not alsoOrient:
@@ -128,15 +121,13 @@ def get_FP(gt, cm, alsoOrient = False):
 
 def get_FN(gt, cm, alsoOrient = False):
     """
-    False negative number:
-    edge present in the groundtruth 
-    but absent in the causal model
+    Compute false negative number: edge present in the groundtruth but absent in the causal model.
         
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
         
     Returns:
-        int: false negative
+        int: false negative.
     """
     counter = 0
     if not alsoOrient:
@@ -156,13 +147,13 @@ def get_FN(gt, cm, alsoOrient = False):
     
 def shd(gt, cm, alsoOrient = False):
     """
-    Computes Structural Hamming Distance between ground-truth causal graph and the estimated one
+    Compute Structural Hamming Distance between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        int: shd
+        int: shd.
     """
     fn = get_FN(gt, cm, alsoOrient)
     fp = get_FP(gt, cm, alsoOrient)
@@ -171,13 +162,13 @@ def shd(gt, cm, alsoOrient = False):
 
 def precision(gt, cm, alsoOrient = False):
     """
-    Computes Precision between ground-truth causal graph and the estimated one
+    Compute Precision between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        float: precision
+        float: precision.
     """
     tp = get_TP(gt, cm, alsoOrient)
     fp = get_FP(gt, cm, alsoOrient)
@@ -187,13 +178,13 @@ def precision(gt, cm, alsoOrient = False):
         
 def recall(gt, cm, alsoOrient = False):
     """
-    Computes Recall between ground-truth causal graph and the estimated one
+    Compute Recall between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        float: recall
+        float: recall.
     """
     tp = get_TP(gt, cm, alsoOrient)
     fn = get_FN(gt, cm, alsoOrient)
@@ -203,13 +194,13 @@ def recall(gt, cm, alsoOrient = False):
 
 def f1_score(gt, cm, alsoOrient = False):
     """
-    Computes F1-score between ground-truth causal graph and the estimated one
+    Compute F1-score between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        float: f1-score
+        float: F1-score.
     """
     p = precision(gt, cm, alsoOrient)
     r = recall(gt, cm, alsoOrient)
@@ -219,13 +210,13 @@ def f1_score(gt, cm, alsoOrient = False):
      
 def FPR(gt, min_lag, max_lag, cm, alsoOrient = False):
     """
-    Computes False Positve Rate between ground-truth causal graph and the estimated one
+    Compute False Positve Rate between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        float: false positive rate
+        float: false positive rate.
     """
     fp = get_FP(gt, cm, alsoOrient)
     tn = get_TN(gt, min_lag, max_lag, cm, alsoOrient)
@@ -235,13 +226,13 @@ def FPR(gt, min_lag, max_lag, cm, alsoOrient = False):
     
 def TPR(gt, cm, alsoOrient = False):
     """
-    Computes True Positive Rate between ground-truth causal graph and the estimated one
+    Compute True Positive Rate between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        float: true positive rate
+        float: true positive rate.
     """
     tp = get_TP(gt, cm, alsoOrient)
     fn = get_FN(gt, cm, alsoOrient)
@@ -251,13 +242,13 @@ def TPR(gt, cm, alsoOrient = False):
 
 def TNR(gt, min_lag, max_lag, cm, alsoOrient = False):
     """
-    Computes True Negative Rate between ground-truth causal graph and the estimated one
+    Compute True Negative Rate between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        float: true negative rate
+        float: true negative rate.
     """
     tn = get_TN(gt, min_lag, max_lag, cm, alsoOrient)
     fp = get_FP(gt, cm, alsoOrient)
@@ -267,13 +258,13 @@ def TNR(gt, min_lag, max_lag, cm, alsoOrient = False):
 
 def FNR(gt, cm, alsoOrient = False):
     """
-    Computes False Negative Rate between ground-truth causal graph and the estimated one
+    Compute False Negative Rate between ground-truth causal graph and the estimated one.
 
     Args:
-        cm (dict): estimated SCM
+        cm (dict): estimated SCM.
 
     Returns:
-        float: false negative rate
+        float: false negative rate.
     """
     fn = get_FN(gt, cm, alsoOrient)
     tp = get_TP(gt, cm, alsoOrient)

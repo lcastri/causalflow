@@ -1,3 +1,11 @@
+"""
+This module provides various classes for feature selection analysis.
+
+Classes:
+    CTest: support class for handling different feature selection methods.
+    SelectionMethod: Abstract class.
+"""
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from contextlib import contextmanager
@@ -9,6 +17,8 @@ from causalflow.graph.DAG import DAG
 
 
 class CTest(Enum):
+    """CTest Enumerator."""
+    
     Corr = "Correlation"
     MI = "Mutual Information"
     TE = "Transfer Entropy"
@@ -16,6 +26,7 @@ class CTest(Enum):
 
 @contextmanager
 def _suppress_stdout():
+    """Suppress stdout."""
     with open(os.devnull, "w") as devnull:
         old_stdout = sys.stdout
         sys.stdout = devnull
@@ -26,10 +37,15 @@ def _suppress_stdout():
 
 
 class SelectionMethod(ABC):
-    """
-    SelectionMethod abstract class
-    """
+    """SelectionMethod abstract class."""
+    
     def __init__(self, ctest):
+        """
+        Class constructor.
+
+        Args:
+            ctest (CTest): Feature Selection method's name.
+        """
         self.ctest = ctest
         self.data = None
         self.alpha = None
@@ -41,23 +57,24 @@ class SelectionMethod(ABC):
     @property
     def name(self):
         """
-        Returns Selection Method name
+        Return Selection Method name.
 
         Returns:
-            (str): Selection Method name
+            (str): Selection Method name.
         """
         return self.ctest.value
 
 
     def initialise(self, data: Data, alpha, min_lag, max_lag, graph):
         """
-        Initialises the selection method
+        Initialise the selection method.
 
         Args:
-            data (Data): Data
-            alpha (float): significance threshold
-            min_lag (int): min lag time
-            max_lag (int): max lag time
+            data (Data): Data.
+            alpha (float): significance threshold.
+            min_lag (int): min lag time.
+            max_lag (int): max lag time.
+            graph (DAG): initial DAG (empty).
         """
         self.data = data
         self.alpha = alpha
@@ -68,23 +85,22 @@ class SelectionMethod(ABC):
 
     @abstractmethod
     def compute_dependencies(self) -> DAG:
-        """
-        abstract method
-        """
+        """Abstract method."""
         pass
     
 
     def _prepare_ts(self, target, lag, apply_lag = True, consider_autodep = True):
         """
-        prepare the dataframe to the analysis
+        Prepare the dataframe to the analysis.
 
         Args:
             target (str): name target var
             lag (int): lag time to apply
             apply_lag (bool, optional): True if you want to apply the lag, False otherwise. Defaults to True.
+            consider_autodep (bool, optional): True if you want to consider autodependecy check. Defaults to True.
 
         Returns:
-            tuple(DataFrame, DataFrame): source and target dataframe
+            tuple(DataFrame, DataFrame): source and target dataframe.
         """
         if not consider_autodep:
             if apply_lag:
@@ -105,15 +121,14 @@ class SelectionMethod(ABC):
 
     def _add_dependency(self, t, s, score, pval, lag):
         """
-        Adds found dependency from source (s) to target (t) specifying the 
-        score, pval and the lag
+        Add dependency from source (s) to target (t) specifying the score, pval and the lag.
 
         Args:
-            t (str): target feature name
-            s (str): source feature name
-            score (float): selection method score
-            pval (float): pval associated to the dependency
-            lag (int): lag time of the dependency
+            t (str): target feature name.
+            s (str): source feature name.
+            score (float): selection method score.
+            pval (float): pval associated to the dependency.
+            lag (int): lag time of the dependency.
         """
         self.result.add_source(t, s, score, pval, lag)
         
