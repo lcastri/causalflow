@@ -116,6 +116,23 @@ This tool offers various adjustable parameters, listed as follows:
 RandomGraph outputs a graph, the associated system of equations and observational data. Moreover, it offers the possibility to generate interventional data.
 
 ### Example - Linear Random Graph
+
+```python
+RS = RandomGraph(nvars = 5, 
+                 nsamples = 1000, 
+                 link_density = 3, 
+                 coeff_range = (0.1, 0.5), 
+                 max_exp = 2, 
+                 min_lag = 0, 
+                 max_lag = 3, 
+                 noise_config = random.choice([noise_uniform, noise_gaussian, noise_weibull]),
+                 functions = [''], 
+                 operators = ['+', '-'], 
+                 n_hidden_confounders = 2)
+RS.gen_equations()
+RS.ts_dag(withHidden = True)
+```
+
 $$
 \begin{aligned}
 X_0(t)&=0.44X_1(t-1) - 0.15X_0(t-2) + 0.1X_4(t-3) + 0.33H_0(t-3) - 0.11H_1(t-2)\\
@@ -129,6 +146,23 @@ H_1(t)&=0.44X_3(t)\\
 $$  
 
 ### Example - Nonlinear Random Graph
+
+```python
+RS = RandomGraph(nvars = 5, 
+                 nsamples = 1000, 
+                 link_density = 3, 
+                 coeff_range = (0.1, 0.5), 
+                 max_exp = 2, 
+                 min_lag = 0, 
+                 max_lag = 3, 
+                 noise_config = random.choice([noise_uniform, noise_gaussian, noise_weibull]),
+                 functions = ['','sin', 'cos', 'exp', 'abs', 'pow'], 
+                 operators = ['+', '-', '*', '/'], 
+                 n_hidden_confounders = 2)
+RS.gen_equations()
+RS.ts_dag(withHidden = True)
+```
+
 $$
 \begin{aligned}
 X_0(t)&=0.48\frac{\cos(X_4)(t-3)}{0.12\sin(H_1)(t-3)}\\
@@ -140,6 +174,7 @@ H_0(t)&=0.45|X_3|(t-2)\\
 H_1(t)&=\frac{0.32H_0(t-1)}{0.35e^{H_1}(t-3)} \cdot 0.4X_4(t-3)\\
 \end{aligned}
 $$
+
 | Linear Random Graph | Nonlinear Random Graph |
 :-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/lin_hid_randomgraph.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/nonlin_hid_randomgraph.png)
@@ -147,6 +182,8 @@ Linear model | Nonlinear model
 Lagged dependencies | Lagged dependencies
 Contemporaneous dependencies | Contemporaneous dependencies
 2 hidden confounders | 2 hidden confounders
+
+### Example - Random Graph with Interventional Data
 
 ## Other Causal Discovery Algorithms
 Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmark purposes. As a consequence, CausalFLow provides a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series graphs (graphs which comprises the lag specification for each link). They are listed as follows:
