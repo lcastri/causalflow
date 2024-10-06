@@ -28,10 +28,11 @@ data_obs = d[:, [0, 2, 3]]
 N = data_obs.shape[1]
 
 var_names = ['X_0', 'X_2', 'X_3']
-dataframe = pp.DataFrame(data_obs, var_names=var_names)
+d_obs = Data(data_obs, vars = var_names)
+d_obs.plot_timeseries()
 
 parcorr = ParCorr(significance='analytic')
-lpcmci = LPCMCI(Data(data_obs, vars = var_names),
+lpcmci = LPCMCI(d_obs,
                 min_lag = 0,
                 max_lag = tau_max,
                 val_condtest = parcorr,
