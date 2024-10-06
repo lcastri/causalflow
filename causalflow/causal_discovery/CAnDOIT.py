@@ -185,7 +185,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         return causal_model
       
     
-    def run(self, remove_unneeded = True, nofilter = False) -> DAG:
+    def run(self, remove_unneeded = True, nofilter = True) -> DAG:
         """
         Run CAnDOIT.
         

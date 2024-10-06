@@ -77,32 +77,49 @@ F-PCMCI removes the variable $X_6$ from the causal graph (since isolated), and g
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="18"> CAnDOIT
 CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the possibility of incorporating interventional data in the causal discovery process alongside the observational data. As its predecessor, CAnDOIT can deal with lagged and contemporaneous dependecies and latent variables.
 
-In the following, an example is presented that demonstrates CAnDOIT's capability to incorporate and exploit interventional data. The dataset consists of a 5-variables system defined as follows:
+In the following, an example, taken from one of the tigramite tutorials ([this](https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb)), is presented to demonstrate CAnDOIT's capability to incorporate and exploit interventional data to enhance the accuracy of the causal analysis. In the following, a 4-variables system of equations:
 
+$$
+\begin{aligned}
+X_0(t) &= 0.9X_0(t-1) + 0.6X_1(t) + \eta_0 \\
+L_1(t) &= \eta_1 \\
+X_2(t) &= 0.9X_2(t-1) + 0.4X_1(t-1) + \eta_2 \\
+X_3(t) &= 0.9X_3(t-1) - 0.5X_2(t-2) + \eta_3 \\
+\end{aligned}
+$$
 
-
-This system of equation generates the time-series data in the observational case. For the interventional case instead, the equation $X_1(t) = 2.5X_0(t-1) + \eta_1$ was replaced by a hard intervention $X_1(t) = 15$.
+Note that $L_1$ is a latent confounder of $X_0$ and $X_2$. This system of equation generates the time-series data in the observational domain, which then it is used by LPCMCI for the causal discovery analysis.
 
 ```python
-min_lag = 1
-max_lag = 2
-np.random.seed(1)
-nsample_obs = 1000
-nsample_int = 300
-nfeature = 5
+tau_max = 2
+pc_alpha = 0.05
+np.random.seed(19)
+nsample_obs = 500
+nfeature = 4
+
 d = np.random.random(size = (nsample_obs, nfeature))
-for t in range(max_lag, nsample_obs):
-    d[t, 1] += 2.5 * d[t-1, 0]
-    d[t, 2] += 0.5 * d[t-2, 0] * 0.75 * d[t-1, 3] 
-    d[t, 3] += 0.7 * d[t-1, 3] * d[t-2, 4]
+for t in range(tau_max, nsample_obs):
+  d[t, 0] += 0.9 * d[t-1, 0] + 0.6 * d[t, 1]
+  d[t, 2] += 0.9 * d[t-1, 2] + 0.4 * d[t-1, 1]
+  d[t, 3] += 0.9 * d[t-1, 3] - 0.5 * d[t-2, 2]
 
+# Remove the unobserved component time series
+data_obs = d[:, [0, 2, 3]]
 
-# hard intervention on X_1
-d_int1 = np.random.random(size = (nsample_int, nfeature))
-d_int1[:, 1] = 15 * np.ones(shape = (nsample_int,)) 
-for t in range(max_lag, nsample_int):
-    d_int1[t, 2] += 0.5 * d_int1[t-2, 0] * 0.75 * d_int1[t-2, 3] 
-    d_int1[t, 3] += 0.7 * d_int1[t-1, 3] * d_int1[t-2, 4]
+var_names = ['X_0', 'X_2', 'X_3']
+d_obs = Data(data_obs, vars = var_names)
+d_obs.plot_timeseries()
+
+lpcmci = LPCMCI(d_obs,
+                min_lag = 0,
+                max_lag = tau_max,
+                val_condtest = ParCorr(significance='analytic'),
+                alpha = pc_alpha)
+
+# Run LPCMCI
+lpcmci_cm = lpcmci.run()
+lpcmci_cm.ts_dag(node_size = 4, min_width = 1.5, max_width = 1.5, 
+                 x_disp=0.5, y_disp=0.2, font_size=10)
 ```
 
 <div align="center">
@@ -111,13 +128,49 @@ Observational Data       |  Causal Model by LPCMCI
 :-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/LPCMCI_data.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/LPCMCI.png)
 
+</div>
+
+As you can see from the LPCMCI's result, the method is able to correctly identify the bidirected link (indicating the presence of a latent confounder) between $X_0$ and $X_2$. However, the final causal model presents an uncertainty on the link $X_2$ o&rarr; $X_3$. The latter, indeed, indicates that the final causal model is a PAG that represents two MAGs: the first one with $X_2$ <-> $X_3$ while, the second one with the first with $X_2$ &rarr; $X_3$.
+
+Let's see now the introduction of interventional data and its benefit. Specifically, we are performing a hard intervention on the variable $X_2$. This means that we substitute its equation with a constant value corresponding to the value of the intervention (in this case $X_2 = 3$).
+
+```python
+nsample_int = 150
+int_data = dict()
+
+# Intervention on X_2.
+d_int = np.random.random(size = (nsample_int, nfeature))
+d_int[0:tau_max, :] = d[len(d)-tau_max:,:]
+d_int[:, 2] = 3 * np.ones(shape = (nsample_int,)) 
+for t in range(tau_max, nsample_int):
+    d_int[t, 0] += 0.9 * d_int[t-1, 0] + 0.6 * d_int[t, 1]
+    d_int[t, 3] += 0.9 * d_int[t-1, 3] - 0.5 * d_int[t-2, 2]
+        
+data_int = d_int[:, [0, 2, 3]]
+df_int = Data(data_int, vars = var_names)
+int_data['X_2'] =  df_int
+
+candoit = CAnDOIT(d_obs, 
+                  int_data,
+                  alpha = pc_alpha, 
+                  min_lag = 0, 
+                  max_lag = tau_max, 
+                  val_condtest = ParCorr(significance='analytic'))
+    
+candoit_cm = candoit.run()
+candoit_cm.ts_dag(node_size = 4, min_width = 1.5, max_width = 1.5, 
+                  x_disp=0.5, y_disp=0.2, font_size=10)
+```
+
+<div align="center">
+
 Observational & Interventional Data       |  Causal Model by CAnDOIT <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15">  
 :-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT_data.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT.png) 
 
 </div>
 
-By using interventional data, CAnDOIT removes the spurious link $X_1$ &rarr; $X_2$ generated by the hidden confounder $X_0$.
+CAnDOIT, as LPCMCI, correctly detects the bidirected link $X_0$ <-> $X_2$. Additionally, by using interventional data, CAnDOIT is able to remove the uncertainty on the link $X_2$ o&rarr; $X_3$, leading to a **reduction of the PAG size**. Specifically, the PAG found by CAnDOIT is the representaion of only one MAG.
 
 ## RandomGraph
 RandomGraph is a random-model generator capable of creating random systems of equations. It can create systems of equation with different properties: linear, nonlinear, with lagged and/or contemporaneous dependecies and with hidden confounders.
