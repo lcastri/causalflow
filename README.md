@@ -65,7 +65,7 @@ for t in range(max_lag, nsample):
 
 <div align="center">
 
-Causal Model by PCMCI       |  Causal Model by F-PCMCI <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15">
+Causal Model by PCMCI       |  Causal Model by F-PCMCI
 :-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/PCMCI_example_2.png "Causal model by PCMCI")  |  ![](https://github.com/lcastri/causalflow/raw/main/images/FPCMCI_example_2.png "Causal model by F-PCMCI")
 Execution time ~ 8min 40sec | Execution time ~ 3min 00sec
@@ -164,7 +164,7 @@ candoit_cm.ts_dag(node_size = 4, min_width = 1.5, max_width = 1.5,
 
 <div align="center">
 
-Observational & Interventional Data       |  Causal Model by CAnDOIT <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15">  
+Observational & Interventional Data       |  Causal Model by CAnDOIT  
 :-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT_data.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT.png) 
 
