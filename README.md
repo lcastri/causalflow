@@ -8,8 +8,27 @@ CausalFlow is a python library for causal analysis from time-series data. It com
 * Other causal discovery methods all within the same framework
 
 ## Useful links
-* [F-PCMCI paper](https://proceedings.mlr.press/v213/castri23a/castri23a.pdf)
-* CAnDOIT paper [coming soon..]
+* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023).<br>
+  [Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios](https://proceedings.mlr.press/v213/castri23a/castri23a.pdf),<br>
+  Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
+  ```
+  @inproceedings{castri2023enhancing,
+    title={Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios},
+    author={Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
+    booktitle={Conference on Causal Learning and Reasoning},
+    pages={243--258},
+    year={2023},
+    organization={PMLR}
+  }
+  ```
+* <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
+  [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](),<br>
+  Advanced Intelligent System.<br>
+  ```
+  BibTex coming soon!
+  ```
 * Tutorials [Coming soon..]
 
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="18"> F-PCMCI
@@ -115,7 +134,7 @@ This tool offers various adjustable parameters, listed as follows:
 
 RandomGraph outputs a graph, the associated system of equations and observational data. Moreover, it offers the possibility to generate interventional data.
 
-### Example - Linear Random Graph
+#### Example - Linear Random Graph
 
 ```python
 noise_uniform = (NoiseType.Uniform, -0.5, 0.5)
@@ -148,7 +167,7 @@ H_1(t)&=0.44X_3(t)\\
 \end{aligned}
 $$  
 
-### Example - Nonlinear Random Graph
+#### Example - Nonlinear Random Graph
 
 ```python
 noise_uniform = (NoiseType.Uniform, -0.5, 0.5)
@@ -189,7 +208,7 @@ Lagged dependencies | Lagged dependencies
 Contemporaneous dependencies | Contemporaneous dependencies
 2 hidden confounders | 2 hidden confounders
 
-### Example - Random Graph with Interventional Data
+#### Example - Random Graph with Interventional Data
 
 ## Other Causal Discovery Algorithms
 Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmark purposes. As a consequence, CausalFLow provides a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series graphs (graphs which comprises the lag specification for each link). They are listed as follows:
@@ -225,18 +244,26 @@ Some algorithms are imported from other languages such as R and Java and are the
 Please consider citing the following papers depending on which method you use:
 
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
-    L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023). [Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios](https://arxiv.org/abs/2302.10135), Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
-    ```
-    @inproceedings{castri2023fpcmci,
-        title={Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios},
-        author={Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
-        booktitle={Conference on Causal Learning and Reasoning (CLeaR)},
-        year={2023},
-    }
-    ```
-
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023).<br>
+  [Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios](https://proceedings.mlr.press/v213/castri23a/castri23a.pdf),<br>
+  Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
+  ```
+  @inproceedings{castri2023enhancing,
+    title={Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios},
+    author={Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
+    booktitle={Conference on Causal Learning and Reasoning},
+    pages={243--258},
+    year={2023},
+    organization={PMLR}
+  }
+  ```
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
-    L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024). CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series, Advanced Intelligent System.<br>
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
+  [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](),<br>
+  Advanced Intelligent System.<br>
+  ```
+  BibTex coming soon!
+  ```
 
 
 ## Requirements
