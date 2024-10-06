@@ -112,8 +112,35 @@ This tool offers various adjustable parameters, listed as follows:
 * coefficient range of the equations' terms;
 * functional forms applied to the equations' terms: $[-, \sin, \cos, \text{abs}, \text{pow}, \text{exp}]$, where $-$ stands for none;
 * operators used to link various equations terms: $[+, -, *, /]$.
+
 RandomGraph outputs a graph, the associated system of equations and observational data. Moreover, it offers the possibility to generate interventional data.
-|       |   |
+
+### Example - Linear Random Graph
+$$
+\begin{aligned}
+X_0(t) &= 0.44X_1(t-1) - 0.15X_0(t-2) + 0.1X_4(t-3) + 0.33H_0(t-3) - 0.11H_1(t-2)\\
+X_1(t) &= 0.13X_2(t-2) + 0.19H_0(t-3) + 0.46H_1(t-3)\\
+X_2(t) &= 0.21X_4(t-3) + 0.37H_1(t)\\
+X_3(t) &= 0.23X_0(t-2) - 0.44H_0(t-3) - 0.17H_1(t-3)\\
+X_4(t) &= 0.47X_1(t-2) + 0.23X_0(t-3) + 0.49X_4(t-1) + 0.49H_0(t-3) - 0.27H_1(t-2)\\
+H_0(t) &= 0.1X_4(t-2)\\
+H_1(t) &= 0.44X_3(t)\\
+\end{aligned}
+$$  
+
+### Example - Nonlinear Random Graph
+$$
+\begin{aligned}
+X_0(t) &= 0.48\frac{\cos(X_4)(t-3)}{0.12\sin(H_1)(t-3)}\\
+X_1(t) &= 0.17\sin(X_4)(t-3) - 0.46\cos(X_3)(t) + 0.14|H_1|(t-3)\\
+X_2(t) &= \frac{0.32X_4(t-1)}{0.2X_2(t-1)} + 0.23|X_3|(t-2) - 0.34e^{H_1}(t-3)\\
+X_3(t) &= 0.1|X_1|(t-1) \cdot 0.26\sin(X_2)(t) \cdot 0.4\cos(X_0)(t-2) - 0.2\cos(H_0)(t-2)\\
+X_4(t) &= 0.24|X_1|(t-3) - 0.43X_3(t) + 0.31\sin(H_0)(t-3) + 0.21H_1(t-3)\\
+H_0(t) &= 0.45|X_3|(t-2)\\
+H_1(t) &= \frac{0.32H_0(t-1)}{0.35e^{H_1}(t-3)} \cdot 0.4X_4(t-3)\\
+\end{aligned}
+$$
+| Linear Random Graph | Nonlinear Random Graph |
 :-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/lin_hid_randomgraph.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/nonlin_hid_randomgraph.png)
 Linear model | Nonlinear model
