@@ -23,7 +23,7 @@ import timeout_decorator
 
 from time import time
 from datetime import timedelta
-from res_statistics_new import *
+from AIS_plotting import *
 import gc
 import shutil
 import ast
