@@ -52,7 +52,7 @@ Execution time ~ 8min 40sec | Execution time ~ 3min 00sec
 F-PCMCI removes the variable $X_6$ from the causal graph (since isolated), and generate the correct causal model. In contrast, PCMCI retains $X_6$ leading to the wrong causal structure. Specifically, a spurious link $X_6$ &rarr; $X_5$ appears in the causal graph derived by PCMCI.
 
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="18"> CAnDOIT
-CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the possibility of incorporating interventional data in the causal discovery process alongside the observational data.
+CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the possibility of incorporating interventional data in the causal discovery process alongside the observational data. As its predecessor, CAnDOIT can deal with lagged and contemporaneous dependecies and latent variables.
 
 In the following, an example is presented that demonstrates CAnDOIT's capability to incorporate and exploit interventional data. The dataset consists of a 5-variables system defined as follows:
 
