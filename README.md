@@ -77,6 +77,7 @@ F-PCMCI removes the variable $X_6$ from the causal graph (since isolated), and g
 ### <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT
 CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the incorporation of interventional data into the causal discovery process alongside observational data. Like its predecessor, CAnDOIT can handle both lagged and contemporaneous dependencies, as well as latent variables.
 
+#### Example
 In the following example, taken from one of the tigramite tutorials ([this](https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb)), we demonstrate CAnDOIT's ability to incorporate and leverage interventional data to improve the accuracy of causal analysis. The example involves a system of equations with four variables:
 
 $$
@@ -171,6 +172,38 @@ Observational & Interventional Data       |  Causal Model by CAnDOIT
 </div>
 
 CAnDOIT, like LPCMCI, correctly detects the bidirected link $X_0$ <-> $X_2$. Additionally, by incorporating interventional data, CAnDOIT resolves the uncertainty regarding the link $X_2$ o-> $X_3$, resulting in a **reduction of the PAG size**. Specifically, the PAG found by CAnDOIT is the representaion of only one MAG.
+
+#### Robotics application of CAnDOIT
+In this section, we discuss an application of CAnDOIT in a robotic scenario. We designed an experiment to learn the causal model in a hypothetical robot arm application equipped with a camera. For this application, we utilised [Causal World](https://github.com/rr-learning/CausalWorld) that models a TriFinger robot, a floor, and a stage. 
+
+For our case, we use only one finger of the robot, where the finger's end-effector was equipped with a camera. The scenario consists of a cube placed at the center of the floor, surrounded by a white stage. 
+The colour's brightness ($b$) of the cube and the floor is modelled as a function of the end-effector height ($H$), its absolute velocity ($v$), and the distance between the end-effector and the cube $d_c$. This model captures the shading and blurring effects on the cube. On the other hand, the floor, being darker and larger than the cube, is only affected by the end-effector's height.
+
+Note that $H$, $v$, and $d_c$ are obtained directly from the simulator and not explicitly modelled, while the ground-truth structural causal model for the floor colour ($F_c$) and cube colour ($C_c$) is expressed as follows:
+$$
+\begin{aligned}
+F_c(t) &= b(H(t-1))\\
+C_c(t) &= b(H(t-1), v(t-1), d_c(t-1))
+\end{aligned}
+$$
+
+This model is used to generate observational data, which is then used by LPCMCI and CAnDOIT to reconstruct the causal model.
+
+<div align="center">
+
+Observational dataset       |  Interventional dataset  
+:-------------------------:|:-------------------------:
+![](https://github.com/lcastri/causalflow/raw/main/gifs/exp_obs.gif)  |  ![](https://github.com/lcastri/causalflow/raw/main/gifs/exp_int.gif) 
+
+</div>
+
+<div align="center">
+
+Ground-truth Causal Model       | Causal Model by LPCMCI       |  Causal Model by CAnDOIT  
+:-------------------------:|:-------------------------:|:-------------------------:
+![](https://github.com/lcastri/causalflow/raw/main/images/CW_complete.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/CW_LPCMCI.png) |  ![](https://github.com/lcastri/causalflow/raw/main/images/CW_CAnDOIT.png) 
+
+</div>
 
 ### RandomGraph
 RandomGraph is a random-model generator capable of creating random systems of equations with various properties: linear, nonlinear, lagged and/or contemporaneous dependencies, and hidden confounders. 
