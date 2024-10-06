@@ -70,9 +70,7 @@ class LPCMCI(CausalDiscoveryMethod):
                                              pc_alpha = self.alpha)
         
         self.CM = self._to_DAG()
-        
-        plot_time_series_graph(self.result['graph'])
-    
+            
         if self.resfolder is not None: self.logger.close()
         return self.CM
     
