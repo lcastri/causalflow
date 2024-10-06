@@ -210,6 +210,32 @@ Contemporaneous dependencies | Contemporaneous dependencies
 
 #### Example - Random Graph with Interventional Data
 
+```python
+    noise_gaussian = (NoiseType.Gaussian, 0, 1)
+    RS = RandomGraph(nvars = 5, 
+                     nsamples = 1500, 
+                     link_density = 3, 
+                     coeff_range = (0.1, 0.5), 
+                     max_exp = 2, 
+                     min_lag = 0, 
+                     max_lag = 3, 
+                     noise_config = noise_gaussian,
+                     functions = ['','sin', 'cos', 'exp', 'abs', 'pow'], 
+                     operators = ['+', '-', '*', '/'], 
+                     n_hidden_confounders = 2)
+    RS.gen_equations()
+
+    d_obs_wH, d_obs = RS.gen_obs_ts()
+    d_obs.plot_timeseries()
+
+    d_int = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
+    d_int[intvar].plot_timeseries()
+```
+
+| Observational Data | Interventional Data |
+:-------------------------:|:-------------------------:
+![](https://github.com/lcastri/causalflow/raw/main/images/obs_randomgraph.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/int_randomgraph.png)
+
 ## Other Causal Discovery Algorithms
 Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmark purposes. As a consequence, CausalFLow provides a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series graphs (graphs which comprises the lag specification for each link). They are listed as follows:
 
