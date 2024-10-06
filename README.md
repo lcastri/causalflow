@@ -174,12 +174,13 @@ Observational & Interventional Data       |  Causal Model by CAnDOIT
 CAnDOIT, like LPCMCI, correctly detects the bidirected link $X_0$ <-> $X_2$. Additionally, by incorporating interventional data, CAnDOIT resolves the uncertainty regarding the link $X_2$ o-> $X_3$, resulting in a **reduction of the PAG size**. Specifically, the PAG found by CAnDOIT is the representaion of only one MAG.
 
 #### Robotics application of CAnDOIT
-In this section, we discuss an application of CAnDOIT in a robotic scenario. We designed an experiment to learn the causal model in a hypothetical robot arm application equipped with a camera. For this application, we utilised [Causal World](https://github.com/rr-learning/CausalWorld) that models a TriFinger robot, a floor, and a stage. 
+In this section, we discuss an application of CAnDOIT in a robotic scenario. We designed an experiment to learn the causal model in a hypothetical robot arm application equipped with a camera. For this application, we utilised [Causal World](https://github.com/rr-learning/CausalWorld), which models a TriFinger robot, a floor, and a stage. 
 
-For our case, we use only one finger of the robot, where the finger's end-effector was equipped with a camera. The scenario consists of a cube placed at the center of the floor, surrounded by a white stage. 
-The colour's brightness ($b$) of the cube and the floor is modelled as a function of the end-effector height ($H$), its absolute velocity ($v$), and the distance between the end-effector and the cube $d_c$. This model captures the shading and blurring effects on the cube. On the other hand, the floor, being darker and larger than the cube, is only affected by the end-effector's height.
+In our case, we use only one finger of the robot, with the finger's end effector equipped with a camera. The scenario consists of a cube placed at the centre of the floor, surrounded by a white stage. 
+The colour's brightness ($b$) of the cube and the floor is modelled as a function of the end-effector height ($H$), its absolute velocity ($v$), and the distance between the end-effector and the cube $d_c$. This model captures the shading and blurring effects on the cube. In contrast, the floor, being darker and larger than the cube, is only affected by the end effector's height.
 
 Note that $H$, $v$, and $d_c$ are obtained directly from the simulator and not explicitly modelled, while the ground-truth structural causal model for the floor colour ($F_c$) and cube colour ($C_c$) is expressed as follows:
+
 $$
 \begin{aligned}
 F_c(t) &= b(H(t-1))\\
@@ -187,7 +188,7 @@ C_c(t) &= b(H(t-1), v(t-1), d_c(t-1))
 \end{aligned}
 $$
 
-This model is used to generate observational data, which is then used by LPCMCI and CAnDOIT to reconstruct the causal model.
+This model is used to generate observational data, which is then used by LPCMCI and CAnDOIT to reconstruct the causal model. For the interventional domain instead, we substitute the equation modelling $F_c$ with a constant colour (green) and collect the data for the causal analysis conducted by CAnDOIT. Note that, for both the obervational and interventional domains, $H$ is considered as latent confounder between $F_c$ and $C_c$.
 
 <div align="center">
 
@@ -204,6 +205,8 @@ Ground-truth Causal Model       | Causal Model by LPCMCI       |  Causal Model b
 ![](https://github.com/lcastri/causalflow/raw/main/images/CW_complete.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/CW_LPCMCI.png) |  ![](https://github.com/lcastri/causalflow/raw/main/images/CW_CAnDOIT.png) 
 
 </div>
+
+Also in this experiment, we can see the benefit of using intervention data alongside the observations. LPCMCI is unable to orient the contemporaneous (spurious) link between $F_c$ and $C_c$ due to the hidden confounder $H$. This results in the ambiguous link $F_c$ o-o $C_c$, which does not encode the correct link <->. Instead CAnDOIT, using interventional data, correctly identifies the bidirected link $F_c$ <-> $C_c$, decreasing once again the uncertainty level and increasing the accuracy of the reconstructed causal model.
 
 ### RandomGraph
 RandomGraph is a random-model generator capable of creating random systems of equations with various properties: linear, nonlinear, lagged and/or contemporaneous dependencies, and hidden confounders. 
