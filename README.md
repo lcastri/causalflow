@@ -118,7 +118,10 @@ RandomGraph outputs a graph, the associated system of equations and observationa
 ### Example - Linear Random Graph
 
 ```python
-RS = RandomGraph(nvars = 5, 
+noise_uniform = (NoiseType.Uniform, -0.5, 0.5)
+noise_gaussian = (NoiseType.Gaussian, 0, 1)
+noise_weibull = (NoiseType.Weibull, 2, 1)
+RG = RandomGraph(nvars = 5, 
                  nsamples = 1000, 
                  link_density = 3, 
                  coeff_range = (0.1, 0.5), 
@@ -129,8 +132,8 @@ RS = RandomGraph(nvars = 5,
                  functions = [''], 
                  operators = ['+', '-'], 
                  n_hidden_confounders = 2)
-RS.gen_equations()
-RS.ts_dag(withHidden = True)
+RG.gen_equations()
+RG.ts_dag(withHidden = True)
 ```
 
 $$
@@ -148,7 +151,10 @@ $$
 ### Example - Nonlinear Random Graph
 
 ```python
-RS = RandomGraph(nvars = 5, 
+noise_uniform = (NoiseType.Uniform, -0.5, 0.5)
+noise_gaussian = (NoiseType.Gaussian, 0, 1)
+noise_weibull = (NoiseType.Weibull, 2, 1)
+RG = RandomGraph(nvars = 5, 
                  nsamples = 1000, 
                  link_density = 3, 
                  coeff_range = (0.1, 0.5), 
@@ -159,8 +165,8 @@ RS = RandomGraph(nvars = 5,
                  functions = ['','sin', 'cos', 'exp', 'abs', 'pow'], 
                  operators = ['+', '-', '*', '/'], 
                  n_hidden_confounders = 2)
-RS.gen_equations()
-RS.ts_dag(withHidden = True)
+RG.gen_equations()
+RG.ts_dag(withHidden = True)
 ```
 
 $$
