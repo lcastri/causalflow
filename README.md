@@ -72,12 +72,12 @@ Execution time ~ 8min 40sec | Execution time ~ 3min 00sec
 
 </div>
 
-F-PCMCI removes the variable $X_6$ from the causal graph (since isolated), and generate the correct causal model. In contrast, PCMCI retains $X_6$ leading to the wrong causal structure. Specifically, a spurious link $X_6$ &rarr; $X_5$ appears in the causal graph derived by PCMCI.
+F-PCMCI removes the variable $X_6$ from the causal graph (since isolated), and generate the correct causal model. In contrast, PCMCI retains $X_6$ leading to the wrong causal structure. Specifically, a spurious link $X_6$ -> $X_5$ appears in the causal graph derived by PCMCI.
 
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="18"> CAnDOIT
-CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the possibility of incorporating interventional data in the causal discovery process alongside the observational data. As its predecessor, CAnDOIT can deal with lagged and contemporaneous dependecies and latent variables.
+CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the incorporation of interventional data into the causal discovery process alongside observational data. Like its predecessor, CAnDOIT can handle both lagged and contemporaneous dependencies, as well as latent variables.
 
-In the following, an example, taken from one of the tigramite tutorials ([this](https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb)), is presented to demonstrate CAnDOIT's capability to incorporate and exploit interventional data to enhance the accuracy of the causal analysis. In the following, a 4-variables system of equations:
+In the following example, taken from one of the tigramite tutorials ([this](https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb)), we demonstrate CAnDOIT's ability to incorporate and leverage interventional data to improve the accuracy of causal analysis. The example involves a system of equations with four variables:
 
 $$
 \begin{aligned}
@@ -88,7 +88,7 @@ X_3(t) &= 0.9X_3(t-1) - 0.5X_2(t-2) + \eta_3 \\
 \end{aligned}
 $$
 
-Note that $L_1$ is a latent confounder of $X_0$ and $X_2$. This system of equation generates the time-series data in the observational domain, which then it is used by LPCMCI for the causal discovery analysis.
+Note that $L_1$ is a latent confounder of $X_0$ and $X_2$. This system of equations generates the time-series data in the observational domain, which is then used by LPCMCI for causal discovery analysis.
 
 ```python
 tau_max = 2
@@ -130,9 +130,9 @@ Observational Data       |  Causal Model by LPCMCI
 
 </div>
 
-As you can see from the LPCMCI's result, the method is able to correctly identify the bidirected link (indicating the presence of a latent confounder) between $X_0$ and $X_2$. However, the final causal model presents an uncertainty on the link $X_2$ o&rarr; $X_3$. The latter, indeed, indicates that the final causal model is a PAG that represents two MAGs: the first one with $X_2$ <-> $X_3$ while, the second one with the first with $X_2$ &rarr; $X_3$.
+As you can see from LPCMCI's result, the method correctly identifies the bidirected link (indicating the presence of a latent confounder) between $X_0$ and $X_2$. However, the final causal model presents uncertainty regarding the link $X_2$ o-> $X_3$. Specifically, the final causal model is a PAG that represents two MAGs: the first with $X_2$ <-> $X_3$, and the second with $X_2$ -> $X_3$.
 
-Let's see now the introduction of interventional data and its benefit. Specifically, we are performing a hard intervention on the variable $X_2$. This means that we substitute its equation with a constant value corresponding to the value of the intervention (in this case $X_2 = 3$).
+Now, let's introduce interventional data and examine its benefits. In this case, we perform a hard intervention on the variable $X_2$, meaning we replace its equation with a constant value corresponding to the intervention (in this case, $X_2 = 3$).
 
 ```python
 nsample_int = 150
@@ -170,11 +170,11 @@ Observational & Interventional Data       |  Causal Model by CAnDOIT <img src="h
 
 </div>
 
-CAnDOIT, as LPCMCI, correctly detects the bidirected link $X_0$ <-> $X_2$. Additionally, by using interventional data, CAnDOIT is able to remove the uncertainty on the link $X_2$ o&rarr; $X_3$, leading to a **reduction of the PAG size**. Specifically, the PAG found by CAnDOIT is the representaion of only one MAG.
+CAnDOIT, like LPCMCI, correctly detects the bidirected link $X_0$ <-> $X_2$. Additionally, by incorporating interventional data, CAnDOIT resolves the uncertainty regarding the link $X_2$ o-> $X_3$, resulting in a **reduction of the PAG size**. Specifically, the PAG found by CAnDOIT is the representaion of only one MAG.
 
 ## RandomGraph
-RandomGraph is a random-model generator capable of creating random systems of equations. It can create systems of equation with different properties: linear, nonlinear, with lagged and/or contemporaneous dependecies and with hidden confounders.
-This tool offers various adjustable parameters, listed as follows:
+RandomGraph is a random-model generator capable of creating random systems of equations with various properties: linear, nonlinear, lagged and/or contemporaneous dependencies, and hidden confounders. 
+This tool offers several adjustable parameters, listed as follows:
 * time-series length;
 * number of observable variables;
 * number of observable parents per variable (link density);
@@ -186,7 +186,7 @@ This tool offers various adjustable parameters, listed as follows:
 * functional forms applied to the equations' terms: $[-, \sin, \cos, \text{abs}, \text{pow}, \text{exp}]$, where $-$ stands for none;
 * operators used to link various equations terms: $[+, -, *, /]$.
 
-RandomGraph outputs a graph, the associated system of equations and observational data. Moreover, it offers the possibility to generate interventional data.
+RandomGraph outputs a graph, the associated system of equations, and observational data. Additionally, it provides the option to generate interventional data.
 
 #### Example - Linear Random Graph
 
@@ -300,7 +300,7 @@ d_int[intvar].plot_timeseries()
 
 
 ## Other Causal Discovery Algorithms
-Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmark purposes. As a consequence, CausalFLow provides a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series graphs (graphs which comprises the lag specification for each link). They are listed as follows:
+Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmarking purposes. Consequently, CausalFlow offers a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series graphs (graphs that specify the lag for each link). These methods are listed as follows:
 
 * [DYNOTEARS](https://arxiv.org/pdf/2002.00498.pdf) - from the [causalnex](https://github.com/mckinsey/causalnex) package;
 * [PCMCI](http://proceedings.mlr.press/v124/runge20a/runge20a.pdf) - from the [tigramite](https://github.com/jakobrunge/tigramite) package;
