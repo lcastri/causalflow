@@ -65,7 +65,7 @@ for t in range(max_lag, nsample):
 
 <div align="center">
 
-Causal Model by PCMCI       |  Causal Model by F-PCMCI 
+Causal Model by PCMCI       |  Causal Model by F-PCMCI <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15">
 :-------------------------:|:-------------------------:
 ![](https://github.com/lcastri/causalflow/raw/main/images/PCMCI_example_2.png "Causal model by PCMCI")  |  ![](https://github.com/lcastri/causalflow/raw/main/images/FPCMCI_example_2.png "Causal model by F-PCMCI")
 Execution time ~ 8min 40sec | Execution time ~ 3min 00sec
@@ -79,15 +79,7 @@ CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the 
 
 In the following, an example is presented that demonstrates CAnDOIT's capability to incorporate and exploit interventional data. The dataset consists of a 5-variables system defined as follows:
 
-$$
-\begin{aligned}
-X_0(t) &= \eta_0\\
-X_1(t) &= 2.5X_0(t-1) + \eta_1\\
-X_2(t) &= 0.5X_0(t-2) \cdot 0.75X_3(t-1) + \eta_2\\
-X_3(t) &= 0.7X_3(t-1)X_4(t-2) + \eta_3\\
-X_4(t) &= \eta_4\\
-\end{aligned}
-$$
+
 
 This system of equation generates the time-series data in the observational case. For the interventional case instead, the equation $X_1(t) = 2.5X_0(t-1) + \eta_1$ was replaced by a hard intervention $X_1(t) = 15$.
 
@@ -115,12 +107,13 @@ for t in range(max_lag, nsample_int):
 
 <div align="center">
 
-Ground-truth Causal Model       |  Causal Model by LPCMCI |  Causal Model by CAnDOIT 
-:-------------------------:|:-------------------------:|:-------------------------:
-![](https://github.com/lcastri/causalflow/raw/main/images/GT_example_1.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/FPCMCI_example_1.png) |  ![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT_example_1.png)
-| $X_0$ observable | $X_0$ hidden | $X_0$ hidden |
-| observation samples 1000 | observation samples 1000 | observation samples 700 |
-| intervention samples &cross; | intervention samples &cross; | observation samples 300 |
+Observational Data       |  Causal Model by LPCMCI  
+:-------------------------:|:-------------------------:
+![](https://github.com/lcastri/causalflow/raw/main/images/LPCMCI_data.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/LPCMCI.png)
+
+Observational & Interventional Data       |  Causal Model by CAnDOIT <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15">  
+:-------------------------:|:-------------------------:
+![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT_data.png)  |  ![](https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT.png) 
 
 </div>
 

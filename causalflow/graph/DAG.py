@@ -468,16 +468,16 @@ class DAG():
         # label definition
         for n in G.nodes():
             if n[0] == 0:
-                ax.text(pos[n][0]-.3, pos[n][1], list(r.g.keys())[len(r.g.keys()) - 1 - n[1]], horizontalalignment='center', verticalalignment='center', fontsize=font_size)
+                ax.text(pos[n][0]-0.1, pos[n][1], list(r.g.keys())[len(r.g.keys()) - 1 - n[1]], horizontalalignment='center', verticalalignment='center', fontsize=font_size)
 
         # time line text drawing
         pos_tau = set([pos[p][0] for p in pos])
         max_y = max([pos[p][1] for p in pos])
         for p in pos_tau:
             if abs(int(p/x_disp) - self.max_lag) == 0:
-                ax.text(p, max_y + .3, r"$t$", horizontalalignment='center', fontsize=font_size)
+                ax.text(p, max_y + 0.1, r"$t$", horizontalalignment='center', fontsize=font_size)
             else:
-                ax.text(p, max_y + .3, r"$t-" + str(abs(int(p/x_disp) - self.max_lag)) + "$", horizontalalignment='center', fontsize=font_size)
+                ax.text(p, max_y + 0.1, r"$t-" + str(abs(int(p/x_disp) - self.max_lag)) + "$", horizontalalignment='center', fontsize=font_size)
 
         Graph(G,
             node_layout = {p : np.array(pos[p]) for p in pos},
@@ -502,8 +502,8 @@ class DAG():
             plt.savefig(save_name + img_extention.value, dpi = 300)
         else:
             plt.show()
-
-
+            
+            
     def __scale(self, score, min_width, max_width, min_score = 0, max_score = 1):
         """
         Scale the score of the cause-effect relationship strength to a linewitdth.
