@@ -1,4 +1,4 @@
-# <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="35"> CausalFlow: Causal Discovery Methods with Observational and Interventional Data from Time-series
+# <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="35"> CausalFlow: a collection of Causal Discovery Methods from Time-series
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises:
 
