@@ -1,4 +1,4 @@
-# <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="35"> CausalFlow: a collection of Causal Discovery Methods from Time-series
+## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="25"> CausalFlow: a collection of Causal Discovery Methods from Time-series
 
 CausalFlow is a python library for causal analysis from time-series data. It comprises:
 
@@ -7,7 +7,7 @@ CausalFlow is a python library for causal analysis from time-series data. It com
 * RandomGraph
 * Other causal discovery methods all within the same framework
 
-## Useful links
+### Useful links
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023).<br>
   [Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios](https://proceedings.mlr.press/v213/castri23a/castri23a.pdf),<br>
@@ -31,7 +31,7 @@ CausalFlow is a python library for causal analysis from time-series data. It com
   ```
 * Tutorials [Coming soon..]
 
-## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="18"> F-PCMCI
+### <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI
 Extension of the state-of-the-art causal discovery method [PCMCI](https://github.com/jakobrunge/tigramite), augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and a hypothetical causal model between them. Then, using the selected features and the hypothetical causal model, the causal discovery is executed. This refined set of variables and the list of potential causal links between them contribute to achieving **faster** and **more accurate** causal discovery.
 
 In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
@@ -74,7 +74,7 @@ Execution time ~ 8min 40sec | Execution time ~ 3min 00sec
 
 F-PCMCI removes the variable $X_6$ from the causal graph (since isolated), and generate the correct causal model. In contrast, PCMCI retains $X_6$ leading to the wrong causal structure. Specifically, a spurious link $X_6$ -> $X_5$ appears in the causal graph derived by PCMCI.
 
-## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="18"> CAnDOIT
+### <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT
 CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the incorporation of interventional data into the causal discovery process alongside observational data. Like its predecessor, CAnDOIT can handle both lagged and contemporaneous dependencies, as well as latent variables.
 
 In the following example, taken from one of the tigramite tutorials ([this](https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb)), we demonstrate CAnDOIT's ability to incorporate and leverage interventional data to improve the accuracy of causal analysis. The example involves a system of equations with four variables:
@@ -172,7 +172,7 @@ Observational & Interventional Data       |  Causal Model by CAnDOIT <img src="h
 
 CAnDOIT, like LPCMCI, correctly detects the bidirected link $X_0$ <-> $X_2$. Additionally, by incorporating interventional data, CAnDOIT resolves the uncertainty regarding the link $X_2$ o-> $X_3$, resulting in a **reduction of the PAG size**. Specifically, the PAG found by CAnDOIT is the representaion of only one MAG.
 
-## RandomGraph
+### RandomGraph
 RandomGraph is a random-model generator capable of creating random systems of equations with various properties: linear, nonlinear, lagged and/or contemporaneous dependencies, and hidden confounders. 
 This tool offers several adjustable parameters, listed as follows:
 * time-series length;
@@ -299,7 +299,7 @@ d_int[intvar].plot_timeseries()
 </div>
 
 
-## Other Causal Discovery Algorithms
+### Other Causal Discovery Algorithms
 Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmarking purposes. Consequently, CausalFlow offers a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series graphs (graphs that specify the lag for each link). These methods are listed as follows:
 
 * [DYNOTEARS](https://arxiv.org/pdf/2002.00498.pdf) - from the [causalnex](https://github.com/mckinsey/causalnex) package;
@@ -329,7 +329,7 @@ Some algorithms are imported from other languages such as R and Java and are the
 </div>
 
 
-## Citation
+### Citation
 Please consider citing the following papers depending on which method you use:
 
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
@@ -355,7 +355,7 @@ Please consider citing the following papers depending on which method you use:
   ```
 
 
-## Requirements
+### Requirements
 * pandas>=1.5.2
 * netgraph>=4.10.2
 * networkx>=2.8.6
@@ -372,7 +372,7 @@ Please consider citing the following papers depending on which method you use:
 * tigramite>=5.1.0.3
 
 
-## Installation
+### Installation
 
 Before installing CausalFlow, you need to install Java and the [IDTxl package](https://github.com/pwollstadt/IDTxl) used for the feature-selection process, following the guide described [here](https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements). Once complete, you can install the current release of `CausalFlow` with:
 ``` shell
@@ -381,7 +381,7 @@ Before installing CausalFlow, you need to install Java and the [IDTxl package](h
 
 For a complete installation Java - IDTxl - CausalFlow, follow the following procedure.
 
-### 1 - Java installation
+#### 1 - Java installation
 Verify that you have not already installed Java:
 ```shell
 java -version
@@ -400,7 +400,7 @@ JAVA_HOME="/lib/jvm/java-11-openjdk-amd64/bin/java" # Paste the JAVA_HOME assign
 source /etc/environment
 ```
 
-### 2 - IDTxl installation
+#### 2 - IDTxl installation
 ```shell
 # IDTxl
 git clone https://github.com/pwollstadt/IDTxl.git
@@ -408,13 +408,13 @@ cd IDTxl
 pip install -e .
 ```
 
-### 3 - CausalFlow installation
+#### 3 - CausalFlow installation
 ```shell
 # COMING SOON: pip install causalflow
 ```
 
 
-## Recent changes
+### Recent changes
 
 | Version | Changes |
 | :---: | ----------- |
