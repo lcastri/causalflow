@@ -1,4 +1,4 @@
-site_name: FPCMCI
+site_name: CausalFlow
 site_author: 'Luca Castri'
 
 theme:
@@ -23,19 +23,27 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
 
-  logo: assets/logo.png
-  favicon: assets/icon.png
+  logo: assets/causalflow_logo.png
+  favicon: assets/causalflow_icon.png
 
 
 plugins:
   - search
   - mkdocstrings
 
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML
 
+markdown_extensions:
+  - mdx_math
+  
 nav:
   - Overview: index.md
   - Preprocessing: preprocessing.md
-  - Subsampling: subsampling_method.md
+  - Graph: graph.md
   - Feature Selection Methods: feature_selection_method.md
-  - FPCMCI: fpcmci.md
-  - Causal Graph: causal_graph.md
+  - Causal Discovery: causal_discovery.md
+  - F-PCMCI: FPCMCI.md
+  - CAnDOIT: CAnDOIT.md
+  - RandomGraph: random_system.md
+  - Utilities: basics.md

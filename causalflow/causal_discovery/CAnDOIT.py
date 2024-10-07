@@ -85,7 +85,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         
             
     @property    
-    def isThereInterv(self):
+    def isThereInterv(self) -> bool:
         """
         Check whether an intervention is present or not.
 
@@ -163,7 +163,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         self.CM = self.sel_method.compute_dependencies()
         
     
-    def run_validator(self, link_assumptions = None):
+    def run_validator(self, link_assumptions = None) -> DAG:
         """
         Run Validator (LPCMCI).
 

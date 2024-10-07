@@ -97,7 +97,7 @@ class RandomGraph:
     
     
     @property            
-    def variables(self):
+    def variables(self) -> list:
         """
         Retrieve the full set of observed and hidden variables.
 
@@ -108,7 +108,7 @@ class RandomGraph:
     
     
     @property            
-    def Nobs(self):
+    def Nobs(self) -> int:
         """
         Return number of observable variables.
 
@@ -119,7 +119,7 @@ class RandomGraph:
     
          
     @property            
-    def N(self):
+    def N(self) -> int:
         """
         Return total number of variables (observed and hidden).
 
@@ -130,7 +130,7 @@ class RandomGraph:
     
     
     @property
-    def obsEquations(self):
+    def obsEquations(self) -> dict:
         """
         Return equations corresponding to the observed variables.
 
@@ -142,7 +142,7 @@ class RandomGraph:
         return tmp
        
                 
-    def __build_equation(self, var_lagged_choice: list, var_contemp_choice: list, target_var):
+    def __build_equation(self, var_lagged_choice: list, var_contemp_choice: list, target_var) -> list:
         """
         Generate random equations.
 
@@ -184,7 +184,7 @@ class RandomGraph:
         return equation
     
     
-    def __creates_cycle(self, target_var_lag, variable_lag):
+    def __creates_cycle(self, target_var_lag, variable_lag) -> bool:
         """
         Check the presence of cycles.
         
@@ -383,7 +383,7 @@ class RandomGraph:
         return eq
             
             
-    def __evaluate_term(self, term, t, data):
+    def __evaluate_term(self, term, t, data) -> tuple:
         """
         Evaluate single term componing an equation.
 
@@ -411,7 +411,7 @@ class RandomGraph:
         return operator, term_value
     
     
-    def __handle_priority_operator(self, eq):
+    def __handle_priority_operator(self, eq) -> list:
         """
         Evaluate all the terms with operato * ans /.
 
@@ -444,7 +444,7 @@ class RandomGraph:
         return eq
      
 
-    def __evaluate_equation(self, equation, t, data):
+    def __evaluate_equation(self, equation, t, data) -> float:
         """
         Evaluate equation.
 
@@ -477,12 +477,12 @@ class RandomGraph:
         return equation_value
 
 
-    def gen_obs_ts(self):
+    def gen_obs_ts(self) -> tuple:
         """
         Generate time-series data.
 
         Returns:
-            Data: generated data.
+            tuple: (Data obj with hidden vars, Data obj without hidden vars).
         """
         np_data = np.zeros((self.T, self.N))
         for t in range(self.T):
@@ -500,7 +500,7 @@ class RandomGraph:
         return data, only_obs
     
     
-    def gen_interv_ts(self, interventions, obs):
+    def gen_interv_ts(self, interventions, obs) -> dict:
         """
         Generate time-series corresponding to intervention(s).
 
@@ -509,7 +509,7 @@ class RandomGraph:
             obs (DataFrame): Observational DataFrame.
         
         Returns:
-            Data: interventional time-series data.
+            dict: {interventional variable: interventional time-series data}.
         """
         starting_point = obs.values
         int_data = dict()
@@ -539,7 +539,7 @@ class RandomGraph:
         return int_data
     
     
-    def get_DPAG(self):
+    def get_DPAG(self) -> dict:
         """
         Output the PAG starting from a DAG.
 
@@ -552,7 +552,7 @@ class RandomGraph:
         return self.PAG.convert2Graph()
     
     
-    def get_Adj(self, withHidden = False):
+    def get_Adj(self, withHidden = False) -> dict:
         """
         Output the Structural Causal Model.
 
@@ -578,7 +578,7 @@ class RandomGraph:
         for t in scm: print(t + ' : ' + str(scm[t]))    
           
         
-    def intervene(self, int_var, int_len, int_value, obs):
+    def intervene(self, int_var, int_len, int_value, obs) -> dict:
         """
         Generate intervention on a single variable.
 
@@ -589,7 +589,7 @@ class RandomGraph:
             obs (DataFrame): Observational DataFrame.
             
         Returns:
-            Data: interventional time-series data.
+            dict: {interventional variable: interventional time-series data}.
         """
         if not isinstance(int_var, list): int_var = [int_var]
         if not isinstance(int_len, list): int_len = [int_len]

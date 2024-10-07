@@ -1,5 +1,5 @@
-::: fpcmci.selection_methods.SelectionMethod
-::: fpcmci.selection_methods.Corr
-::: fpcmci.selection_methods.ParCorr
-::: fpcmci.selection_methods.MI
-::: fpcmci.selection_methods.TE
+::: causalflow.selection_methods.SelectionMethod
+::: causalflow.selection_methods.Corr
+::: causalflow.selection_methods.ParCorr
+::: causalflow.selection_methods.MI
+::: causalflow.selection_methods.TE

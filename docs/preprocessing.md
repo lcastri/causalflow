@@ -1,1 +1,9 @@
-::: fpcmci.preprocessing.data
+::: causalflow.preprocessing.data
+::: causalflow.preprocessing.Subsampler
+::: causalflow.preprocessing.subsampling_methods.EntropyBasedMethod
+::: causalflow.preprocessing.subsampling_methods.SubsamplingMethod
+::: causalflow.preprocessing.subsampling_methods.moving_window
+::: causalflow.preprocessing.subsampling_methods.Static
+::: causalflow.preprocessing.subsampling_methods.WSDynamic
+::: causalflow.preprocessing.subsampling_methods.WSFFTStatic
+::: causalflow.preprocessing.subsampling_methods.WSStatic

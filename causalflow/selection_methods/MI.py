@@ -37,7 +37,7 @@ class MI(SelectionMethod):
         self.estimator = estimator
         
     @property
-    def isOpenCLinstalled(self):
+    def isOpenCLinstalled(self) -> bool:
         """
         Check whether the pyopencl pkg is installed.
 

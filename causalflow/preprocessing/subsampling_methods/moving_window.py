@@ -46,7 +46,7 @@ class MovingWindow:
         self.entropy = entropy(self.get_pdf(), base = 2)
 
 
-    def samples_selector(self, step):
+    def samples_selector(self, step) -> list:
         """
         Select sample to be taken from a moving window.
 
@@ -54,7 +54,7 @@ class MovingWindow:
             step (int): subsampling frequency.
 
         Returns:
-            list[int]: list of indexes corresponding to the sample to be taken.
+            list: list of indexes corresponding to the sample to be taken.
         """
         return [i for i in range(0, self.T, step)]
 

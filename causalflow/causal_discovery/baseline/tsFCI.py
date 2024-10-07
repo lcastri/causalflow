@@ -103,7 +103,7 @@ class tsFCI(CausalDiscoveryMethod):
         return tmp_dag
 
 
-    def ts_fci_dataframe_to_dict(self, df, names, nlags):
+    def ts_fci_dataframe_to_dict(self, df, names, nlags) -> dict:
         """
         Convert tsFCI result into a dict for _to_DAG.
 

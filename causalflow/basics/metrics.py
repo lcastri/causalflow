@@ -21,7 +21,7 @@ def fully_connected_dag(features, min_lag, max_lag, alsoOrient = False):
     return g
 
 
-def get_TP(gt, cm, alsoOrient = False):
+def get_TP(gt, cm, alsoOrient = False) -> int:
     """
     Compute true positive number: edge present in the causal model and present in the groundtruth.
 
@@ -46,7 +46,7 @@ def get_TP(gt, cm, alsoOrient = False):
     return counter
 
  
-def get_TN(gt, min_lag, max_lag, cm, alsoOrient = False):
+def get_TN(gt, min_lag, max_lag, cm, alsoOrient = False) -> int:
     """
     Compute true negative number: edge absent in the groundtruth and absent in the causal model.
     
@@ -93,7 +93,7 @@ def get_TN(gt, min_lag, max_lag, cm, alsoOrient = False):
     return counter
     
      
-def get_FP(gt, cm, alsoOrient = False):
+def get_FP(gt, cm, alsoOrient = False) -> int:
     """
     Compute false positive number: edge present in the causal model but absent in the groundtruth.
     
@@ -119,7 +119,7 @@ def get_FP(gt, cm, alsoOrient = False):
     return counter
 
 
-def get_FN(gt, cm, alsoOrient = False):
+def get_FN(gt, cm, alsoOrient = False) -> int:
     """
     Compute false negative number: edge present in the groundtruth but absent in the causal model.
         
@@ -145,7 +145,7 @@ def get_FN(gt, cm, alsoOrient = False):
     return counter
     
     
-def shd(gt, cm, alsoOrient = False):
+def shd(gt, cm, alsoOrient = False) -> int:
     """
     Compute Structural Hamming Distance between ground-truth causal graph and the estimated one.
 
@@ -160,7 +160,7 @@ def shd(gt, cm, alsoOrient = False):
     return fn + fp
 
 
-def precision(gt, cm, alsoOrient = False):
+def precision(gt, cm, alsoOrient = False) -> float:
     """
     Compute Precision between ground-truth causal graph and the estimated one.
 
@@ -176,7 +176,7 @@ def precision(gt, cm, alsoOrient = False):
     return tp/(tp + fp)
 
         
-def recall(gt, cm, alsoOrient = False):
+def recall(gt, cm, alsoOrient = False) -> float:
     """
     Compute Recall between ground-truth causal graph and the estimated one.
 
@@ -192,7 +192,7 @@ def recall(gt, cm, alsoOrient = False):
     return tp/(tp + fn)
 
 
-def f1_score(gt, cm, alsoOrient = False):
+def f1_score(gt, cm, alsoOrient = False) -> float:
     """
     Compute F1-score between ground-truth causal graph and the estimated one.
 
@@ -208,7 +208,7 @@ def f1_score(gt, cm, alsoOrient = False):
     return (2 * p * r) / (p + r)
     
      
-def FPR(gt, min_lag, max_lag, cm, alsoOrient = False):
+def FPR(gt, min_lag, max_lag, cm, alsoOrient = False) -> float:
     """
     Compute False Positve Rate between ground-truth causal graph and the estimated one.
 
@@ -224,7 +224,7 @@ def FPR(gt, min_lag, max_lag, cm, alsoOrient = False):
     return fp / (tn + fp)
     
     
-def TPR(gt, cm, alsoOrient = False):
+def TPR(gt, cm, alsoOrient = False) -> float:
     """
     Compute True Positive Rate between ground-truth causal graph and the estimated one.
 
@@ -240,7 +240,7 @@ def TPR(gt, cm, alsoOrient = False):
     return tp / (tp + fn)
 
 
-def TNR(gt, min_lag, max_lag, cm, alsoOrient = False):
+def TNR(gt, min_lag, max_lag, cm, alsoOrient = False) -> float:
     """
     Compute True Negative Rate between ground-truth causal graph and the estimated one.
 
@@ -256,7 +256,7 @@ def TNR(gt, min_lag, max_lag, cm, alsoOrient = False):
     return tn / (tn + fp)
 
 
-def FNR(gt, cm, alsoOrient = False):
+def FNR(gt, cm, alsoOrient = False) -> float:
     """
     Compute False Negative Rate between ground-truth causal graph and the estimated one.
 

@@ -36,7 +36,7 @@ class PAG():
         self.pag = self.tsDAG2tsDPAG()
         
     
-    def convert2Graph(self):
+    def convert2Graph(self) -> dict:
         """
         Convert a PAG to a graph representation.
 
@@ -103,7 +103,7 @@ class PAG():
         return False, None
 
     
-    def tsDAG2tsDPAG(self):
+    def tsDAG2tsDPAG(self) -> dict:
         """
         Convert a DAG to a Time-series DPAG.
 
@@ -210,7 +210,7 @@ class PAG():
         return self.tsDPAG
 
 
-    def find_colliders(self):
+    def find_colliders(self) -> list:
         """
         Find colliders.
 
@@ -243,7 +243,7 @@ class PAG():
                 self.tsDPAG[target[0]][idx] = (link[0], link[1], linktype)
             
             
-    def find_latent_confounders(self):
+    def find_latent_confounders(self) -> dict:
         """
         Find latent confounders.
 
@@ -317,7 +317,7 @@ class PAG():
             
         return False, set()
 
-    def find_triples_containing_link(self, ambiguous_link):
+    def find_triples_containing_link(self, ambiguous_link) -> set:
         """
         Find all triples containing a link.
 
@@ -341,7 +341,7 @@ class PAG():
         
     
     # DFS to find all paths
-    def find_all_paths(self, start, goal, path=[]):
+    def find_all_paths(self, start, goal, path=[]) -> list:
         """
         Find all path from start to goal.
 

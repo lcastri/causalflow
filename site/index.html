@@ -14,19 +14,19 @@
       
         <link rel="next" href="preprocessing/">
       
-      <link rel="icon" href="assets/icon.png">
-      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.13">
+      <link rel="icon" href="assets/causalflow_icon.png">
+      <meta name="generator" content="mkdocs-1.5.2, mkdocs-material-9.1.21">
     
     
       
-        <title>FPCMCI</title>
+        <title>CausalFlow</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.85bb2934.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.eebd395e.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.a6bdf11c.min.css">
+        <link rel="stylesheet" href="assets/stylesheets/palette.ecc896b0.min.css">
       
       
 
@@ -73,7 +73,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#fpcmci-filtered-pcmci" class="md-skip">
+        <a href="#causalflow-a-collection-of-causal-discovery-methods-from-time-series" class="md-skip">
           Skip to content
         </a>
       
@@ -89,9 +89,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="FPCMCI" class="md-header__button md-logo" aria-label="FPCMCI" data-md-component="logo">
+    <a href="." title="CausalFlow" class="md-header__button md-logo" aria-label="CausalFlow" data-md-component="logo">
       
-  <img src="assets/logo.png" alt="logo">
+  <img src="assets/causalflow_logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -101,7 +101,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FPCMCI
+            CausalFlow
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -200,12 +200,12 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="FPCMCI" class="md-nav__button md-logo" aria-label="FPCMCI" data-md-component="logo">
+    <a href="." title="CausalFlow" class="md-nav__button md-logo" aria-label="CausalFlow" data-md-component="logo">
       
-  <img src="assets/logo.png" alt="logo">
+  <img src="assets/causalflow_logo.png" alt="logo">
 
     </a>
-    FPCMCI
+    CausalFlow
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -224,8 +224,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           Overview
@@ -242,8 +240,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -252,34 +248,110 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#causalflow-a-collection-of-causal-discovery-methods-from-time-series" class="md-nav__link">
+     CausalFlow: a collection of Causal Discovery Methods from Time-series
+  </a>
+  
+    <nav class="md-nav" aria-label="CausalFlow: a collection of Causal Discovery Methods from Time-series">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#useful-links" class="md-nav__link">
     Useful links
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#why-fpcmci" class="md-nav__link">
-    Why FPCMCI?
+        
+          <li class="md-nav__item">
+  <a href="#f-pcmci" class="md-nav__link">
+     F-PCMCI
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
+  <a href="#candoit" class="md-nav__link">
+     CAnDOIT
+  </a>
+  
+    <nav class="md-nav" aria-label="CAnDOIT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#robotics-application-of-candoit" class="md-nav__link">
+    Robotics application of CAnDOIT
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#randomgraph" class="md-nav__link">
+    RandomGraph
+  </a>
+  
+    <nav class="md-nav" aria-label="RandomGraph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-linear-random-graph" class="md-nav__link">
+    Example - Linear Random Graph
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-nonlinear-random-graph" class="md-nav__link">
+    Example - Nonlinear Random Graph
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-random-graph-with-interventional-data" class="md-nav__link">
+    Example - Random Graph with Interventional Data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-causal-discovery-algorithms" class="md-nav__link">
+    Other Causal Discovery Algorithms
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#citation" class="md-nav__link">
     Citation
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#requirements" class="md-nav__link">
     Requirements
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
   </a>
@@ -302,8 +374,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-fpcmci-installation" class="md-nav__link">
-    3 - FPCMCI installation
+  <a href="#3-causalflow-installation" class="md-nav__link">
+    3 - CausalFlow installation
   </a>
   
 </li>
@@ -312,11 +384,16 @@
     </nav>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#recent-changes" class="md-nav__link">
     Recent changes
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -351,8 +428,8 @@
   
   
     <li class="md-nav__item">
-      <a href="subsampling_method/" class="md-nav__link">
-        Subsampling
+      <a href="graph/" class="md-nav__link">
+        Graph
       </a>
     </li>
   
@@ -381,8 +458,8 @@
   
   
     <li class="md-nav__item">
-      <a href="fpcmci/" class="md-nav__link">
-        FPCMCI
+      <a href="causal_discovery/" class="md-nav__link">
+        Causal Discovery
       </a>
     </li>
   
@@ -396,8 +473,53 @@
   
   
     <li class="md-nav__item">
-      <a href="causal_graph/" class="md-nav__link">
-        Causal Graph
+      <a href="FPCMCI/" class="md-nav__link">
+        F-PCMCI
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="CAnDOIT/" class="md-nav__link">
+        CAnDOIT
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="random_system/" class="md-nav__link">
+        RandomGraph
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="basics/" class="md-nav__link">
+        Utilities
       </a>
     </li>
   
@@ -420,8 +542,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -430,34 +550,110 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#causalflow-a-collection-of-causal-discovery-methods-from-time-series" class="md-nav__link">
+     CausalFlow: a collection of Causal Discovery Methods from Time-series
+  </a>
+  
+    <nav class="md-nav" aria-label="CausalFlow: a collection of Causal Discovery Methods from Time-series">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#useful-links" class="md-nav__link">
     Useful links
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#why-fpcmci" class="md-nav__link">
-    Why FPCMCI?
+        
+          <li class="md-nav__item">
+  <a href="#f-pcmci" class="md-nav__link">
+     F-PCMCI
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
+  <a href="#candoit" class="md-nav__link">
+     CAnDOIT
+  </a>
+  
+    <nav class="md-nav" aria-label="CAnDOIT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#robotics-application-of-candoit" class="md-nav__link">
+    Robotics application of CAnDOIT
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#randomgraph" class="md-nav__link">
+    RandomGraph
+  </a>
+  
+    <nav class="md-nav" aria-label="RandomGraph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-linear-random-graph" class="md-nav__link">
+    Example - Linear Random Graph
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-nonlinear-random-graph" class="md-nav__link">
+    Example - Nonlinear Random Graph
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-random-graph-with-interventional-data" class="md-nav__link">
+    Example - Random Graph with Interventional Data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-causal-discovery-algorithms" class="md-nav__link">
+    Other Causal Discovery Algorithms
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#citation" class="md-nav__link">
     Citation
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#requirements" class="md-nav__link">
     Requirements
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     Installation
   </a>
@@ -480,8 +676,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-fpcmci-installation" class="md-nav__link">
-    3 - FPCMCI installation
+  <a href="#3-causalflow-installation" class="md-nav__link">
+    3 - CausalFlow installation
   </a>
   
 </li>
@@ -490,11 +686,16 @@
     </nav>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#recent-changes" class="md-nav__link">
     Recent changes
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -513,21 +714,59 @@
                   
 
 
-<h1 id="fpcmci-filtered-pcmci"><img src="assets/icon.png" width="25"> FPCMCI - Filtered PCMCI</h1>
-<p>Extension of the state-of-the-art causal discovery method <a href="https://github.com/jakobrunge/tigramite">PCMCI</a> augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and possible links between them which describe the observed process. Then, from the selected features and links, a causal model is built.</p>
-<h2 id="useful-links">Useful links</h2>
+  <h1>Overview</h1>
+
+<h2 id="causalflow-a-collection-of-causal-discovery-methods-from-time-series"><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="25"> CausalFlow: a collection of Causal Discovery Methods from Time-series</h2>
+<p>CausalFlow is a python library for causal analysis from time-series data. It comprises:</p>
 <ul>
-<li><a href="https://lcastri.github.io/fpcmci/">Documentation</a></li>
-<li><a href="https://github.com/lcastri/fpcmci/tree/main/tutorials">Tutorials</a></li>
+<li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> <a href="https://github.com/lcastri/fpcmci">F-PCMCI</a> - Filtered-PCMCI</li>
+<li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT - CAusal Discovery with Observational and Interventional data from Time-series</li>
+<li>RandomGraph</li>
+<li>Other causal discovery methods all within the same framework</li>
 </ul>
-<h2 id="why-fpcmci">Why FPCMCI?</h2>
-<p>Current state-of-the-art causal discovery approaches suffer in terms of speed and accuracy of the causal analysis when the process to be analysed is composed by a large number of features. FPCMCI is able to select the most meaningful features from a set of variables and build a causal model from such selection. To this end, the causal analysis results <strong>faster</strong> and <strong>more accurate</strong>.</p>
-<p>In the following it is presented an example showing a comparison between causal models obtained by PCMCI and FPCMCI causal discovery algorithms on the same data. The latter have been created by defining a 6-variables system defined as follows:</p>
+<h3 id="useful-links">Useful links</h3>
+<ul>
+<li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023).<br>
+  <a href="https://proceedings.mlr.press/v213/castri23a/castri23a.pdf">Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios</a>,<br>
+  Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
+  <code>@inproceedings{castri2023enhancing,
+    title={Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios},
+    author={Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
+    booktitle={Conference on Causal Learning and Reasoning},
+    pages={243--258},
+    year={2023},
+    organization={PMLR}
+  }</code></li>
+<li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
+  <a href="https://arxiv.org/pdf/2410.02844">CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series</a>,<br>
+  Advanced Intelligent System.<br>
+  <code>BibTex coming soon!</code></li>
+<li>Tutorials [Coming soon..]</li>
+</ul>
+<h3 id="f-pcmci"><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI</h3>
+<p>Extension of the state-of-the-art causal discovery method <a href="https://github.com/jakobrunge/tigramite">PCMCI</a>, augmented with a feature-selection method based on Transfer Entropy. The algorithm, starting from a prefixed set of variables, identifies the correct subset of features and a hypothetical causal model between them. Then, using the selected features and the hypothetical causal model, the causal discovery is executed. This refined set of variables and the list of potential causal links between them contribute to achieving <strong>faster</strong> and <strong>more accurate</strong> causal discovery.</p>
+<p>In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:</p>
+<p>
+<script type="math/tex; mode=display">
+\small{
+\begin{cases}
+X_0(t) &= 2X_1(t-1) + 3X_3(t-1) + \eta_0 \\
+X_1(t) &= \eta_1 \\
+X_2(t) &= 1.1(X_1(t-1))^2 + \eta_2 \\
+X_3(t) &= X_3(t-1) \cdot X_2(t-1) + \eta_3 \\
+X_4(t) &= X_4(t-1) + X_5(t-1) \cdot X_0(t-1) + \eta_4 \\
+X_5(t) &= \eta_5 \\
+X_6(t) &= \eta_6
+\end{cases} }
+</script>
+</p>
 <pre><code class="language-python">min_lag = 1
 max_lag = 1
 np.random.seed(1)
 nsample = 1500
-nfeature = 6
+nfeature = 7
 
 d = np.random.random(size = (nsample, feature))
 for t in range(max_lag, nsample):
@@ -540,35 +779,13 @@ for t in range(max_lag, nsample):
 <thead>
 <tr>
 <th style="text-align: center;">Causal Model by PCMCI</th>
-<th style="text-align: center;">Causal Model by FPCMCI</th>
+<th style="text-align: center;">Causal Model by F-PCMCI</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/fpcmci/raw/main/images/PCMCI_example_1.png" title="Causal model by PCMCI" /></td>
-<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/fpcmci/raw/main/images/FPCMCI_example_1.png" title="Causal model by FPCMCI" /></td>
-</tr>
-<tr>
-<td style="text-align: center;">Execution time ~ 6min 50sec</td>
-<td style="text-align: center;">Execution time ~ 2min 45sec</td>
-</tr>
-</tbody>
-</table>
-<p>The causal analysis performed by the <strong>FPCMCI</strong> results not only faster but also more accurate. Indeed, the causal model derived by the FPCMCI agrees with the structure of the system of equations, instead the one derived by the PCMCI presents spurious links:
-* $X_2$ &rarr; $X_4$
-* $X_2$ &rarr; $X_5$</p>
-<p>Note that, since all the 6 variables were involved in the evolution of the system, the FPCMCI did not remove any of them. In the following example instead, we added a new variable in the system which is defined just by the noise component (as $X_1$ and $X_5$) and does not appear in any other equation, defined as follows: $X_6(t) = \eta_6(t)$. In the following the comparison between PCMCI and FPCMCI with this new system configuration:</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: center;">Causal Model by PCMCI</th>
-<th style="text-align: center;">Causal Model by FPCMCI</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/fpcmci/raw/main/images/PCMCI_example_2.png" title="Causal model by PCMCI" /></td>
-<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/fpcmci/raw/main/images/FPCMCI_example_2.png" title="Causal model by FPCMCI" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/PCMCI_example_2.png" title="Causal model by PCMCI" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/FPCMCI_example_2.png" title="Causal model by F-PCMCI" /></td>
 </tr>
 <tr>
 <td style="text-align: center;">Execution time ~ 8min 40sec</td>
@@ -576,19 +793,412 @@ for t in range(max_lag, nsample):
 </tr>
 </tbody>
 </table>
-<p>In this case the FPCMCI removes the $X_6$ variable from the causal graph leading to generate exactly the same causal model as in the previous example, with comparable executional time. Instead, the PCMCI suffers the presence of $X_6$ in terms of time and accuracy of the causal structure. Indeed, a spurious link $X_6$ &rarr; $X_5$ appears in the causal graph derived by the PCMCI.</p>
-<h2 id="citation">Citation</h2>
-<p>If you found this useful for your work, please cite this papers:</p>
-<pre><code>@inproceedings{castri2023fpcmci,
+<p>F-PCMCI removes the variable <script type="math/tex">X_6</script> from the causal graph (since isolated), and generate the correct causal model. In contrast, PCMCI retains <script type="math/tex">X_6</script> leading to the wrong causal structure. Specifically, a spurious link <script type="math/tex">X_6</script> -&gt; <script type="math/tex">X_5</script> appears in the causal graph derived by PCMCI.</p>
+<h3 id="candoit"><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT</h3>
+<p>CAnDOIT extends <a href="https://github.com/jakobrunge/tigramite">LPCMCI</a>, allowing the incorporation of interventional data into the causal discovery process alongside observational data. Like its predecessor, CAnDOIT can handle both lagged and contemporaneous dependencies, as well as latent variables.</p>
+<h4 id="example">Example</h4>
+<p>In the following example, taken from one of the tigramite tutorials (<a href="https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb">this</a>), we demonstrate CAnDOIT's ability to incorporate and leverage interventional data to improve the accuracy of causal analysis. The example involves a system of equations with four variables:</p>
+<p>
+<script type="math/tex; mode=display">
+\small{
+\begin{cases}
+X_0(t) = 0.9X_0(t-1) + 0.6X_1(t) + \eta_0 \\
+L_1(t) = \eta_1 \\
+X_2(t) = 0.9X_2(t-1) + 0.4X_1(t-1) + \eta_2 \\
+X_3(t) = 0.9X_3(t-1) - 0.5X_2(t-2) + \eta_3 \\
+\end{cases}}
+</script>
+</p>
+<p>Note that <script type="math/tex">L_1</script> is a latent confounder of <script type="math/tex">X_0</script> and <script type="math/tex">X_2</script>. This system of equations generates the time-series data in the observational domain, which is then used by LPCMCI for causal discovery analysis.</p>
+<pre><code class="language-python">tau_max = 2
+pc_alpha = 0.05
+np.random.seed(19)
+nsample_obs = 500
+nfeature = 4
+
+d = np.random.random(size = (nsample_obs, nfeature))
+for t in range(tau_max, nsample_obs):
+  d[t, 0] += 0.9 * d[t-1, 0] + 0.6 * d[t, 1]
+  d[t, 2] += 0.9 * d[t-1, 2] + 0.4 * d[t-1, 1]
+  d[t, 3] += 0.9 * d[t-1, 3] - 0.5 * d[t-2, 2]
+
+# Remove the unobserved component time series
+data_obs = d[:, [0, 2, 3]]
+
+var_names = ['X_0', 'X_2', 'X_3']
+d_obs = Data(data_obs, vars = var_names)
+d_obs.plot_timeseries()
+
+lpcmci = LPCMCI(d_obs,
+                min_lag = 0,
+                max_lag = tau_max,
+                val_condtest = ParCorr(significance='analytic'),
+                alpha = pc_alpha)
+
+# Run LPCMCI
+lpcmci_cm = lpcmci.run()
+lpcmci_cm.ts_dag(node_size = 4, min_width = 1.5, max_width = 1.5, 
+                 x_disp=0.5, y_disp=0.2, font_size=10)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Observational Data</th>
+<th style="text-align: center;">Causal Model by LPCMCI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/LPCMCI_data.png" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/LPCMCI.png" /></td>
+</tr>
+</tbody>
+</table>
+<p>As you can see from LPCMCI's result, the method correctly identifies the bidirected link (indicating the presence of a latent confounder) between <script type="math/tex">X_0</script> and <script type="math/tex">X_2</script>. However, the final causal model presents uncertainty regarding the link <script type="math/tex">X_2</script> o-&gt; <script type="math/tex">X_3</script>. Specifically, the final causal model is a PAG that represents two MAGs: the first with <script type="math/tex">X_2</script> &lt;-&gt; <script type="math/tex">X_3</script>, and the second with <script type="math/tex">X_2</script> -&gt; <script type="math/tex">X_3</script>.</p>
+<p>Now, let's introduce interventional data and examine its benefits. In this case, we perform a hard intervention on the variable <script type="math/tex">X_2</script>, meaning we replace its equation with a constant value corresponding to the intervention (in this case, <script type="math/tex">X_2 = 3</script>).</p>
+<pre><code class="language-python">nsample_int = 150
+int_data = dict()
+
+# Intervention on X_2.
+d_int = np.random.random(size = (nsample_int, nfeature))
+d_int[0:tau_max, :] = d[len(d)-tau_max:,:]
+d_int[:, 2] = 3 * np.ones(shape = (nsample_int,)) 
+for t in range(tau_max, nsample_int):
+    d_int[t, 0] += 0.9 * d_int[t-1, 0] + 0.6 * d_int[t, 1]
+    d_int[t, 3] += 0.9 * d_int[t-1, 3] - 0.5 * d_int[t-2, 2]
+
+data_int = d_int[:, [0, 2, 3]]
+df_int = Data(data_int, vars = var_names)
+int_data['X_2'] =  df_int
+
+candoit = CAnDOIT(d_obs, 
+                  int_data,
+                  alpha = pc_alpha, 
+                  min_lag = 0, 
+                  max_lag = tau_max, 
+                  val_condtest = ParCorr(significance='analytic'))
+
+candoit_cm = candoit.run()
+candoit_cm.ts_dag(node_size = 4, min_width = 1.5, max_width = 1.5, 
+                  x_disp=0.5, y_disp=0.2, font_size=10)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Observational &amp; Interventional Data</th>
+<th style="text-align: center;">Causal Model by CAnDOIT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT_data.png" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/CAnDOIT.png" /></td>
+</tr>
+</tbody>
+</table>
+<p>CAnDOIT, like LPCMCI, correctly detects the bidirected link <script type="math/tex">X_0</script> &lt;-&gt; <script type="math/tex">X_2</script>. Additionally, by incorporating interventional data, CAnDOIT resolves the uncertainty regarding the link <script type="math/tex">X_2</script> o-&gt; <script type="math/tex">X_3</script>, resulting in a <strong>reduction of the PAG size</strong>. Specifically, the PAG found by CAnDOIT is the representaion of only one MAG.</p>
+<h4 id="robotics-application-of-candoit">Robotics application of CAnDOIT</h4>
+<p>In this section, we discuss an application of CAnDOIT in a robotic scenario. We designed an experiment to learn the causal model in a hypothetical robot arm application equipped with a camera. For this application, we utilised <a href="https://github.com/rr-learning/CausalWorld">Causal World</a>, which models a TriFinger robot, a floor, and a stage. </p>
+<p>In our case, we use only one finger of the robot, with the finger's end effector equipped with a camera. The scenario consists of a cube placed at the centre of the floor, surrounded by a white stage. 
+The colour's brightness (<script type="math/tex">b</script>) of the cube and the floor is modelled as a function of the end-effector height (<script type="math/tex">H</script>), its absolute velocity (<script type="math/tex">v</script>), and the distance between the end-effector and the cube (<script type="math/tex">d_c</script>). This model captures the shading and blurring effects on the cube. In contrast, the floor, being darker and larger than the cube, is only affected by the end effector's height.</p>
+<p>Note that <script type="math/tex">H</script>, <script type="math/tex">v</script>, and <script type="math/tex">d_c</script> are obtained directly from the simulator and not explicitly modelled, while the ground-truth structural causal model for the floor colour (<script type="math/tex">F_c</script>) and cube colour (<script type="math/tex">C_c</script>) is expressed as follows:</p>
+<p>
+<script type="math/tex; mode=display">
+\small{
+\begin{cases}
+F_c(t) = b(H(t-1))\\
+C_c(t) = b(H(t-1), v(t-1), d_c(t-1))
+\end{cases}}
+</script>
+</p>
+<p>This model is used to generate observational data, which is then used by LPCMCI and CAnDOIT to reconstruct the causal model. For the interventional domain instead, we substitute the equation modelling <script type="math/tex">F_c</script> with a constant colour (green) and collect the data for the causal analysis conducted by CAnDOIT. Note that, for both the obervational and interventional domains, <script type="math/tex">H</script> is considered as latent confounder between <script type="math/tex">F_c</script> and <script type="math/tex">C_c</script>.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Observational dataset</th>
+<th style="text-align: center;">Interventional dataset</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/gifs/exp_obs.gif" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/gifs/exp_int.gif" /></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Ground-truth Causal Model</th>
+<th style="text-align: center;">Causal Model by LPCMCI</th>
+<th style="text-align: center;">Causal Model by CAnDOIT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/CW_complete.png" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/CW_LPCMCI.png" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/CW_CAnDOIT.png" /></td>
+</tr>
+</tbody>
+</table>
+<p>Also in this experiment, we can see the benefit of using intervention data alongside the observations. LPCMCI is unable to orient the contemporaneous (spurious) link between <script type="math/tex">F_c</script> and <script type="math/tex">C_c</script> due to the hidden confounder <script type="math/tex">H</script>. This results in the ambiguous link <script type="math/tex">F_c</script> o-o <script type="math/tex">C_c</script>, which does not encode the correct link &lt;-&gt;. Instead CAnDOIT, using interventional data, correctly identifies the bidirected link <script type="math/tex">F_c</script> &lt;-&gt; <script type="math/tex">C_c</script>, decreasing once again the uncertainty level and increasing the accuracy of the reconstructed causal model.</p>
+<h3 id="randomgraph">RandomGraph</h3>
+<p>RandomGraph is a random-model generator capable of creating random systems of equations with various properties: linear, nonlinear, lagged and/or contemporaneous dependencies, and hidden confounders. 
+This tool offers several adjustable parameters, listed as follows:</p>
+<ul>
+<li>time-series length;</li>
+<li>number of observable variables;</li>
+<li>number of observable parents per variable (link density);</li>
+<li>number of hidden confounders;</li>
+<li>number of confounded variables per hidden confounder;</li>
+<li>noise configuration, e.g. Gaussian noise <script type="math/tex">\mathcal{N}(\mu, \sigma^2)</script>;</li>
+<li>minimum <script type="math/tex">\tau_{min}</script> and maximum <script type="math/tex">\tau_{max}</script> time delay to consider in the equations;</li>
+<li>coefficient range of the equations' terms;</li>
+<li>functional forms applied to the equations' terms: <script type="math/tex">[-, \sin, \cos, \text{abs}, \text{pow}, \text{exp}]</script>, where <script type="math/tex">-</script> stands for none;</li>
+<li>operators used to link various equations terms: <script type="math/tex">[+, -, *, /]</script>.</li>
+</ul>
+<p>RandomGraph outputs a graph, the associated system of equations, and observational data. Additionally, it provides the option to generate interventional data.</p>
+<h4 id="example-linear-random-graph">Example - Linear Random Graph</h4>
+<pre><code class="language-python">noise_uniform = (NoiseType.Uniform, -0.5, 0.5)
+noise_gaussian = (NoiseType.Gaussian, 0, 1)
+noise_weibull = (NoiseType.Weibull, 2, 1)
+RG = RandomGraph(nvars = 5, 
+                 nsamples = 1000, 
+                 link_density = 3, 
+                 coeff_range = (0.1, 0.5), 
+                 max_exp = 2, 
+                 min_lag = 0, 
+                 max_lag = 3, 
+                 noise_config = random.choice([noise_uniform, noise_gaussian, noise_weibull]),
+                 functions = [''], 
+                 operators = ['+', '-'], 
+                 n_hidden_confounders = 2)
+RG.gen_equations()
+RG.ts_dag(withHidden = True)
+</code></pre>
+<p>
+<script type="math/tex; mode=display">
+\small{
+\begin{cases}
+X_0(t) = 0.44X_1(t-1) - 0.15X_0(t-2) + 0.1X_4(t-3) + 0.33H_0(t-3) - 0.11H_1(t-2)\\
+X_1(t) = 0.13X_2(t-2) + 0.19H_0(t-3) + 0.46H_1(t-3)\\
+X_2(t) = 0.21X_4(t-3) + 0.37H_1(t)\\
+X_3(t) = 0.23X_0(t-2) - 0.44H_0(t-3) - 0.17H_1(t-3)\\
+X_4(t) = 0.47X_1(t-2) + 0.23X_0(t-3) + 0.49X_4(t-1) + 0.49H_0(t-3) - 0.27H_1(t-2)\\
+H_0(t) = 0.1X_4(t-2)\\
+H_1(t) = 0.44X_3(t)\\
+\end{cases}}
+</script>
+</p>
+<h4 id="example-nonlinear-random-graph">Example - Nonlinear Random Graph</h4>
+<pre><code class="language-python">noise_uniform = (NoiseType.Uniform, -0.5, 0.5)
+noise_gaussian = (NoiseType.Gaussian, 0, 1)
+noise_weibull = (NoiseType.Weibull, 2, 1)
+RG = RandomGraph(nvars = 5, 
+                 nsamples = 1000, 
+                 link_density = 3, 
+                 coeff_range = (0.1, 0.5), 
+                 max_exp = 2, 
+                 min_lag = 0, 
+                 max_lag = 3, 
+                 noise_config = random.choice([noise_uniform, noise_gaussian, noise_weibull]),
+                 functions = ['','sin', 'cos', 'exp', 'abs', 'pow'], 
+                 operators = ['+', '-', '*', '/'], 
+                 n_hidden_confounders = 2)
+RG.gen_equations()
+RG.ts_dag(withHidden = True)
+</code></pre>
+<p>
+<script type="math/tex; mode=display">
+\small{
+\begin{cases}
+X_0(t) = 0.48\frac{\cos(X_4)(t-3)}{0.12\sin(H_1)(t-3)}\\
+X_1(t) = 0.17\sin(X_4)(t-3) - 0.46\cos(X_3)(t) + 0.14|H_1|(t-3)\\
+X_2(t) = \frac{0.32X_4(t-1)}{0.2X_2(t-1)} + 0.23|X_3|(t-2) - 0.34e^{H_1}(t-3)\\
+X_3(t) = 0.1|X_1|(t-1) \cdot 0.26\sin(X_2)(t) \cdot 0.4\cos(X_0)(t-2) - 0.2\cos(H_0)(t-2)\\
+X_4(t) = 0.24|X_1|(t-3) - 0.43X_3(t) + 0.31\sin(H_0)(t-3) + 0.21H_1(t-3)\\
+H_0(t) = 0.45|X_3|(t-2)\\
+H_1(t) = \frac{0.32H_0(t-1)}{0.35e^{H_1}(t-3)} \cdot 0.4X_4(t-3)\\
+\end{cases} }
+</script>
+</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Linear Random Graph</th>
+<th style="text-align: center;">Nonlinear Random Graph</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/lin_hid_randomgraph.png" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/nonlin_hid_randomgraph.png" /></td>
+</tr>
+<tr>
+<td style="text-align: center;">Linear model</td>
+<td style="text-align: center;">Nonlinear model</td>
+</tr>
+<tr>
+<td style="text-align: center;">Lagged dependencies</td>
+<td style="text-align: center;">Lagged dependencies</td>
+</tr>
+<tr>
+<td style="text-align: center;">Contemporaneous dependencies</td>
+<td style="text-align: center;">Contemporaneous dependencies</td>
+</tr>
+<tr>
+<td style="text-align: center;">2 hidden confounders</td>
+<td style="text-align: center;">2 hidden confounders</td>
+</tr>
+</tbody>
+</table>
+<h4 id="example-random-graph-with-interventional-data">Example - Random Graph with Interventional Data</h4>
+<pre><code class="language-python">noise_gaussian = (NoiseType.Gaussian, 0, 1)
+RS = RandomGraph(nvars = 5, 
+                 nsamples = 1500, 
+                 link_density = 3, 
+                 coeff_range = (0.1, 0.5), 
+                 max_exp = 2, 
+                 min_lag = 0, 
+                 max_lag = 3, 
+                 noise_config = noise_gaussian,
+                 functions = ['','sin', 'cos', 'exp', 'abs', 'pow'], 
+                 operators = ['+', '-', '*', '/'], 
+                 n_hidden_confounders = 2)
+RS.gen_equations()
+
+d_obs_wH, d_obs = RS.gen_obs_ts()
+d_obs.plot_timeseries()
+
+d_int = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
+d_int[intvar].plot_timeseries()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Observational Data</th>
+<th style="text-align: center;">Interventional Data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/obs_randomgraph.png" /></td>
+<td style="text-align: center;"><img alt="" src="https://github.com/lcastri/causalflow/raw/main/images/int_randomgraph.png" /></td>
+</tr>
+</tbody>
+</table>
+<h3 id="other-causal-discovery-algorithms">Other Causal Discovery Algorithms</h3>
+<p>Although the main contribution of this repository is to present the CAnDOIT and F-PCMCI algorithms, other causal discovery methods have been included for benchmarking purposes. Consequently, CausalFlow offers a collection of causal discovery methods, beyond F-PCMCI and CAnDOIT, that output time-series graphs (graphs that specify the lag for each link). These methods are listed as follows:</p>
+<ul>
+<li><a href="https://arxiv.org/pdf/2002.00498.pdf">DYNOTEARS</a> - from the <a href="https://github.com/mckinsey/causalnex">causalnex</a> package;</li>
+<li><a href="http://proceedings.mlr.press/v124/runge20a/runge20a.pdf">PCMCI</a> - from the <a href="https://github.com/jakobrunge/tigramite">tigramite</a> package;</li>
+<li><a href="http://auai.org/uai2020/proceedings/579_main_paper.pdf">PCMCI+</a> - from the <a href="https://github.com/jakobrunge/tigramite">tigramite</a> package;</li>
+<li><a href="https://proceedings.neurips.cc/paper/2020/hash/94e70705efae423efda1088614128d0b-Abstract.html">LPCMCI</a> - from the <a href="https://github.com/jakobrunge/tigramite">tigramite</a> package;</li>
+<li><a href="https://www.mdpi.com/2504-4990/1/1/19">TCDF</a> - from the <a href="https://github.com/ckassaad/causal_discovery_for_time_series">causal_discovery_for_time_series</a> package;</li>
+<li><a href="https://www.researchgate.net/publication/268324455_On_Causal_Discovery_from_Time_Series_Data_using_FCI">tsFCI</a> - from the <a href="https://github.com/ckassaad/causal_discovery_for_time_series">causal_discovery_for_time_series</a> package;</li>
+<li><a href="https://www.jmlr.org/papers/volume11/hyvarinen10a/hyvarinen10a.pdf">VarLiNGAM</a> - from the <a href="https://github.com/cdt15/lingam?tab=readme-ov-file">lingam</a> package;</li>
+</ul>
+<p>Some algorithms are imported from other languages such as R and Java and are then wrapped in Python. Having the majority of causal discovery methods integrated into a single framework, which handles various types of inputs and outputs causal models, can facilitate the use of these algorithms. </p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;"></th>
+<th style="text-align: left;">Algorithm</th>
+<th style="text-align: center;">Observations</th>
+<th style="text-align: center;">Feature Selection</th>
+<th style="text-align: center;">Interventions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">DYNOTEARS</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">PCMCI</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">PCMCI+</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">LPCMCI</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">TCDF</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">tsFCI</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"></td>
+<td style="text-align: left;">VarLiNGAM</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"></td>
+<td style="text-align: left;">F-PCMCI</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"></td>
+<td style="text-align: left;">CAnDOIT</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="citation">Citation</h3>
+<p>Please consider citing the following papers depending on which method you use:</p>
+<ul>
+<li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> F-PCMCI:<br>
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2023).<br>
+  <a href="https://proceedings.mlr.press/v213/castri23a/castri23a.pdf">Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios</a>,<br>
+  Proceedings of the Conference on Causal Learning and Reasoning (CLeaR).<br>
+  <code>@inproceedings{castri2023enhancing,
     title={Enhancing Causal Discovery from Robot Sensor Data in Dynamic Scenarios},
     author={Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
-    booktitle={Conference on Causal Learning and Reasoning (CLeaR)},
+    booktitle={Conference on Causal Learning and Reasoning},
+    pages={243--258},
     year={2023},
-}
-</code></pre>
-<h2 id="requirements">Requirements</h2>
+    organization={PMLR}
+  }</code></li>
+<li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
+  L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
+  <a href="https://arxiv.org/pdf/2410.02844">CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series</a>,<br>
+  Advanced Intelligent System.<br>
+  <code>BibTex coming soon!</code></li>
+</ul>
+<h3 id="requirements">Requirements</h3>
 <ul>
-<li>tigramite&gt;=5.1.0.3</li>
 <li>pandas&gt;=1.5.2</li>
 <li>netgraph&gt;=4.10.2</li>
 <li>networkx&gt;=2.8.6</li>
@@ -597,14 +1207,19 @@ for t in range(max_lag, nsample):
 <li>torch&gt;=1.11.0</li>
 <li>gpytorch&gt;=1.4</li>
 <li>dcor&gt;=0.5.3</li>
-<li>h5py&gt;=3.7.0    </li>
+<li>h5py&gt;=3.7.0   </li>
+<li>jpype1&gt;=1.5.0</li>
+<li>mpmath&gt;=1.3.0  </li>
+<li>causalnex&gt;=0.12.1</li>
+<li>lingam&gt;=1.8.2</li>
+<li>tigramite&gt;=5.1.0.3</li>
 </ul>
-<h2 id="installation">Installation</h2>
-<p>Before installing the FPCMCI package, you need to install Java and the <a href="https://github.com/pwollstadt/IDTxl">IDTxl package</a> used for the feature-selection process, following the guide described <a href="https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements">here</a>. Once complete, you can install the current release of <code>FPCMCI</code> with:</p>
-<pre><code class="language-shell">pip install fpcmci
+<h3 id="installation">Installation</h3>
+<p>Before installing CausalFlow, you need to install Java and the <a href="https://github.com/pwollstadt/IDTxl">IDTxl package</a> used for the feature-selection process, following the guide described <a href="https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements">here</a>. Once complete, you can install the current release of <code>CausalFlow</code> with:</p>
+<pre><code class="language-shell"># COMING SOON: pip install causalflow
 </code></pre>
-<p>For a complete installation Java - IDTxl - FPCMCI, follow the following procedure.</p>
-<h3 id="1-java-installation">1 - Java installation</h3>
+<p>For a complete installation Java - IDTxl - CausalFlow, follow the following procedure.</p>
+<h4 id="1-java-installation">1 - Java installation</h4>
 <p>Verify that you have not already installed Java:</p>
 <pre><code class="language-shell">java -version
 </code></pre>
@@ -618,25 +1233,16 @@ sudo apt install default-jdk
 JAVA_HOME=&quot;/lib/jvm/java-11-openjdk-amd64/bin/java&quot; # Paste the JAVA_HOME assignment at the bottom of the file
 source /etc/environment
 </code></pre>
-<h3 id="2-idtxl-installation">2 - IDTxl installation</h3>
+<h4 id="2-idtxl-installation">2 - IDTxl installation</h4>
 <pre><code class="language-shell"># IDTxl
 git clone https://github.com/pwollstadt/IDTxl.git
-conda create --name fpcmci python=3.8 pip matplotlib h5py scipy networkx
-conda activate fpcmci
-conda install -c conda-forge jpype1    # required by CPU JIDT estimators
-conda install -c conda-forge pyopencl  # required by GPU OpenCL estimators
-conda install -c anaconda ecos         # required by Tartu PID estimator
-conda install numba                    # required by NumbaCuda estimators
-conda install cudatoolkit              # required by NumbaCuda estimators
-conda install mpmath
-
 cd IDTxl
 pip install -e .
 </code></pre>
-<h3 id="3-fpcmci-installation">3 - FPCMCI installation</h3>
-<pre><code class="language-shell">pip install fpcmci
+<h4 id="3-causalflow-installation">3 - CausalFlow installation</h4>
+<pre><code class="language-shell"># COMING SOON: pip install causalflow
 </code></pre>
-<h2 id="recent-changes">Recent changes</h2>
+<h3 id="recent-changes">Recent changes</h3>
 <table>
 <thead>
 <tr>
@@ -645,30 +1251,6 @@ pip install -e .
 </tr>
 </thead>
 <tbody>
-<tr>
-<td style="text-align: center;">4.2.1</td>
-<td>fixed dependency error in setup.py</td>
-</tr>
-<tr>
-<td style="text-align: center;">4.2.0</td>
-<td>causal model with only selected features fix<br>adapted to tigramite 5.2<br>get_causal_matrix FPCMCI method added<br>f_alpha and pcmci_alpha instead of alpha<br>requirements changed<br>tutorials adapted to new version</td>
-</tr>
-<tr>
-<td style="text-align: center;">4.1.2</td>
-<td>tutorials adapted to 4.1.1 and get_SCM method added in FPCMCI</td>
-</tr>
-<tr>
-<td style="text-align: center;">4.1.1</td>
-<td>PCMCI dependencies fix: FPCMCI causal model field added, FPCMCI.run() and .run_pcmci() outputs the selected variables and the corresponding causal model</td>
-</tr>
-<tr>
-<td style="text-align: center;">4.1.0</td>
-<td>FSelector and FValidator turned into FPCMCI and PCMCI<br>show_edge_label removed and dag optimized<br>new package included in the setup.py<br>added tutorials<br>new example in README.md</td>
-</tr>
-<tr>
-<td style="text-align: center;">4.0.1</td>
-<td>online documentation and paths fixes</td>
-</tr>
 <tr>
 <td style="text-align: center;">4.0.0</td>
 <td>package published</td>
@@ -712,10 +1294,14 @@ pip install -e .
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="assets/javascripts/bundle.b4d07000.min.js"></script>
+      <script src="assets/javascripts/bundle.220ee61c.min.js"></script>
+      
+        
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        
       
     
   </body>
