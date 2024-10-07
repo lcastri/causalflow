@@ -356,7 +356,11 @@ dist/
 old_scripts/
 results/
 .vscode
-
 *.csv
-*.txt
 *.Rhistory
+
+causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/data.txt
+
+causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/knowledge.txt
+
+causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/resultFCI.txt
