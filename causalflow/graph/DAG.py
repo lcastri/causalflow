@@ -55,7 +55,7 @@ class DAG():
     
     
     @property
-    def pretty_features(self):
+    def pretty_features(self) -> list:
         """
         Return list of features with LaTeX symbols.
                 
@@ -107,6 +107,7 @@ class DAG():
             score (float): dependency score.
             pval (float): dependency p-value.
             lag (int): dependency lag.
+            mode (LinkType): link type. E.g., Directed -->
         """
         self.g[t].sources[(s, abs(lag))] = {SCORE: score, PVAL: pval, TYPE: mode}
         self.g[s].children.append(t)
@@ -353,6 +354,26 @@ class DAG():
             
             
     def __add_edge(self, min_width, max_width, min_score, max_score, edges, edge_width, arrows, r, t, s, s_node, t_node):
+        """
+        Add edge to a graph. Support method for dag and ts_dag.
+
+        Args:
+            min_width (int): minimum linewidth. Defaults to 1.
+            max_width (int): maximum linewidth. Defaults to 5.
+            min_score (int): minimum score range. Defaults to 0.
+            max_score (int): maximum score range. Defaults to 1.
+            edges (list): list of edges.
+            edge_width (dict): dictionary containing the width for each edge of the graph.
+            arrows (dict): dictionary containing a bool for each edge of the graph describing if the edge is directed or not.
+            r (DAG): DAG.
+            t (str or tuple): target node.
+            s (str or tuple): source node.
+            s_node (str): source node.
+            t_node (str): target node.
+
+        Raises:
+            ValueError: link type associated to this edge not included in our LinkType list.
+        """
         edges.append((s_node, t_node))
         score = r.g[t].sources[s][SCORE] if r.g[t].sources[s][SCORE] != float('inf') else 1
         edge_width[(s_node, t_node)] = self.__scale(score, min_width, max_width, min_score, max_score)

@@ -3,7 +3,18 @@
 from copy import deepcopy
 
 def fully_connected_dag(features, min_lag, max_lag, alsoOrient = False):
-    """Build a fully connected DAG."""
+    """
+    Build a fully connected DAG.
+
+    Args:
+        features (list): variable list
+        min_lag (int): min time lag.
+        max_lag (int): max time lag.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
+
+    Returns:
+        dict: fully connected dag
+    """
     if not alsoOrient:
         g = {f: list() for f in features}
         for t in g:
@@ -26,7 +37,9 @@ def get_TP(gt, cm, alsoOrient = False) -> int:
     Compute true positive number: edge present in the causal model and present in the groundtruth.
 
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         int: true positive.
@@ -51,7 +64,11 @@ def get_TN(gt, min_lag, max_lag, cm, alsoOrient = False) -> int:
     Compute true negative number: edge absent in the groundtruth and absent in the causal model.
     
     Args:
+        gt (dict): ground-truth SCM.
+        min_lag (int): min time lag.
+        max_lag (int): max time lag.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
         
     Returns:
         int: true negative.
@@ -98,7 +115,9 @@ def get_FP(gt, cm, alsoOrient = False) -> int:
     Compute false positive number: edge present in the causal model but absent in the groundtruth.
     
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
         
     Returns:
         int: false positive.
@@ -124,7 +143,9 @@ def get_FN(gt, cm, alsoOrient = False) -> int:
     Compute false negative number: edge present in the groundtruth but absent in the causal model.
         
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
         
     Returns:
         int: false negative.
@@ -150,7 +171,9 @@ def shd(gt, cm, alsoOrient = False) -> int:
     Compute Structural Hamming Distance between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         int: shd.
@@ -165,7 +188,9 @@ def precision(gt, cm, alsoOrient = False) -> float:
     Compute Precision between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         float: precision.
@@ -181,7 +206,9 @@ def recall(gt, cm, alsoOrient = False) -> float:
     Compute Recall between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         float: recall.
@@ -197,7 +224,9 @@ def f1_score(gt, cm, alsoOrient = False) -> float:
     Compute F1-score between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         float: F1-score.
@@ -213,7 +242,11 @@ def FPR(gt, min_lag, max_lag, cm, alsoOrient = False) -> float:
     Compute False Positve Rate between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
+        min_lag (int): min time lag.
+        max_lag (int): max time lag.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         float: false positive rate.
@@ -229,7 +262,9 @@ def TPR(gt, cm, alsoOrient = False) -> float:
     Compute True Positive Rate between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         float: true positive rate.
@@ -245,7 +280,11 @@ def TNR(gt, min_lag, max_lag, cm, alsoOrient = False) -> float:
     Compute True Negative Rate between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
+        min_lag (int): min time lag.
+        max_lag (int): max time lag.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         float: true negative rate.
@@ -261,7 +300,9 @@ def FNR(gt, cm, alsoOrient = False) -> float:
     Compute False Negative Rate between ground-truth causal graph and the estimated one.
 
     Args:
+        gt (dict): ground-truth SCM.
         cm (dict): estimated SCM.
+        alsoOrient (bool, optional): Flag to compute the metric considering also the orientation of the link and not only its presence. Default False.
 
     Returns:
         float: false negative rate.

@@ -189,6 +189,10 @@ class CAnDOIT(CausalDiscoveryMethod):
         """
         Run CAnDOIT.
         
+        Args:
+            remove_unneeded (bool, optional): Bit to remove unneeded (isolated) variables. Defaults to True.
+            nofilter (bool, optional): Bit to run CAnDOIT without filter. Defaults to False.
+            
         Returns:
             DAG: causal model.
         """

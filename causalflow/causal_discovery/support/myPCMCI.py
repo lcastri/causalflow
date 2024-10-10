@@ -52,7 +52,7 @@ class myPCMCI():
 
         Args:
             data (Data): Data obj to analyse.
-            link_assumptions (dict, optional): prior assumptions on causal model links. Defaults to None.
+            link_assumptions (dict, optional): prior knowledge on causal model links. Defaults to None.
 
         Returns:
             (DAG): estimated causal model.
@@ -91,7 +91,7 @@ class myPCMCI():
 
         Args:
             data (Data): Data obj to analyse.
-            link_assumptions (dict, optional): prior assumptions on causal model links. Defaults to None.
+            link_assumptions (dict, optional): prior knowledge on causal model links. Defaults to None.
 
         Returns:
             (DAG): estimated causal model.

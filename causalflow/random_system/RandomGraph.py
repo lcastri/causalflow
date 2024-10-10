@@ -556,6 +556,9 @@ class RandomGraph:
         """
         Output the Structural Causal Model.
 
+        Args:
+            withHidden (bool, optional): include hidden variables. Default to False.
+            
         Returns:
             dict: scm.
         """
@@ -573,7 +576,12 @@ class RandomGraph:
     
     
     def print_SCM(self, withHidden = False):
-        """Print the Structural Causal Model."""
+        """
+        Print the Structural Causal Model.
+        
+        Args:
+            withHidden (bool, optional): include hidden variables. Default to False.
+        """
         scm = self.get_Adj(withHidden)
         for t in scm: print(t + ' : ' + str(scm[t]))    
           

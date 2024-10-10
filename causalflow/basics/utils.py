@@ -26,12 +26,26 @@ def get_selectorpath(resfolder):
 
 
 def create_results_folder(resfolder):
-    """Create results folder if doesn't exist."""
+    """
+    Create results folder if doesn't exist.
+
+    Args:
+        resfolder (str): result folder's name.
+    """
     Path(resfolder).mkdir(parents=True, exist_ok=True)
     
     
 def remove_from_list(list: list(), item) -> list():
-    """Create a copy of a list and remove from it an item."""
+    """
+    Create a copy of a list and remove from it an item.
+
+    Args:
+        list (list): list.
+        item (any): item to remove.
+
+    Returns:
+        list: new list without the item.
+    """
     tmp = copy.deepcopy(list)
     tmp.remove(item)
     return tmp

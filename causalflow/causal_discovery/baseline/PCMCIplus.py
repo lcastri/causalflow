@@ -56,6 +56,9 @@ class PCMCIplus(CausalDiscoveryMethod):
     def run(self, link_assumptions=None) -> DAG:
         """
         Run causal discovery algorithm.
+        
+        Args:
+            link_assumptions (dict, optional): prior knowledge on causal model links. Defaults to None.
 
         Returns:
             (DAG): estimated causal model.

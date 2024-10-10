@@ -57,9 +57,12 @@ class PCMCI(CausalDiscoveryMethod):
                            verbosity = verbosity.value)
         
 
-    def run(self) -> DAG:
+    def run(self, link_assumptions = None) -> DAG:
         """
         Run causal discovery algorithm.
+
+        Args:
+            link_assumptions (dict, optional): prior knowledge on causal model links. Defaults to None.
 
         Returns:
             (DAG): estimated causal model.
@@ -68,7 +71,8 @@ class PCMCI(CausalDiscoveryMethod):
         CP.info(DASH)
         CP.info("Running Causal Discovery Algorithm")
 
-        self.result = self.pcmci.run_pcmci(tau_max = self.max_lag,
+        self.result = self.pcmci.run_pcmci(link_assumptions=link_assumptions,
+                                           tau_max = self.max_lag,
                                            tau_min = self.min_lag,
                                            alpha_level = self.alpha,
                                            pc_alpha = self.pc_alpha)

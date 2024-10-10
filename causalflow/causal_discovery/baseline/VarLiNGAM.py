@@ -84,6 +84,9 @@ class VarLiNGAM(CausalDiscoveryMethod):
         """
         Re-elaborates the result in a DAG.
         
+        Args:
+            graph (dict): graph to convert into a DAG
+            
         Returns:
             (DAG): result re-elaborated.
         """

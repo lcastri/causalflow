@@ -77,7 +77,10 @@ class DYNOTEARS(CausalDiscoveryMethod):
     
     def _to_DAG(self, graph):
         """
-        Re-elaborate the result in a DAG.
+        Re-elaborate the result in a DAG.            
+
+        Args:
+            graph (dict): graph to convert into a DAG
 
         Returns:
             (DAG): result re-elaborated.

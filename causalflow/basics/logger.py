@@ -25,7 +25,12 @@ class Logger(object):
         if clean_console: cls()
 
     def write(self, message):
-        """Write message."""
+        """
+        Write message.
+
+        Args:
+            message (str): log msg.
+        """
         self.terminal.write(message)
         self.log.write(message)
 

@@ -64,6 +64,9 @@ class myLPCMCI(CausalDiscoveryMethod):
     def run(self, link_assumptions = None) -> DAG:
         """
         Run causal discovery algorithm.
+        
+        Args:
+            graph (dict): graph to convert into a DAG
 
         Returns:
             (DAG): estimated causal model.
