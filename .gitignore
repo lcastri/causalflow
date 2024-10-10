@@ -353,14 +353,12 @@ build/
 dist/
 
 # results
-old_scripts/
+site/
 results/
 .vscode
 *.csv
 *.Rhistory
 
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/data.txt
-
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/knowledge.txt
-
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/resultFCI.txt
