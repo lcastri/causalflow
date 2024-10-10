@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 
-def fully_connected_dag(features, min_lag, max_lag, alsoOrient = False):
+def fully_connected_dag(features, min_lag, max_lag, alsoOrient = False) -> dict:
     """
     Build a fully connected DAG.
 
