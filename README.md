@@ -25,7 +25,7 @@ CausalFlow is a python library for causal analysis from time-series data. It com
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
   [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
-  Advanced Intelligent System.<br>
+  Advanced Intelligent Systems.<br>
   ```
   BibTex coming soon!
   ```
@@ -385,7 +385,7 @@ Please consider citing the following papers depending on which method you use:
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
   [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
-  Advanced Intelligent System.<br>
+  Advanced Intelligent Systems.<br>
   ```
   BibTex coming soon!
   ```
