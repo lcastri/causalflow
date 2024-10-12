@@ -741,7 +741,7 @@
 <li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
   <a href="https://arxiv.org/pdf/2410.02844">CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series</a>,<br>
-  Advanced Intelligent System.<br>
+  Advanced Intelligent Systems.<br>
   <code>BibTex coming soon!</code></li>
 <li>Tutorials [Coming soon..]</li>
 </ul>
@@ -1071,8 +1071,8 @@ RS.gen_equations()
 d_obs_wH, d_obs = RS.gen_obs_ts()
 d_obs.plot_timeseries()
 
-d_int = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
-d_int[intvar].plot_timeseries()
+d_int = RS.intervene('X_4',250, random.uniform(5, 10), d_obs.d)
+d_int['X_4'].plot_timeseries()
 </code></pre>
 <table>
 <thead>
@@ -1194,7 +1194,7 @@ d_int[intvar].plot_timeseries()
 <li><img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
   <a href="https://arxiv.org/pdf/2410.02844">CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series</a>,<br>
-  Advanced Intelligent System.<br>
+  Advanced Intelligent Systems.<br>
   <code>BibTex coming soon!</code></li>
 </ul>
 <h3 id="requirements">Requirements</h3>
