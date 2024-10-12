@@ -322,8 +322,8 @@ RS.gen_equations()
 d_obs_wH, d_obs = RS.gen_obs_ts()
 d_obs.plot_timeseries()
 
-d_int = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
-d_int[intvar].plot_timeseries()
+d_int = RS.intervene('X_4', 250, random.uniform(5, 10), d_obs.d)
+d_int['X_4'].plot_timeseries()
 ```
 
 <div align="center">
