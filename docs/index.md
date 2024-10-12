@@ -25,7 +25,7 @@ CausalFlow is a python library for causal analysis from time-series data. It com
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
   [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
-  Advanced Intelligent System.<br>
+  Advanced Intelligent Systems.<br>
   ```
   BibTex coming soon!
   ```
@@ -311,8 +311,8 @@ RS.gen_equations()
 d_obs_wH, d_obs = RS.gen_obs_ts()
 d_obs.plot_timeseries()
 
-d_int = RS.intervene(intvar, nsample_int, random.uniform(5, 10), d_obs.d)
-d_int[intvar].plot_timeseries()
+d_int = RS.intervene('X_4',250, random.uniform(5, 10), d_obs.d)
+d_int['X_4'].plot_timeseries()
 ```
 
 | Observational Data | Interventional Data |
@@ -366,7 +366,7 @@ Please consider citing the following papers depending on which method you use:
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
   [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
-  Advanced Intelligent System.<br>
+  Advanced Intelligent Systems.<br>
   ```
   BibTex coming soon!
   ```
