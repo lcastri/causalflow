@@ -339,6 +339,7 @@ Some algorithms are imported from other languages such as R and Java and are the
 | | PCMCI | ✅ | ❌ | ❌ |
 | | PCMCI+ | ✅ | ❌ | ❌ |
 | | LPCMCI | ✅ | ❌ | ❌ |
+| | J-PCMCI+ | ✅ | ❌ | ❌ |
 | | TCDF | ✅ | ❌ | ❌ |
 | | tsFCI | ✅ | ❌ | ❌ |
 | | VarLiNGAM | ✅ | ❌ | ❌ |

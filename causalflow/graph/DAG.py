@@ -236,8 +236,8 @@ class DAG():
             node_size = 8, 
             node_color = 'orange',
             edge_color = 'grey',
-            bundle_parallel_edges = True,
-            font_size = 12,
+            tail_color = 'black',
+            font_size = 8,
             label_type = LabelType.Lag,
             save_name = None,
             img_extention = ImageExt.PNG):
@@ -253,12 +253,13 @@ class DAG():
             node_size (int, optional): node size. Defaults to 8.
             node_color (str, optional): node color. Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
-            bundle_parallel_edges (str, optional): bundle parallel edge bit. Defaults to True.
-            font_size (int, optional): font size. Defaults to 12.
+            tail_color (str, optional): tail color. Defaults to 'black'.
+            font_size (int, optional): font size. Defaults to 8.
             label_type (LabelType, optional): enum to set whether to show the lag time (LabelType.Lag) or the strength (LabelType.Score) of the dependencies on each link/node or not showing the labels (LabelType.NoLabels). Default LabelType.Lag.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
             img_extention (ImageExt, optional): Image Extension. Defaults to PNG.
         """
+        # FIXME: contemporenous and lagged links need to be drawn distinctly!
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
 
@@ -330,17 +331,17 @@ class DAG():
                     node_alpha = 1,
                     
                     arrows = arrows,
-                    edge_layout = 'arc',
+                    edge_layout = 'bundled',
                     edge_label = label_type != LabelType.NoLabels,
                     edge_labels = edge_label,
                     edge_label_fontdict = dict(size=font_size),
                     edge_color = edge_color, 
-                    tail_color = 'white', 
+                    tail_color = tail_color, 
                     edge_width = edge_width,
                     edge_alpha = 1,
                     edge_zorder = 1,
-                    edge_label_position = 0.35,
-                    edge_layout_kwargs = dict(bundle_parallel_edges = bundle_parallel_edges, k = 0.05))
+                    edge_label_position = 0.35,)
+                    # edge_layout_kwargs = dict(bundle_parallel_edges = bundle_parallel_edges, k = 0.05))
             
             nx.draw_networkx_labels(G, 
                                     pos = a.node_positions,
@@ -428,10 +429,11 @@ class DAG():
                                              Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
-            font_size (int, optional): font size. Defaults to 12.
+            font_size (int, optional): font size. Defaults to 8.
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
             img_extention (ImageExt, optional): Image Extension. Defaults to PNG.
         """
+        # FIXME: contemporenous links are curved and straight. Why?
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
 

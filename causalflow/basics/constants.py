@@ -31,6 +31,13 @@ class LabelType(Enum):
     NoLabels = "NoLabels"
     
     
+class DataType(Enum):
+    """DataType Enumerator."""
+    
+    Continuos = 0
+    Discrete = 1
+    
+    
 class LinkType(Enum):
     """LinkType Enumerator."""
     
