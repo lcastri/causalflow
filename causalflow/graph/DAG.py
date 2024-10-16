@@ -100,10 +100,10 @@ class DAG():
     @property
     def max_auto_score(self) -> float:
         """
-        Return maximum score of an auto-dependency link
+        Return maximum score of an auto-dependency link.
 
         Returns:
-            float: maximum score of an auto-dependency link
+            float: maximum score of an auto-dependency link.
         """
         return max([self.g[t].sources[self.g[t].get_max_autodependent][SCORE] for t in self.g if self.g[t].is_autodependent])
     
@@ -111,10 +111,10 @@ class DAG():
     @property
     def max_cross_score(self) -> float:
         """
-        Return maximum score of an cross-dependency link
+        Return maximum score of an cross-dependency link.
 
         Returns:
-            float: maximum score of an cross-dependency link
+            float: maximum score of an cross-dependency link.
         """
         return max([self.g[t].sources[s][SCORE] if self.g[t].sources[s][SCORE] != float('inf') else 1 for t in self.g for s in self.g[t].sources if t != s[0]])
       
