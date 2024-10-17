@@ -698,14 +698,19 @@ class DAG():
                   edge_alpha=1,
                   edge_zorder=1,
                   scale = (scale[0] + 2, scale[1] + 2))
-        print(a.edge_layout)
         res = copy.deepcopy(a.edge_layout.edge_paths)
-        for edge in a.edge_layout.edge_paths.keys():
-            if edge[0][0] == 0 and edge[1][0] == 0: # t-tau_max
-                for shifted_edge, shifted_edge_path in a.edge_layout.edge_paths.items():
-                    if shifted_edge == edge: continue
-                    if shifted_edge[0][0] != 0 and shifted_edge[0][1] == edge[0][1] and shifted_edge[1][0] != 0 and shifted_edge[1][1] == edge[1][1]:
-                        res[edge] = shifted_edge_path - np.array([x_disp,0])*np.ones_like(a.edge_layout.edge_paths[shifted_edge])
+        for edge, edge_path in a.edge_layout.edge_paths.items():
+            if edge[0][0] == self.max_lag and edge[1][0] == self.max_lag: # t
+                for t in range(0, self.max_lag):
+                    for fixed_edge in a.edge_layout.edge_paths.keys():
+                        if fixed_edge == edge: continue
+                        if fixed_edge[0][0] == t and fixed_edge[0][1] == edge[0][1] and fixed_edge[1][0] == t and fixed_edge[1][1] == edge[1][1]:
+                            res[fixed_edge] = edge_path - np.array([(self.max_lag - t)*x_disp,0])*np.ones_like(a.edge_layout.edge_paths[edge])
+            # if edge[0][0] == 0 and edge[1][0] == 0: # t-tau_max
+            #     for shifted_edge, shifted_edge_path in a.edge_layout.edge_paths.items():
+            #         if shifted_edge == edge: continue
+            #         if shifted_edge[0][0] == self.max_lag and shifted_edge[0][1] == edge[0][1] and shifted_edge[1][0] == self.max_lag and shifted_edge[1][1] == edge[1][1]:
+            #             res[edge] = shifted_edge_path - np.array([x_disp,0])*np.ones_like(a.edge_layout.edge_paths[shifted_edge])
         ax.clear()              
         return res
         
