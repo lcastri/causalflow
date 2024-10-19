@@ -14,7 +14,6 @@ from causalflow.basics.constants import *
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.CausalDiscoveryMethod import CausalDiscoveryMethod 
-from tigramite.plotting import plot_time_series_graph
 
 class LPCMCI(CausalDiscoveryMethod):
     """LPCMCI causal discovery method."""
