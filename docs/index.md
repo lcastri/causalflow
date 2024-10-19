@@ -376,18 +376,23 @@ Please consider citing the following papers depending on which method you use:
 
 ### Requirements
 * pandas>=1.5.2
-* netgraph>=4.10.2
+* numba==0.56.4
+* scipy>=1.3.3
 * networkx>=2.8.6
 * ruptures>=1.1.7
 * scikit_learn>=1.1.3
 * torch>=1.11.0
 * gpytorch>=1.4
 * dcor>=0.5.3
-* h5py>=3.7.0   
+* h5py>=3.7.0
 * jpype1>=1.5.0
 * mpmath>=1.3.0  
-* causalnex>=0.12.1
-* lingam>=1.8.2
+* causalnex
+* lingam
+* pyopencl>=2024.1
+* matplotlib>=3.7.0
+* numpy
+* pgmpy>=0.1.19
 * tigramite>=5.1.0.3
 
 
@@ -395,7 +400,7 @@ Please consider citing the following papers depending on which method you use:
 
 Before installing CausalFlow, you need to install Java and the [IDTxl package](https://github.com/pwollstadt/IDTxl) used for the feature-selection process, following the guide described [here](https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements). Once complete, you can install the current release of `CausalFlow` with:
 ``` shell
-# COMING SOON: pip install causalflow
+pip install py-causalflow
 ```
 
 For a complete installation Java - IDTxl - CausalFlow, follow the following procedure.
@@ -429,7 +434,7 @@ pip install -e .
 
 #### 3 - CausalFlow installation
 ```shell
-# COMING SOON: pip install causalflow
+pip install py-causalflow
 ```
 
 
@@ -437,4 +442,5 @@ pip install -e .
 
 | Version | Changes |
 | :---: | ----------- |
+| 4.0.1 | PyPI |
 | 4.0.0 | package published |

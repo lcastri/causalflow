@@ -10,7 +10,7 @@ from enum import Enum
 from causalflow.selection_methods.SelectionMethod import SelectionMethod, CTest, _suppress_stdout
 from idtxl.multivariate_mi import MultivariateMI
 from idtxl.data import Data
-from fpcmci.CPrinter import CP
+from causalflow.CPrinter import CP
 from scipy.stats import shapiro, kstest
 import importlib
 

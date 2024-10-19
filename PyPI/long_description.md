@@ -36,9 +36,9 @@ Extension of the state-of-the-art causal discovery method [PCMCI](https://github
 
 In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
 
-<div align="center">
-![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_1.png)
-</div>
+<p align="center">
+  <img src="https://github.com/lcastri/causalflow/raw/main/PyPI/eq_1.png" alt="Equation 1">
+</p>
 
 ```python
 min_lag = 1
@@ -72,9 +72,9 @@ CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the 
 #### Example
 In the following example, taken from one of the tigramite tutorials ([this](https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb)), we demonstrate CAnDOIT's ability to incorporate and leverage interventional data to improve the accuracy of causal analysis. The example involves a system of equations with four variables:
 
-<div align="center">
-![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_2.png)
-</div>
+<p align="center">
+  <img src="https://github.com/lcastri/causalflow/raw/main/PyPI/eq_2.png" alt="Equation 2">
+</p>
 
 Note that $L_1$ is a latent confounder of $X_0$ and $X_2$. This system of equations generates the time-series data in the observational domain, which is then used by LPCMCI for causal discovery analysis.
 
@@ -168,9 +168,9 @@ The colour's brightness ($b$) of the cube and the floor is modelled as a functio
 
 Note that $H$, $v$, and $d_c$ are obtained directly from the simulator and not explicitly modelled, while the ground-truth structural causal model for the floor colour ($F_c$) and cube colour ($C_c$) is expressed as follows:
 
-<div align="center">
-![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_3.png)
-</div>
+<p align="center">
+  <img src="https://github.com/lcastri/causalflow/raw/main/PyPI/eq_3.png" alt="Equation 3">
+</p>
 
 This model is used to generate observational data, which is then used by LPCMCI and CAnDOIT to reconstruct the causal model. For the interventional domain instead, we substitute the equation modelling $F_c$ with a constant colour (green) and collect the data for the causal analysis conducted by CAnDOIT. Note that, for both the obervational and interventional domains, $H$ is considered as latent confounder between $F_c$ and $C_c$.
 
@@ -229,9 +229,9 @@ RG.gen_equations()
 RG.ts_dag(withHidden = True)
 ```
 
-<div align="center">
-![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_4.png)
-</div>
+<p align="center">
+  <img src="https://github.com/lcastri/causalflow/raw/main/PyPI/eq_4.png" alt="Equation 4">
+</p>
 
 #### Example - Nonlinear Random Graph
 
@@ -254,9 +254,9 @@ RG.gen_equations()
 RG.ts_dag(withHidden = True)
 ```
 
-<div align="center">
-![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_5.png)
-</div>
+<p align="center">
+  <img src="https://github.com/lcastri/causalflow/raw/main/PyPI/eq_5.png" alt="Equation 5">
+</p>
 
 <div align="center">
 
@@ -371,14 +371,14 @@ Please consider citing the following papers depending on which method you use:
 * torch>=1.11.0
 * gpytorch>=1.4
 * dcor>=0.5.3
-* h5py>=3.7.0   
+* h5py>=3.7.0
 * jpype1>=1.5.0
 * mpmath>=1.3.0  
-* causalnex>=0.12.1
-* lingam>=1.8.2
+* causalnex
+* lingam
 * pyopencl>=2024.1
 * matplotlib>=3.7.0
-* numpy==1.23.5
+* numpy
 * pgmpy>=0.1.19
 * tigramite>=5.1.0.3
 
@@ -387,7 +387,7 @@ Please consider citing the following papers depending on which method you use:
 
 Before installing CausalFlow, you need to install Java and the [IDTxl package](https://github.com/pwollstadt/IDTxl) used for the feature-selection process, following the guide described [here](https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements). Once complete, you can install the current release of `CausalFlow` with:
 ``` shell
-pip install causalflow
+pip install py-causalflow
 ```
 
 For a complete installation Java - IDTxl - CausalFlow, follow the following procedure.
@@ -421,7 +421,7 @@ pip install -e .
 
 #### 3 - CausalFlow installation
 ```shell
-pip install causalflow
+pip install py-causalflow
 ```
 
 
@@ -429,4 +429,5 @@ pip install causalflow
 
 | Version | Changes |
 | :---: | ----------- |
+| 4.0.1 | PyPI |
 | 4.0.0 | package published |
