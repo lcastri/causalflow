@@ -801,9 +801,12 @@ class DAG():
         """
         Return Adjacency dictionary.
         
+        If indexed = True: example {0: [(0, -1), (1, -2)], 1: [], ...}
+        If indexed = False: example {"X_0": [(X_0, -1), (X_1, -2)], "X_1": [], ...}
+        
         Args:
             indexed (bool, optional): If true, returns the SCM with index instead of variables' names. Otherwise it uses variables' names. Defaults to False.
-
+        
         Returns:
             dict: SCM.
         """
