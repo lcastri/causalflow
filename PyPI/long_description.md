@@ -36,17 +36,9 @@ Extension of the state-of-the-art causal discovery method [PCMCI](https://github
 
 In the following, an example demonstrating the main functionality of F-PCMCI is presented, along with a comparison between causal models obtained by PCMCI and F-PCMCI causal discovery algorithms using the same data. The dataset consists of a 7-variables system defined as follows:
 
-$$
-\begin{aligned}
-X_0(t) &= 2X_1(t-1) + 3X_3(t-1) + \eta_0 \\
-X_1(t) &= \eta_1 \\
-X_2(t) &= 1.1(X_1(t-1))^2 + \eta_2 \\
-X_3(t) &= X_3(t-1) \cdot X_2(t-1) + \eta_3 \\
-X_4(t) &= X_4(t-1) + X_5(t-1) \cdot X_0(t-1) + \eta_4 \\
-X_5(t) &= \eta_5 \\
-X_6(t) &= \eta_6
-\end{aligned}
-$$
+<div align="center">
+![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_1.png)
+</div>
 
 ```python
 min_lag = 1
@@ -80,14 +72,9 @@ CAnDOIT extends [LPCMCI](https://github.com/jakobrunge/tigramite), allowing the 
 #### Example
 In the following example, taken from one of the tigramite tutorials ([this](https://github.com/jakobrunge/tigramite/blob/master/tutorials/causal_discovery/tigramite_tutorial_latent-pcmci.ipynb)), we demonstrate CAnDOIT's ability to incorporate and leverage interventional data to improve the accuracy of causal analysis. The example involves a system of equations with four variables:
 
-$$
-\begin{aligned}
-X_0(t) &= 0.9X_0(t-1) + 0.6X_1(t) + \eta_0 \\
-L_1(t) &= \eta_1 \\
-X_2(t) &= 0.9X_2(t-1) + 0.4X_1(t-1) + \eta_2 \\
-X_3(t) &= 0.9X_3(t-1) - 0.5X_2(t-2) + \eta_3 \\
-\end{aligned}
-$$
+<div align="center">
+![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_2.png)
+</div>
 
 Note that $L_1$ is a latent confounder of $X_0$ and $X_2$. This system of equations generates the time-series data in the observational domain, which is then used by LPCMCI for causal discovery analysis.
 
@@ -181,12 +168,9 @@ The colour's brightness ($b$) of the cube and the floor is modelled as a functio
 
 Note that $H$, $v$, and $d_c$ are obtained directly from the simulator and not explicitly modelled, while the ground-truth structural causal model for the floor colour ($F_c$) and cube colour ($C_c$) is expressed as follows:
 
-$$
-\begin{aligned}
-F_c(t) &= b(H(t-1))\\
-C_c(t) &= b(H(t-1), v(t-1), d_c(t-1))
-\end{aligned}
-$$
+<div align="center">
+![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_3.png)
+</div>
 
 This model is used to generate observational data, which is then used by LPCMCI and CAnDOIT to reconstruct the causal model. For the interventional domain instead, we substitute the equation modelling $F_c$ with a constant colour (green) and collect the data for the causal analysis conducted by CAnDOIT. Note that, for both the obervational and interventional domains, $H$ is considered as latent confounder between $F_c$ and $C_c$.
 
@@ -245,17 +229,9 @@ RG.gen_equations()
 RG.ts_dag(withHidden = True)
 ```
 
-$$
-\begin{aligned}
-X_0(t)&=0.44X_1(t-1) - 0.15X_0(t-2) + 0.1X_4(t-3) + 0.33H_0(t-3) - 0.11H_1(t-2)\\
-X_1(t)&=0.13X_2(t-2) + 0.19H_0(t-3) + 0.46H_1(t-3)\\
-X_2(t)&=0.21X_4(t-3) + 0.37H_1(t)\\
-X_3(t)&=0.23X_0(t-2) - 0.44H_0(t-3) - 0.17H_1(t-3)\\
-X_4(t)&=0.47X_1(t-2) + 0.23X_0(t-3) + 0.49X_4(t-1) + 0.49H_0(t-3) - 0.27H_1(t-2)\\
-H_0(t)&=0.1X_4(t-2)\\
-H_1(t)&=0.44X_3(t)\\
-\end{aligned}
-$$  
+<div align="center">
+![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_4.png)
+</div>
 
 #### Example - Nonlinear Random Graph
 
@@ -278,17 +254,9 @@ RG.gen_equations()
 RG.ts_dag(withHidden = True)
 ```
 
-$$
-\begin{aligned}
-X_0(t)&=0.48\frac{\cos(X_4)(t-3)}{0.12\sin(H_1)(t-3)}\\
-X_1(t)&=0.17\sin(X_4)(t-3) - 0.46\cos(X_3)(t) + 0.14|H_1|(t-3)\\
-X_2(t)&=\frac{0.32X_4(t-1)}{0.2X_2(t-1)} + 0.23|X_3|(t-2) - 0.34e^{H_1}(t-3)\\
-X_3(t)&=0.1|X_1|(t-1) \cdot 0.26\sin(X_2)(t) \cdot 0.4\cos(X_0)(t-2) - 0.2\cos(H_0)(t-2)\\
-X_4(t)&=0.24|X_1|(t-3) - 0.43X_3(t) + 0.31\sin(H_0)(t-3) + 0.21H_1(t-3)\\
-H_0(t)&=0.45|X_3|(t-2)\\
-H_1(t)&=\frac{0.32H_0(t-1)}{0.35e^{H_1}(t-3)} \cdot 0.4X_4(t-3)\\
-\end{aligned}
-$$
+<div align="center">
+![](https://github.com/lcastri/causalflow/raw/main/PyPI/eq_5.png)
+</div>
 
 <div align="center">
 

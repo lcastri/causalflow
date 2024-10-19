@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from causalflow.version import VERSION
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("PyPI/long_description.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 
@@ -35,16 +35,7 @@ setup(
     url = 'https://github.com/lcastri/causalflow',
     author = 'Luca Castri',
     author_email = 'lucacastri94@gmail.com',
-    packages = ['causalflow', 
-                "causalflow.basics", 
-                "causalflow.causal_discovery", 
-                "causalflow.causal_discovery.support", 
-                "causalflow.causal_discovery.baseline", 
-                "causalflow.graph", 
-                "causalflow.preprocessing", 
-                "causalflow.preprocessing.subsampling_methods", 
-                "causalflow.random_system",
-                "causalflow.selection_methods"],
+    packages = find_packages(),
     python_requires='>=3',
     install_requires = INSTALL_REQUIRES,
 
