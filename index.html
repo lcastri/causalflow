@@ -1208,23 +1208,30 @@ d_int['X_4'].plot_timeseries()
 <h3 id="requirements">Requirements</h3>
 <ul>
 <li>pandas&gt;=1.5.2</li>
-<li>netgraph&gt;=4.10.2</li>
+<li>numba&gt;=0.58.1</li>
+<li>scipy&gt;=1.3.3</li>
 <li>networkx&gt;=2.8.6</li>
 <li>ruptures&gt;=1.1.7</li>
 <li>scikit_learn&gt;=1.1.3</li>
 <li>torch&gt;=1.11.0</li>
 <li>gpytorch&gt;=1.4</li>
 <li>dcor&gt;=0.5.3</li>
-<li>h5py&gt;=3.7.0   </li>
+<li>h5py&gt;=3.7.0</li>
 <li>jpype1&gt;=1.5.0</li>
-<li>mpmath&gt;=1.3.0  </li>
-<li>causalnex&gt;=0.12.1</li>
-<li>lingam&gt;=1.8.2</li>
+<li>mpmath&gt;=1.3.0</li>
+<li>causalnex</li>
+<li>lingam</li>
+<li>pyopencl&gt;=2024.1</li>
+<li>matplotlib&gt;=3.7.0</li>
+<li>numpy</li>
+<li>pgmpy&gt;=0.1.19</li>
 <li>tigramite&gt;=5.1.0.3</li>
+<li>rectangle-packer</li>
+<li>grandalf</li>
 </ul>
 <h3 id="installation">Installation</h3>
 <p>Before installing CausalFlow, you need to install Java and the <a href="https://github.com/pwollstadt/IDTxl">IDTxl package</a> used for the feature-selection process, following the guide described <a href="https://github.com/pwollstadt/IDTxl/wiki/Installation-and-Requirements">here</a>. Once complete, you can install the current release of <code>CausalFlow</code> with:</p>
-<pre><code class="language-shell"># COMING SOON: pip install causalflow
+<pre><code class="language-shell">pip install py-causalflow
 </code></pre>
 <p>For a complete installation Java - IDTxl - CausalFlow, follow the following procedure.</p>
 <h4 id="1-java-installation">1 - Java installation</h4>
@@ -1248,7 +1255,7 @@ cd IDTxl
 pip install -e .
 </code></pre>
 <h4 id="3-causalflow-installation">3 - CausalFlow installation</h4>
-<pre><code class="language-shell"># COMING SOON: pip install causalflow
+<pre><code class="language-shell">pip install py-causalflow
 </code></pre>
 <h3 id="recent-changes">Recent changes</h3>
 <table>
@@ -1259,6 +1266,18 @@ pip install -e .
 </tr>
 </thead>
 <tbody>
+<tr>
+<td style="text-align: center;">4.0.3</td>
+<td>numba version fix<br>DAG dag() fix<br>CAnDOIT fix: min_lag must be equal to 0</td>
+</tr>
+<tr>
+<td style="text-align: center;">4.0.2</td>
+<td>PyPI fixes<br>rectangle-packer and grandalf added to requirements<br>numba version fix<br>causal_discovery/baseline/pkgs fix</td>
+</tr>
+<tr>
+<td style="text-align: center;">4.0.1</td>
+<td>PyPI</td>
+</tr>
 <tr>
 <td style="text-align: center;">4.0.0</td>
 <td>package published</td>
