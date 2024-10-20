@@ -416,7 +416,7 @@ source /etc/environment
 #### 2 - IDTxl installation
 ```shell
 # IDTxl
-git clone https://github.com/pwollstadt/IDTxl.git
+git clone -b v1.4 https://github.com/pwollstadt/IDTxl.git
 cd IDTxl
 pip install -e .
 ```
