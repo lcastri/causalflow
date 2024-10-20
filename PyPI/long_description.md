@@ -431,6 +431,7 @@ pip install py-causalflow
 
 | Version | Changes |
 | :---: | ----------- |
+| 4.0.4 | IDTxl v1.4 |
 | 4.0.3 | numba version fix<br>DAG dag() fix<br>CAnDOIT fix: min_lag must be equal to 0|
 | 4.0.2 | PyPI fixes<br>rectangle-packer and grandalf added to requirements<br>numba version fix<br>causal_discovery/baseline/pkgs fix|
 | 4.0.1 | PyPI |
