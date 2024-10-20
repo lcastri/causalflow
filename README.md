@@ -1,5 +1,9 @@
 ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="25"> CausalFlow: a Collection of Methods for Causal Discovery from Time-series
 
+[![PyPI version](https://badge.fury.io/py/py-causalflow.svg)](https://pypi.org/project/py-causalflow/)
+[![Documentation Status](https://img.shields.io/badge/docs-latest-blue.svg)](https://lcastri.github.io/causalflow/)
+
+
 CausalFlow is a python library for causal analysis from time-series data. It comprises:
 
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/fpcmci_icon.png" width="15"> [F-PCMCI](https://github.com/lcastri/fpcmci) - Filtered-PCMCI
@@ -395,7 +399,7 @@ Please consider citing the following papers depending on which method you use:
 
 ### Requirements
 * pandas>=1.5.2
-* numba==0.56.4
+* numba>=0.58.1
 * scipy>=1.3.3
 * networkx>=2.8.6
 * ruptures>=1.1.7
@@ -405,7 +409,7 @@ Please consider citing the following papers depending on which method you use:
 * dcor>=0.5.3
 * h5py>=3.7.0
 * jpype1>=1.5.0
-* mpmath>=1.3.0  
+* mpmath>=1.3.0
 * causalnex
 * lingam
 * pyopencl>=2024.1
@@ -413,6 +417,8 @@ Please consider citing the following papers depending on which method you use:
 * numpy
 * pgmpy>=0.1.19
 * tigramite>=5.1.0.3
+* rectangle-packer
+* grandalf
 
 
 ### Installation
@@ -461,5 +467,7 @@ pip install py-causalflow
 
 | Version | Changes |
 | :---: | ----------- |
+| 4.0.3 | numba version fix<br>DAG dag() fix<br>CAnDOIT fix: min_lag must be equal to 0|
+| 4.0.2 | PyPI fixes<br>rectangle-packer and grandalf added to requirements<br>numba version fix<br>causal_discovery/baseline/pkgs fix|
 | 4.0.1 | PyPI |
 | 4.0.0 | package published |

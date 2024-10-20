@@ -24,7 +24,7 @@ class myLPCMCI(CausalDiscoveryMethod):
     
     def __init__(self, 
                  data: Data,
-                 min_lag, max_lag, 
+                 max_lag, 
                  sys_context,
                  val_condtest: CondIndTest, 
                  verbosity: CPLevel,
@@ -37,7 +37,6 @@ class myLPCMCI(CausalDiscoveryMethod):
 
         Args:
             data (Data): data to analyse.
-            min_lag (int): minimum time lag.
             max_lag (int): maximum time lag.
             sys_context (dict): system-context variable dictionary.
             val_condtest (CondIndTest): validation method.
@@ -47,7 +46,7 @@ class myLPCMCI(CausalDiscoveryMethod):
             neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.
             clean_cls (bool): Clean console bit. Default to True.
         """
-        super().__init__(data, min_lag, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
+        super().__init__(data, 0, max_lag, verbosity, alpha, resfolder, neglect_only_autodep, clean_cls)
         
         # build tigramite dataset
         vector = np.vectorize(float)
@@ -75,7 +74,7 @@ class myLPCMCI(CausalDiscoveryMethod):
         CP.info("Running Causal Discovery Algorithm")
         self.result = self.lpcmci.run_lpcmci(link_assumptions = link_assumptions,
                                              tau_max = self.max_lag,
-                                             tau_min = self.min_lag,
+                                             tau_min = 0,
                                              pc_alpha = self.alpha)
         
         self.CM = self._to_DAG()

@@ -25,7 +25,7 @@ class CAnDOIT(CausalDiscoveryMethod):
     def __init__(self, 
                  observation_data: Data, 
                  intervention_data: dict, 
-                 min_lag, max_lag,
+                 max_lag,
                  sel_method: SelectionMethod, val_condtest: CondIndTest, 
                  verbosity: CPLevel, 
                  f_alpha = 0.05, 
@@ -41,7 +41,6 @@ class CAnDOIT(CausalDiscoveryMethod):
         Args:
             observation_data (Data): observational data to analyse.
             intervention_data (dict): interventional data to analyse in the form {INTERVENTION_VARIABLE : Data (same variables of observation_data)}.
-            min_lag (int): minimum time lag.
             max_lag (int): maximum time lag.
             sel_method (SelectionMethod): selection method.
             val_condtest (CondIndTest): validation method.
@@ -54,6 +53,8 @@ class CAnDOIT(CausalDiscoveryMethod):
             plot_data (bool, optional): Bit for plotting your data. Defaults to False.
             clean_cls (bool): Clean console bit. Default to True.
         """
+        min_lag = 0
+        
         self.obs_data = observation_data
         self.systems = observation_data.features
         self.contexts = []
@@ -174,7 +175,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             DAG: causal model with context.
         """
         self.validator = myLPCMCI(self.validator_data,
-                                self.min_lag, self.max_lag,
+                                self.max_lag,
                                 self.sys_context,
                                 self.val_condtest,
                                 CP.verbosity,

@@ -6,7 +6,7 @@ with open("PyPI/long_description.md", "r", encoding="utf-8") as fh:
 
 
 INSTALL_REQUIRES = ["pandas>=1.5.2",
-                    "numba==0.56.4",
+                    "numba>=0.58.1",
                     "scipy>=1.3.3",
                     "networkx>=2.8.6",
                     "ruptures>=1.1.7",
@@ -24,6 +24,8 @@ INSTALL_REQUIRES = ["pandas>=1.5.2",
                     "numpy",
                     "pgmpy>=0.1.19",
                     "tigramite>=5.1.0.3",
+                    "rectangle-packer",
+                    "grandalf"
                     ]
 
 setup(

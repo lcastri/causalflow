@@ -297,9 +297,9 @@ class DAG():
         node_layout='dot',
         min_auto_width=0.25, 
         max_auto_width=0.75,
-        min_cross_width=1, 
-        max_cross_width=5,
-        node_size=8, 
+        min_cross_width=0.5, 
+        max_cross_width=1.5,
+        node_size=4, 
         node_color='orange',
         edge_color='grey',
         tail_color='black',
@@ -314,9 +314,9 @@ class DAG():
             node_layout (str, optional): Node layout. Defaults to 'dot'.
             min_auto_width (float, optional): minimum border linewidth. Defaults to 0.25.
             max_auto_width (float, optional): maximum border linewidth. Defaults to 0.75.
-            min_cross_width (float, optional): minimum edge linewidth. Defaults to 1.
-            max_cross_width (float, optional): maximum edge linewidth. Defaults to 5.
-            node_size (int, optional): node size. Defaults to 8.
+            min_cross_width (float, optional): minimum edge linewidth. Defaults to 0.5.
+            max_cross_width (float, optional): maximum edge linewidth. Defaults to 1.5.
+            node_size (int, optional): node size. Defaults to 4.
             node_color (str, optional): node color. Defaults to 'orange'.
             edge_color (str, optional): edge color for contemporaneous links. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
@@ -383,26 +383,26 @@ class DAG():
         fig, ax = plt.subplots(figsize=(8, 6))
 
         # 4. Edges label definition
-        edge_label = None
+        cont_edge_label = None
         lagged_edge_label = None
         if label_type == LabelType.Lag or label_type == LabelType.Score:
-            edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] == 0}
+            cont_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] == 0}
             lagged_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] != 0}
             for t in r.g:
                 for s in r.g[t].sources:
                     if t != s[0]:
                         if s[1] == 0:  # Contemporaneous
                             if label_type == LabelType.Lag:
-                                edge_label[(s[0], t)].append(s[1])
+                                cont_edge_label[(s[0], t)].append(s[1])
                             elif label_type == LabelType.Score:
-                                edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
+                                cont_edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
                         else:  # Lagged
                             if label_type == LabelType.Lag:
                                 lagged_edge_label[(s[0], t)].append(s[1])
                             elif label_type == LabelType.Score:
                                 lagged_edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
-            for k in edge_label.keys():
-                edge_label[k] = ",".join(str(s) for s in edge_label[k])
+            for k in cont_edge_label.keys():
+                cont_edge_label[k] = ",".join(str(s) for s in cont_edge_label[k])
             for k in lagged_edge_label.keys():
                 lagged_edge_label[k] = ",".join(str(s) for s in lagged_edge_label[k])
 
@@ -422,7 +422,7 @@ class DAG():
                     arrows=cont_arrows,
                     edge_layout='straight',
                     edge_label=label_type != LabelType.NoLabels,
-                    edge_labels=edge_label,
+                    edge_labels=cont_edge_label,
                     edge_label_fontdict=dict(size=font_size),
                     edge_color=edge_color,
                     tail_color=tail_color,
@@ -433,13 +433,13 @@ class DAG():
 
             nx.draw_networkx_labels(Gcont,
                                     pos=a.node_positions,
-                                    labels={n: n for n in Glag},
+                                    labels={n: n for n in Gcont},
                                     font_size=font_size)
 
         # 6. Draw graph - lagged
         if lagged_edges:
             a = Graph(Glag,
-                    node_layout=a.node_positions,
+                    node_layout=a.node_positions if cont_edges else node_layout,
                     node_size=node_size,
                     node_color=node_color,
                     node_labels=node_label,
@@ -449,7 +449,7 @@ class DAG():
                     node_label_offset=0.05,
                     node_alpha=1,
 
-                    arrows=cont_arrows,
+                    arrows=lagged_arrows,
                     edge_layout='curved',
                     edge_label=label_type != LabelType.NoLabels,
                     edge_labels=lagged_edge_label,
@@ -461,6 +461,11 @@ class DAG():
                     edge_zorder=1,
                     edge_label_position=0.35)
 
+            if not cont_edges:
+                nx.draw_networkx_labels(Glag,
+                                        pos=a.node_positions,
+                                        labels={n: n for n in Glag},
+                                        font_size=font_size)
         # 7. Plot or save
         if save_name is not None:
             plt.savefig(save_name + img_extention.value, dpi=300)
@@ -474,6 +479,7 @@ class DAG():
                node_size = 8,
                x_disp = 1.5,
                y_disp = 0.2,
+               text_disp = 0.1,
                node_color = 'orange',
                edge_color = 'grey',
                tail_color = 'black',
@@ -489,6 +495,7 @@ class DAG():
             node_size (int, optional): node size. Defaults to 8.
             x_disp (float, optional): node displacement along x. Defaults to 1.5.
             y_disp (float, optional): node displacement along y. Defaults to 0.2.
+            text_disp (float, optional): text displacement along y. Defaults to 0.1.
             node_color (str/list, optional): node color. 
                                              If a string, all the nodes will have the same colour. 
                                              If a list (same dimension of features), each colour will have the specified colour.
@@ -576,7 +583,7 @@ class DAG():
         # 3. Label definition
         for n in Gcont.nodes():
             if n[0] == 0:
-                ax.text(pos[n][0]-0.1, pos[n][1], list(r.g.keys())[len(r.g.keys()) - 1 - n[1]], horizontalalignment='center', verticalalignment='center', fontsize=font_size)
+                ax.text(pos[n][0] - text_disp, pos[n][1], list(r.g.keys())[len(r.g.keys()) - 1 - n[1]], horizontalalignment='center', verticalalignment='center', fontsize=font_size)
 
         # 4. Time line text drawing
         pos_tau = set([pos[p][0] for p in pos])
