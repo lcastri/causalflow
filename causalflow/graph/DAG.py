@@ -260,7 +260,7 @@ class DAG():
             max_score (int): maximum score range. Defaults to 1.
             edges (list): list of edges.
             edge_width (dict): dictionary containing the width for each edge of the graph.
-            arrows (dict): dictionary containing a bool for each edge of the graph describing if the edge is directed or not.
+            arrows (dict): dictionary specifying the head and tail edge markers. E.g., {'h':'>', 't':'o'}.
             r (DAG): DAG.
             t (str or tuple): target node.
             s (str or tuple): source node.
@@ -383,26 +383,26 @@ class DAG():
         fig, ax = plt.subplots(figsize=(8, 6))
 
         # 4. Edges label definition
-        edge_label = None
+        cont_edge_label = None
         lagged_edge_label = None
         if label_type == LabelType.Lag or label_type == LabelType.Score:
-            edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] == 0}
+            cont_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] == 0}
             lagged_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] != 0}
             for t in r.g:
                 for s in r.g[t].sources:
                     if t != s[0]:
                         if s[1] == 0:  # Contemporaneous
                             if label_type == LabelType.Lag:
-                                edge_label[(s[0], t)].append(s[1])
+                                cont_edge_label[(s[0], t)].append(s[1])
                             elif label_type == LabelType.Score:
-                                edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
+                                cont_edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
                         else:  # Lagged
                             if label_type == LabelType.Lag:
                                 lagged_edge_label[(s[0], t)].append(s[1])
                             elif label_type == LabelType.Score:
                                 lagged_edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
-            for k in edge_label.keys():
-                edge_label[k] = ",".join(str(s) for s in edge_label[k])
+            for k in cont_edge_label.keys():
+                cont_edge_label[k] = ",".join(str(s) for s in cont_edge_label[k])
             for k in lagged_edge_label.keys():
                 lagged_edge_label[k] = ",".join(str(s) for s in lagged_edge_label[k])
 
@@ -422,7 +422,7 @@ class DAG():
                     arrows=cont_arrows,
                     edge_layout='straight',
                     edge_label=label_type != LabelType.NoLabels,
-                    edge_labels=edge_label,
+                    edge_labels=cont_edge_label,
                     edge_label_fontdict=dict(size=font_size),
                     edge_color=edge_color,
                     tail_color=tail_color,
@@ -449,7 +449,7 @@ class DAG():
                     node_label_offset=0.05,
                     node_alpha=1,
 
-                    arrows=cont_arrows,
+                    arrows=lagged_arrows,
                     edge_layout='curved',
                     edge_label=label_type != LabelType.NoLabels,
                     edge_labels=lagged_edge_label,
