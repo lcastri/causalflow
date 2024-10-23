@@ -260,7 +260,7 @@ class DAG():
             max_score (int): maximum score range. Defaults to 1.
             edges (list): list of edges.
             edge_width (dict): dictionary containing the width for each edge of the graph.
-            arrows (dict): dictionary containing a bool for each edge of the graph describing if the edge is directed or not.
+            arrows (dict): dictionary specifying the head and tail edge markers. E.g., {'h':'>', 't':'o'}.
             r (DAG): DAG.
             t (str or tuple): target node.
             s (str or tuple): source node.
@@ -297,9 +297,9 @@ class DAG():
         node_layout='dot',
         min_auto_width=0.25, 
         max_auto_width=0.75,
-        min_cross_width=0.5, 
-        max_cross_width=1.5,
-        node_size=4, 
+        min_cross_width=1, 
+        max_cross_width=5,
+        node_size=8, 
         node_color='orange',
         edge_color='grey',
         tail_color='black',
@@ -314,9 +314,9 @@ class DAG():
             node_layout (str, optional): Node layout. Defaults to 'dot'.
             min_auto_width (float, optional): minimum border linewidth. Defaults to 0.25.
             max_auto_width (float, optional): maximum border linewidth. Defaults to 0.75.
-            min_cross_width (float, optional): minimum edge linewidth. Defaults to 0.5.
-            max_cross_width (float, optional): maximum edge linewidth. Defaults to 1.5.
-            node_size (int, optional): node size. Defaults to 4.
+            min_cross_width (float, optional): minimum edge linewidth. Defaults to 1.
+            max_cross_width (float, optional): maximum edge linewidth. Defaults to 5.
+            node_size (int, optional): node size. Defaults to 8.
             node_color (str, optional): node color. Defaults to 'orange'.
             edge_color (str, optional): edge color for contemporaneous links. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
@@ -433,13 +433,13 @@ class DAG():
 
             nx.draw_networkx_labels(Gcont,
                                     pos=a.node_positions,
-                                    labels={n: n for n in Gcont},
+                                    labels={n: n for n in Glag},
                                     font_size=font_size)
 
         # 6. Draw graph - lagged
         if lagged_edges:
             a = Graph(Glag,
-                    node_layout=a.node_positions if cont_edges else node_layout,
+                    node_layout=a.node_positions,
                     node_size=node_size,
                     node_color=node_color,
                     node_labels=node_label,
@@ -461,11 +461,6 @@ class DAG():
                     edge_zorder=1,
                     edge_label_position=0.35)
 
-            if not cont_edges:
-                nx.draw_networkx_labels(Glag,
-                                        pos=a.node_positions,
-                                        labels={n: n for n in Glag},
-                                        font_size=font_size)
         # 7. Plot or save
         if save_name is not None:
             plt.savefig(save_name + img_extention.value, dpi=300)
@@ -479,7 +474,6 @@ class DAG():
                node_size = 8,
                x_disp = 1.5,
                y_disp = 0.2,
-               text_disp = 0.1,
                node_color = 'orange',
                edge_color = 'grey',
                tail_color = 'black',
@@ -495,7 +489,6 @@ class DAG():
             node_size (int, optional): node size. Defaults to 8.
             x_disp (float, optional): node displacement along x. Defaults to 1.5.
             y_disp (float, optional): node displacement along y. Defaults to 0.2.
-            text_disp (float, optional): text displacement along y. Defaults to 0.1.
             node_color (str/list, optional): node color. 
                                              If a string, all the nodes will have the same colour. 
                                              If a list (same dimension of features), each colour will have the specified colour.
@@ -583,7 +576,7 @@ class DAG():
         # 3. Label definition
         for n in Gcont.nodes():
             if n[0] == 0:
-                ax.text(pos[n][0] - text_disp, pos[n][1], list(r.g.keys())[len(r.g.keys()) - 1 - n[1]], horizontalalignment='center', verticalalignment='center', fontsize=font_size)
+                ax.text(pos[n][0]-0.1, pos[n][1], list(r.g.keys())[len(r.g.keys()) - 1 - n[1]], horizontalalignment='center', verticalalignment='center', fontsize=font_size)
 
         # 4. Time line text drawing
         pos_tau = set([pos[p][0] for p in pos])
