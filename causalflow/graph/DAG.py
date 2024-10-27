@@ -117,7 +117,42 @@ class DAG():
             float: maximum score of an cross-dependency link.
         """
         return max([self.g[t].sources[s][SCORE] if self.g[t].sources[s][SCORE] != float('inf') else 1 for t in self.g for s in self.g[t].sources if t != s[0]])
-      
+    
+    
+    @classmethod
+    def load(cls, pkl):
+        """
+        Load a DAG object from a pickle file.
+
+        Args:
+            pkl (pickle): pickle file.
+
+        Returns:
+            DAG: loaded DAG object.
+        """
+        cm = cls(list(pkl['causal_model'].g.keys()), pkl['causal_model'].min_lag, pkl['causal_model'].max_lag)
+        cm.g = pkl['causal_model'].g
+
+        return cm
+    
+    
+    def filter_alpha(self, alpha):
+        """
+        Filter the causal model by a certain alpha level.
+
+        Args:
+            alpha (float): dependency p-value.
+            
+        Returns:
+            DAG: filtered DAG.
+        """
+        cm = copy.deepcopy(self)
+        for t in self.g:
+            for s in self.g[t].sources:
+                if self.g[t].sources[s][PVAL] > alpha:
+                    cm.del_source(t, s[0], s[1])
+        return cm      
+    
     
     def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):
         """
