@@ -1,4 +1,5 @@
 import os
+import pickle
 from matplotlib import pyplot as plt
 import numpy as np
 from causalflow.CPrinter import CP
@@ -7,21 +8,22 @@ from causalflow.causal_reasoning.Density import Density
 from causalflow.causal_reasoning.DynamicBayesianNetwork import DynamicBayesianNetwork
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
+from causalflow.CPrinter import CPLevel, CP
 import copy
 
 
 class CausalInferenceEngine():
-    def __init__(self, dag: DAG, obs_data: Data, nsample = 100, atol = 0.25):
+    def __init__(self, dag: DAG, nsample = 100, atol = 0.25, verbosity = CPLevel.DEBUG):
         """
-        CausalEngine contructer
+        CausalEngine constructor.
 
         Args:
-            dag (DAG): observational dataset extracted from a causal discovery method 
-            obs_data (Data): observational dataset
+            dag (DAG): observational dataset extracted from a causal discovery method.
             nsample (int, optional): Number of samples used for density estimation. Defaults to 100.
             atol (float, optional): absolute tolerance used to check if a specific intervention has been already observed. Defaults to 0.25.
+            verbosity (CPLevel, optional): verbosity level. Defaults to DEBUG.
         """
-
+        CP.set_verbosity(verbosity)
         CP.info("\n##")
         CP.info("## Causal Inference Engine")
         CP.info("##")
@@ -29,20 +31,20 @@ class CausalInferenceEngine():
         self.nsample = nsample
         self.atol = atol
         self.Q = {}
-        self.DAGs = {('obs', 0): dag}
-        self.Ds = {('obs', 0): obs_data}
-        CP.info(f"\n## Building DBN for DAG ID {str(('obs', 0))}")
-
-        self.DBNs = {('obs', 0): DynamicBayesianNetwork(dag, obs_data, self.nsample)}
+        self.DAG = dag
+        
+        self.DAGs = {}
+        self.Ds = {}
+        self.DBNs = {}
         
         
     @property        
     def nextObs(self):
         """
-        Returns next observation ID
+        Return next observation ID.
 
         Returns:
-            int: next observation ID
+            int: next observation ID.
         """
         arg = [key for key in self.DAGs.keys() if key[0] == 'obs']
         if arg:
@@ -53,54 +55,43 @@ class CausalInferenceEngine():
     @property
     def nextInt(self):
         """
-        Returns next intervention ID
+        Return next intervention ID.
 
         Returns:
-            int: next intervention ID
+            int: next intervention ID.
         """
         arg = [key for key in self.DAGs.keys() if key[0] == 'int']
         if arg:
             return max(arg, key=lambda x: x[1])[1] + 1
         else:
             return 0
-    
-    
-    @property
-    def dag(self):
-        """
-        Returns default observational DAG
-
-        Returns:
-            DAG: default observational DAG
-        """
-        return self.DAGs[('obs', 0)]
-    
+       
             
     def addObsData(self, data: Data):
         """
-        Adds new observational dataset
+        Add new observational dataset.
 
         Args:
-            data (Data): new observational dataset
+            data (Data): new observational dataset.
         """
         id = ('obs', self.nextObs)
-        self.DAGs[id] = self.dag
+        self.DAGs[id] = self.DAG
         self.Ds[id] = data
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(self.dag, data, self.nsample)
+        self.DBNs[id] = DynamicBayesianNetwork(self.DAG, data, self.nsample)
         return id
         
         
     def addIntData(self, target: str, data: Data):
         """
-        Adds new interventional dataset
+        Add new interventional dataset.
 
         Args:
-            target (str): Intervention treatment variable
-            data (Data): Interventional data
+            target (str): Intervention treatment variable.
+            data (Data): Interventional data.
         """
-        dag = copy.deepcopy(self.dag)
-        for s in self.dag.g[target].sources:
+        dag = copy.deepcopy(self.DAG)
+        for s in self.DAG.g[target].sources:
             dag.del_source(target, s[0], s[1])
             
         id = ('int', str(target), self.nextInt)
@@ -109,20 +100,57 @@ class CausalInferenceEngine():
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
         self.DBNs[id] = DynamicBayesianNetwork(dag, data, self.nsample)
         return id
+    
+    
+    def save(self, respath):
+        """
+        Save a CausalInferenceEngine object from a pickle file.
+
+        Args:
+            respath (str): pickle save path.
+        """
+        pkl = dict()
+        pkl['DAG'] = self.DAG
+        pkl['nsample'] = self.nsample
+        pkl['atol'] = self.atol
+        pkl['verbosity'] = CP.verbosity
+        pkl['DAGs'] = self.DAGs
+        pkl['Ds'] = self.Ds
+        pkl['DBNs'] = self.DBNs
+        with open(respath, 'wb') as resfile:
+            pickle.dump(pkl, resfile)
+    
+    
+    @classmethod
+    def load(cls, pkl):
+        """
+        Load a CausalInferenceEngine object from a pickle file.
+
+        Args:
+            pkl (pickle): pickle file.
+
+        Returns:
+            CausalInferenceEngine: loaded CausalInferenceEngine object.
+        """
+        cie = cls(pkl['DAG'], pkl['nsample'], pkl['atol'], pkl['verbosity'])
+        cie.DAGs = pkl['DAGs']
+        cie.Ds = pkl['Ds']
+        cie.DBNs = pkl['DBNs']
+        return cie
         
         
     def whatHappens(self, outcome: str, treatment: str, value, targetP: tuple):
         """
-        calculates p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]
+        Calculate p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))].
 
         Args:
-            outcome (str): outcome variable
-            treatment (str): treatment variable
-            value (float): treatment value
-            targetP (tuple): target population ID (e.g., ("obs", 3))
+            outcome (str): outcome variable.
+            treatment (str): treatment variable.
+            value (float): treatment value.
+            targetP (tuple): target population ID (e.g., ("obs", 3)).
 
         Returns:
-            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))] )
+            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]).
         """
         self.Q[OUTCOME] = outcome
         self.Q[TREATMENT] = treatment
@@ -156,15 +184,15 @@ class CausalInferenceEngine():
     
     def whatHappensNOTRANSPORT(self, outcome: str, treatment: str, value):
         """
-        calculates p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]
+        Calculate p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))].
 
         Args:
-            outcome (str): outcome variable
-            treatment (str): treatment variable
-            value (float): treatment value
+            outcome (str): outcome variable.
+            treatment (str): treatment variable.
+            value (float): treatment value.
 
         Returns:
-            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))] )
+            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]).
         """
         self.Q[OUTCOME] = outcome
         self.Q[TREATMENT] = treatment
@@ -195,16 +223,16 @@ class CausalInferenceEngine():
     
     def predict(self, outcome: str, treatment: str, value, data: Data):
         """
-        calculates p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]
+        Calculate p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))].
 
         Args:
-            outcome (str): outcome variable
-            treatment (str): treatment variable
-            value (float/ndarray): treatment value
-            data (Data): target population ID (e.g., ("obs", 3))
+            outcome (str): outcome variable.
+            treatment (str): treatment variable.
+            value (float/ndarray): treatment value.
+            data (Data): target population ID (e.g., ("obs", 3)).
 
         Returns:
-            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))] )
+            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]).
         """
         pass
         # # TODO: to do the whatHappens method for timeseries interventions

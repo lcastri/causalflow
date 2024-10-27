@@ -8,14 +8,14 @@ from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *
 
 class DynamicBayesianNetwork():
-    def __init__(self, dag: DAG, data: Data, nsample = 100):
+    def __init__(self, dag: DAG, data: Data, nsample: int):
         """
-        DynamicBayesianNetwork contructer
+        Class constructor.
 
         Args:
-            dag (DAG): DAG from which deriving the DBN
-            data (Data): Data associated to the DAG
-            nsample (int, optional): Number of samples used for density estimation. Defaults to 100.
+            dag (DAG): DAG from which deriving the DBN.
+            data (Data): Data associated to the DAG.
+            nsample (int, optional): Number of samples used for density estimation.
         """
         self.dag = dag
         self.data = data
@@ -23,23 +23,26 @@ class DynamicBayesianNetwork():
         
         self.dbn = {node: None for node in dag.g}
         for node in self.dbn:
-            CP.info(f"\n### Target variable: {node}")
             Y = Process(data.d[node].to_numpy(), node, 0, self.nsample)
             parents = self._extract_parents(node)
+            if parents is None:
+                CP.info(f"\n### Target variable: {node}")
+            else:
+                CP.info(f"\n### Target variable: {node} - parents {', '.join(list(parents.keys()))}")
             self.dbn[node] = Density(Y, parents)
-            
+        
         for node in self.dbn: self.computeDoDensity(node)
         
         
     def _extract_parents(self, node):
         """
-        Extracts the parents of a specified node
+        Extract the parents of a specified node.
 
         Args:
-            node (str): Node belonging to the dag
+            node (str): Node belonging to the dag.
 
         Returns:
-            dict: parents express as dict[parent name (str), parent process (Process)]
+            dict: parents express as dict[parent name (str), parent process (Process)].
         """
         parents = {s[0]: Process(self.data.d[s[0]].to_numpy(), s[0], s[1], self.nsample) for s in self.dag.g[node].sources}
         if not parents: return None
@@ -48,14 +51,14 @@ class DynamicBayesianNetwork():
     
     def get_lag(self, treatment: str, outcome: str):
         """
-        Outputs the lag-time associated to the treatment -> outcome link
+        Output the lag-time associated to the treatment -> outcome link.
 
         Args:
-            treatment (str): treatment variable
-            outcome (str): outcome variable
+            treatment (str): treatment variable.
+            outcome (str): outcome variable.
 
         Returns:
-            int: treatment -> outcome link's lag-time 
+            int: treatment -> outcome link's lag-time.
         """
         matching_keys = [key[1] for key in self.dag.g[outcome].sources.keys() if key[0] == treatment]
         # if multiple, here it is returned only the minimum lag (closest to 0)
@@ -64,7 +67,8 @@ class DynamicBayesianNetwork():
     
     def get_adjset(self, treatment: str, outcome: str):
         """
-        Outputs the optimal adjustment set associated to the treatment-outcome intervention.
+        Output the optimal adjustment set associated to the treatment-outcome intervention.
+        
         The adjustment set is calculated through the TIGRAMITE pkg based on [1]
         
         [1] Runge, Jakob. "Necessary and sufficient graphical conditions for optimal adjustment 
@@ -72,11 +76,11 @@ class DynamicBayesianNetwork():
             Processing Systems 34 (2021): 15762-15773.  
 
         Args:
-            treatment (str): treatment variable
-            outcome (str): outcome variable
+            treatment (str): treatment variable.
+            outcome (str): outcome variable.
 
         Returns:
-            tuple: optimal adjustment set for the treatment->outcome link 
+            tuple: optimal adjustment set for the treatment -> outcome link.
         """
         lag = self.get_lag(treatment, outcome)
         
@@ -89,13 +93,15 @@ class DynamicBayesianNetwork():
     
     def computeDoDensity(self, outcome: str):
         """
-        Computes the p(outcome|do(treatment)) density
+        Compute the p(outcome|do(treatment)) density.
 
         Args:
-            outcome (str): outcome variable
+            outcome (str): outcome variable.
         """
+        CP.info(f"\n### DO Densities - Outcome {outcome}")
         if self.dbn[outcome].parents is None: return
         for treatment in self.dbn[outcome].parents:
+            CP.info(f"- Treatment {treatment}")
                     
             # Select the adjustment set
             adjset = self.get_adjset(treatment, outcome)
