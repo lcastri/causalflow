@@ -162,8 +162,12 @@ class Density():
         Returns:
             ndarray: Computed density for the input samples.
         """
+        YZ_samples = np.array(YZ_samples, copy=True)
+        
+        
         # Define a function to compute density for a subset of samples
         def compute_density(samples):
+            samples = samples.copy()  # Ensure writable samples
             log_density = kde.score_samples(samples)
             return np.exp(log_density)
 
@@ -180,7 +184,8 @@ class Density():
         n_jobs = min(available_cores, num_samples) if n_jobs == -1 else n_jobs
 
         chunk_size = max(1, num_samples // n_jobs)  # Ensure at least one sample per chunk
-        chunks = [YZ_samples[i:i + chunk_size] for i in range(0, num_samples, chunk_size)]
+        # chunks = [YZ_samples[i:i + chunk_size] for i in range(0, num_samples, chunk_size)]
+        chunks = [YZ_samples[i:i + chunk_size].copy() for i in range(0, num_samples, chunk_size)]
 
         # Parallel computation of densities for each chunk
         densities = Parallel(n_jobs=n_jobs)(delayed(compute_density)(chunk) for chunk in chunks)

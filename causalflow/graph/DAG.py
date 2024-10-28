@@ -6,6 +6,7 @@ Classes:
 """
     
 import copy
+import pickle
 import numpy as np
 from causalflow.graph.Node import Node
 from causalflow.basics.constants import *
@@ -130,10 +131,31 @@ class DAG():
         Returns:
             DAG: loaded DAG object.
         """
-        cm = cls(list(pkl['causal_model'].g.keys()), pkl['causal_model'].min_lag, pkl['causal_model'].max_lag)
+        if 'neglect_autodep' not in pkl: 
+            cm = cls(list(pkl['causal_model'].features), pkl['causal_model'].min_lag, pkl['causal_model'].max_lag)
+        else:
+            cm = cls(list(pkl['causal_model'].features), pkl['causal_model'].min_lag, pkl['causal_model'].max_lag, pkl['neglect_autodep'])
+            
         cm.g = pkl['causal_model'].g
 
         return cm
+    
+
+    def save(self, respath):
+        """
+        Save DAG object as pickle file at respath.
+
+        Args:
+            respath (str): path where to save the DAG object.
+        """
+        res = dict()
+        res['causal_model'] = self
+        res['var_names'] = self.features
+        res['min_lag'] = self.min_lag
+        res['max_lag'] = self.max_lag
+        res['neglect_autodep'] = self.neglect_autodep
+        with open(respath, 'wb') as resfile:
+            pickle.dump(res, resfile)
     
     
     def filter_alpha(self, alpha):
@@ -352,7 +374,10 @@ class DAG():
             min_cross_width (float, optional): minimum edge linewidth. Defaults to 1.
             max_cross_width (float, optional): maximum edge linewidth. Defaults to 5.
             node_size (int, optional): node size. Defaults to 8.
-            node_color (str, optional): node color. Defaults to 'orange'.
+            node_color (str/list, optional): node color. 
+                If a string, all the nodes will have the same colour. 
+                If a list (same dimension of features), each colour will have the specified colour.
+                Defaults to 'orange'.
             edge_color (str, optional): edge color for contemporaneous links. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
             font_size (int, optional): font size. Defaults to 8.
@@ -362,6 +387,7 @@ class DAG():
         """
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
+        node_c = {n: c for n, c in zip(r.g.keys(), node_color)}
 
         Gcont = nx.DiGraph()
         Glag = nx.DiGraph()
@@ -446,7 +472,7 @@ class DAG():
             a = Graph(Gcont,
                     node_layout=node_layout,
                     node_size=node_size,
-                    node_color=node_color,
+                    node_color=node_c,
                     node_labels=None,
                     node_edge_width=border,
                     node_label_fontdict=dict(size=font_size),
@@ -476,7 +502,7 @@ class DAG():
             a = Graph(Glag,
                     node_layout=a.node_positions,
                     node_size=node_size,
-                    node_color=node_color,
+                    node_color=node_c,
                     node_labels=node_label,
                     node_edge_width=border,
                     node_label_fontdict=dict(size=font_size),
