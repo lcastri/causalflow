@@ -6,6 +6,8 @@ Classes:
 """
     
 import copy
+import pickle
+from matplotlib.patches import Rectangle
 import numpy as np
 from causalflow.graph.Node import Node
 from causalflow.basics.constants import *
@@ -130,10 +132,31 @@ class DAG():
         Returns:
             DAG: loaded DAG object.
         """
-        cm = cls(list(pkl['causal_model'].g.keys()), pkl['causal_model'].min_lag, pkl['causal_model'].max_lag)
-        cm.g = pkl['causal_model'].g
+        if 'neglect_autodep' not in pkl: 
+            cm = cls(list(pkl['features']), pkl['min_lag'], pkl['max_lag'])
+        else:
+            cm = cls(list(pkl['features']), pkl['min_lag'], pkl['max_lag'], pkl['neglect_autodep'])
+            
+        cm.g = pkl['graph']
 
         return cm
+    
+
+    def save(self, respath):
+        """
+        Save DAG object as pickle file at respath.
+
+        Args:
+            respath (str): path where to save the DAG object.
+        """
+        res = dict()
+        res['graph'] = self.g
+        res['features'] = self.features
+        res['min_lag'] = self.min_lag
+        res['max_lag'] = self.max_lag
+        res['neglect_autodep'] = self.neglect_autodep
+        with open(respath, 'wb') as resfile:
+            pickle.dump(res, resfile)
     
     
     def filter_alpha(self, alpha):
@@ -151,7 +174,7 @@ class DAG():
             for s in self.g[t].sources:
                 if self.g[t].sources[s][PVAL] > alpha:
                     cm.del_source(t, s[0], s[1])
-        return cm      
+        return cm        
     
     
     def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):
@@ -624,68 +647,77 @@ class DAG():
         
         # 5. Draw graph - contemporaneous
         if cont_edges:
-            a = Graph(Gcont,
-                    node_layout={p : np.array(pos[p]) for p in pos},
-                    node_size=node_size,
-                    node_color=node_c,
-                    node_edge_width=0,
-                    node_label_fontdict=dict(size=font_size),
-                    node_label_offset=0,
-                    node_alpha=1,
+            Graph(Gcont,
+                  node_layout={p : np.array(pos[p]) for p in pos},
+                  node_size=node_size,
+                  node_color=node_c,
+                  node_edge_width=0,
+                  node_label_fontdict=dict(size=font_size),
+                  node_label_offset=0,
+                  node_alpha=1,
 
-                    arrows=cont_arrows,
-                    edge_layout=edge_layout,
-                    edge_label=False,
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=cont_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    scale = (scale[0] + 2, scale[1] + 2))
+                  arrows=cont_arrows,
+                  edge_layout=edge_layout,
+                  edge_label=False,
+                  edge_color=edge_color,
+                  tail_color=tail_color,
+                  edge_width=cont_edge_width,
+                  edge_alpha=1,
+                  edge_zorder=1,
+                  scale = (scale[0] + 2, scale[1] + 2))
 
         # 6. Draw graph - lagged cross
         if lagged_cross_edges:
-            a = Graph(Glagcross,
-                    node_layout={p : np.array(pos[p]) for p in pos},
-                    node_size=node_size,
-                    node_color=node_c,
-                    node_edge_width=0,
-                    node_label_fontdict=dict(size=font_size),
-                    node_label_offset=0,
-                    node_alpha=1,
+            Graph(Glagcross,
+                  node_layout={p : np.array(pos[p]) for p in pos},
+                  node_size=node_size,
+                  node_color=node_c,
+                  node_edge_width=0,
+                  node_label_fontdict=dict(size=font_size),
+                  node_label_offset=0,
+                  node_alpha=1,
 
-                    arrows=lagged_cross_arrows,
-                    edge_layout='curved',
-                    edge_label=False,
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=lagged_cross_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    scale = (scale[0] + 2, scale[1] + 2))
+                  arrows=lagged_cross_arrows,
+                  edge_layout='curved',
+                  edge_label=False,
+                  edge_color=edge_color,
+                  tail_color=tail_color,
+                  edge_width=lagged_cross_edge_width,
+                  edge_alpha=1,
+                  edge_zorder=1,
+                  scale = (scale[0] + 2, scale[1] + 2))
             
         # 7. Draw graph - lagged auto
         if lagged_auto_edges:
-            a = Graph(Glagauto,
-                    node_layout={p : np.array(pos[p]) for p in pos},
-                    node_size=node_size,
-                    node_color=node_c,
-                    node_edge_width=0,
-                    node_label_fontdict=dict(size=font_size),
-                    node_label_offset=0,
-                    node_alpha=1,
+            Graph(Glagauto,
+                  node_layout={p : np.array(pos[p]) for p in pos},
+                  node_size=node_size,
+                  node_color=node_c,
+                  node_edge_width=0,
+                  node_label_fontdict=dict(size=font_size),
+                  node_label_offset=0,
+                  node_alpha=1,
 
-                    arrows=lagged_auto_arrows,
-                    edge_layout='straight',
-                    edge_label=False,
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=lagged_auto_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    scale = (scale[0] + 2, scale[1] + 2))
+                  arrows=lagged_auto_arrows,
+                  edge_layout='straight',
+                  edge_label=False,
+                  edge_color=edge_color,
+                  tail_color=tail_color,
+                  edge_width=lagged_auto_edge_width,
+                  edge_alpha=1,
+                  edge_zorder=1,
+                  scale = (scale[0] + 2, scale[1] + 2))
         
-        # 7. Plot or save
+        # 8. Draw rectangular for context variables (if any)
+        # for c in self.sys_context.values():
+        #     rect = Rectangle(
+        #         (x_min - 0.5, row_y - height / 2),  # position (bottom-left corner)
+        #         width, height,  # width and height
+        #         edgecolor='orange', facecolor='orange', alpha=0.3  # colors and transparency
+        #     )
+        #     ax.add_patch(rect)
+        
+        # 9. Plot or save
         if save_name is not None:
             plt.savefig(save_name + img_extention.value, dpi = 300)
         else:
@@ -741,13 +773,9 @@ class DAG():
                         if fixed_edge == edge: continue
                         if fixed_edge[0][0] == t and fixed_edge[0][1] == edge[0][1] and fixed_edge[1][0] == t and fixed_edge[1][1] == edge[1][1]:
                             res[fixed_edge] = edge_path - np.array([(self.max_lag - t)*x_disp,0])*np.ones_like(a.edge_layout.edge_paths[edge])
-            # if edge[0][0] == 0 and edge[1][0] == 0: # t-tau_max
-            #     for shifted_edge, shifted_edge_path in a.edge_layout.edge_paths.items():
-            #         if shifted_edge == edge: continue
-            #         if shifted_edge[0][0] == self.max_lag and shifted_edge[0][1] == edge[0][1] and shifted_edge[1][0] == self.max_lag and shifted_edge[1][1] == edge[1][1]:
-            #             res[edge] = shifted_edge_path - np.array([x_disp,0])*np.ones_like(a.edge_layout.edge_paths[shifted_edge])
         ax.clear()              
         return res
+        
         
     def __scale(self, score, min_width, max_width, min_score = 0, max_score = 1):
         """
@@ -871,4 +899,4 @@ class DAG():
                 scm[t][(s[0], -abs(s[1]))] = self.g[t].sources[s][TYPE] 
         return scm
     
-        
+    
