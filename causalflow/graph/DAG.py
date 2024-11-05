@@ -278,6 +278,22 @@ class DAG():
                     
         return link_assump
    
+    @staticmethod
+    def prettify(name: str):
+        """
+        Turn a string in LaTeX-style.
+
+        Args:
+            name (str): string to convert.
+
+        Returns:
+            str: converted string.
+        """
+        # Check if the name is already in LaTeX-style format
+        if name.startswith('$') and name.endswith('$') and re.search(r'_\{\w+\}', name):
+            return name
+        return '$' + re.sub(r'_(\w+)', r'_{\1}', name) + '$'
+        
     
     def make_pretty(self) -> dict:
         """
@@ -286,18 +302,15 @@ class DAG():
         Returns:
             dict: pretty DAG.
         """
-        def prettify(name):
-            return '$' + re.sub(r'_(\w+)', r'_{\1}', name) + '$'
-        
         pretty = dict()
         for t in self.g:
-            p_t = prettify(t)
+            p_t = DAG.prettify(t)
             pretty[p_t] = copy.deepcopy(self.g[t])
             pretty[p_t].name = p_t
-            pretty[p_t].children = [prettify(c) for c in self.g[t].children]
+            pretty[p_t].children = [DAG.prettify(c) for c in self.g[t].children]
             for s in self.g[t].sources:
                 del pretty[p_t].sources[s]
-                p_s = prettify(s[0])
+                p_s = DAG.prettify(s[0])
                 pretty[p_t].sources[(p_s, s[1])] = {
                     SCORE: self.g[t].sources[s][SCORE],
                     PVAL: self.g[t].sources[s][PVAL],
@@ -374,10 +387,10 @@ class DAG():
             min_cross_width (float, optional): minimum edge linewidth. Defaults to 1.
             max_cross_width (float, optional): maximum edge linewidth. Defaults to 5.
             node_size (int, optional): node size. Defaults to 8.
-            node_color (str/list, optional): node color. 
-                If a string, all the nodes will have the same colour. 
-                If a list (same dimension of features), each colour will have the specified colour.
-                Defaults to 'orange'.
+            node_color (str/dict, optional): node color. 
+                                             If a string, all the nodes will have the same colour. 
+                                             If a dict, each node will have its specified colour.
+                                             Defaults to 'orange'.
             edge_color (str, optional): edge color for contemporaneous links. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
             font_size (int, optional): font size. Defaults to 8.
@@ -387,7 +400,8 @@ class DAG():
         """
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
-        node_c = {n: c for n, c in zip(r.g.keys(), node_color)}
+        node_color = copy.deepcopy(node_color)
+        node_color = {DAG.prettify(f): node_color.pop(f) for f in list(node_color)}
 
         Gcont = nx.DiGraph()
         Glag = nx.DiGraph()
@@ -472,7 +486,7 @@ class DAG():
             a = Graph(Gcont,
                     node_layout=node_layout,
                     node_size=node_size,
-                    node_color=node_c,
+                    node_color=node_color,
                     node_labels=None,
                     node_edge_width=border,
                     node_label_fontdict=dict(size=font_size),
@@ -494,15 +508,15 @@ class DAG():
 
             nx.draw_networkx_labels(Gcont,
                                     pos=a.node_positions,
-                                    labels={n: n for n in Glag},
+                                    labels={n: n for n in Gcont},
                                     font_size=font_size)
 
         # 6. Draw graph - lagged
         if lagged_edges:
             a = Graph(Glag,
-                    node_layout=a.node_positions,
+                    node_layout=a.node_positions if cont_edges else node_layout,
                     node_size=node_size,
-                    node_color=node_c,
+                    node_color=node_color,
                     node_labels=node_label,
                     node_edge_width=border,
                     node_label_fontdict=dict(size=font_size),
@@ -521,6 +535,12 @@ class DAG():
                     edge_alpha=1,
                     edge_zorder=1,
                     edge_label_position=0.35)
+            
+            if not cont_edges:
+                nx.draw_networkx_labels(Glag,
+                                        pos=a.node_positions,
+                                        labels={n: n for n in Glag},
+                                        font_size=font_size)
 
         # 7. Plot or save
         if save_name is not None:
@@ -550,9 +570,9 @@ class DAG():
             node_size (int, optional): node size. Defaults to 8.
             x_disp (float, optional): node displacement along x. Defaults to 1.5.
             y_disp (float, optional): node displacement along y. Defaults to 0.2.
-            node_color (str/list, optional): node color. 
+            node_color (str/dict, optional): node color. 
                                              If a string, all the nodes will have the same colour. 
-                                             If a list (same dimension of features), each colour will have the specified colour.
+                                             If a dict, each node will have its specified colour.
                                              Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
@@ -568,7 +588,7 @@ class DAG():
         Glagauto = nx.DiGraph()
 
         # 1. Nodes definition
-        if isinstance(node_color, list):
+        if isinstance(node_color, dict):
             node_c = dict()
         else:
             node_c = node_color
@@ -577,7 +597,7 @@ class DAG():
                 Glagauto.add_node((j, i))
                 Glagcross.add_node((j, i))
                 Gcont.add_node((j, i))
-                if isinstance(node_color, list): node_c[(j, i)] = node_color[abs(i - (len(r.g.keys()) - 1))]
+                if isinstance(node_color, dict): node_c[(j, i)] = node_color[self.features[abs(i - (len(r.g.keys()) - 1))]]
                 
         pos = {n : (n[0]*x_disp, n[1]*y_disp) for n in Glagauto.nodes()}
         scale = max(pos.values())
