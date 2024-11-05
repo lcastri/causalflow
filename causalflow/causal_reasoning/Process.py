@@ -1,7 +1,8 @@
 import numpy as np
+from causalflow.basics.constants import DataType
 
 class Process():
-    def __init__(self, data: np.ndarray, varname, lag, nsample):
+    def __init__(self, data: np.ndarray, varname: str, lag: int, nsample: int, data_type: DataType):
         """
         Process contructer
 
@@ -10,12 +11,14 @@ class Process():
             varname (str): process name (e.g., X_0)
             lag (int): process lag time
             nsample (int): number of samples for density estimation
+            data_type (DataType): data type (continuous|discrete)
         """
         self.data = data.reshape(-1, 1)
         self.varname = varname
         self.pvarname = '$' + varname + '$'
         self.lag = lag
         self.nsample = nsample
+        self.data_type = data_type
         
     @property
     def T(self):
@@ -58,4 +61,5 @@ class Process():
         Returns:
             ndarray: _nsample_ samples of the original dataset
         """
-        return np.squeeze(np.linspace(min(self.aligndata), max(self.aligndata), self.nsample))
+        # return np.squeeze(np.linspace(min(self.aligndata), max(self.aligndata), self.nsample))
+        return np.squeeze(np.linspace(min(self.aligndata), max(self.aligndata), self.nsample, dtype = int if self.data_type is DataType.Discrete else None))

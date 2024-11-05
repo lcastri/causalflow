@@ -1,4 +1,4 @@
-from fpcmci.version import VERSION
+from causalflow.version import VERSION
 
 """
 FPCMCI.

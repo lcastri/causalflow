@@ -8,28 +8,32 @@ from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *
 
 class DynamicBayesianNetwork():
-    def __init__(self, dag: DAG, data: Data, nsample: int):
+    def __init__(self, dag: DAG, data: Data, nsample: int, atol: float, data_type: dict):
         """
         Class constructor.
 
         Args:
             dag (DAG): DAG from which deriving the DBN.
             data (Data): Data associated to the DAG.
-            nsample (int, optional): Number of samples used for density estimation.
+            nsample (int): Number of samples used for density estimation.
+            atol (float): Absolute tolerance used to check if a specific intervention has been already observed. Defaults to 0.25.
+            data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}
+
         """
         self.dag = dag
         self.data = data
         self.nsample = nsample
+        self.data_type = data_type
         
         self.dbn = {node: None for node in dag.g}
         for node in self.dbn:
-            Y = Process(data.d[node].to_numpy(), node, 0, self.nsample)
+            Y = Process(data.d[node].to_numpy(), node, 0, self.nsample, self.data_type[node])
             parents = self._extract_parents(node)
             if parents is None:
                 CP.info(f"\n### Target variable: {node}")
             else:
                 CP.info(f"\n### Target variable: {node} - parents {', '.join(list(parents.keys()))}")
-            self.dbn[node] = Density(Y, parents)
+            self.dbn[node] = Density(Y, parents, atol)
         
         for node in self.dbn: self.computeDoDensity(node)
         
@@ -44,7 +48,7 @@ class DynamicBayesianNetwork():
         Returns:
             dict: parents express as dict[parent name (str), parent process (Process)].
         """
-        parents = {s[0]: Process(self.data.d[s[0]].to_numpy(), s[0], s[1], self.nsample) for s in self.dag.g[node].sources}
+        parents = {s[0]: Process(self.data.d[s[0]].to_numpy(), s[0], s[1], self.nsample, self.data_type[s[0]]) for s in self.dag.g[node].sources}
         if not parents: return None
         return parents
     

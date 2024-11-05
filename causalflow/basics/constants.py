@@ -41,7 +41,7 @@ class LabelType(Enum):
 class DataType(Enum):
     """DataType Enumerator."""
     
-    Continuos = 0
+    Continuous = 0
     Discrete = 1
     
     

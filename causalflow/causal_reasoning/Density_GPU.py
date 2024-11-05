@@ -1,38 +1,32 @@
 import copy
 import warnings
-import os
 
-from joblib import Parallel, delayed
-from multiprocessing import Pool
+import cupy as cp
+from cuml import KernelDensity
 
-from tqdm import tqdm
+# Check if a GPU is available
+if cp.cuda.is_available():
+    print("Is GPU available?: True")
+
+    # Get the number of GPUs
+    num_gpus = cp.cuda.runtime.getDeviceCount()
+    print("Number of GPUs available:", num_gpus)
+
+    # Print GPU properties
+    for i in range(num_gpus):
+        properties = cp.cuda.runtime.getDeviceProperties(i)
+        gpu_name = properties['name']  # Access the GPU name
+        print(f"GPU {i}: {gpu_name}")
+else:
+    print("No GPU available.")
+
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from typing import Dict
 import numpy as np
-from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KernelDensity
 from causalflow.basics.constants import *
+from tqdm import tqdm
 
-# Define the compute_density function as a top-level function
-def compute_density(samples, kde):
-    """
-    Compute density for a subset of samples.
-
-    Args:
-        samples (ndarray): The input samples for which to compute density.
-        kde (KernelDensity): Fitted KernelDensity model.
-
-    Returns:
-        ndarray: Density for the input samples.
-    """
-    samples = samples.copy()  # Ensure writable samples
-    log_density = kde.score_samples(samples)
-    return np.exp(log_density)
-# Define a helper function for imap that takes a chunk and kde
-def process_chunk(chunk_kde):
-    chunk, kde = chunk_kde
-    return compute_density(chunk, kde)
  
 class Density():
     def __init__(self, y: Process, parents: Dict[str, Process] = None, atol = 0.25):
@@ -173,58 +167,12 @@ class Density():
                 self.ParentJointDensity = Density.estimate('Parent', [p for p in self.parents.values()])
                 self.ParentJointDensity = Density.normalise(self.ParentJointDensity)
         return self.ParentJointDensity
-    
-    
-    @staticmethod
-    def compute_density_parallel(caller, kde, YZ_samples):
-        """
-        Compute the density for a set of samples in parallel.
-
-        Args:
-            kde (KernelDensity): Fitted KernelDensity model.
-            YZ_samples (ndarray): Samples for which to compute the density.
-
-        Returns:
-            ndarray: Computed density for the input samples.
-        """
-        YZ_samples = np.array(YZ_samples, copy=True)
-
-        # Determine how to split YZ_samples into chunks
-        num_samples = len(YZ_samples)
-
-        # Use all available cores
-        n_jobs = -1  # Use all available cores
-        if num_samples == 0:
-            return np.array([])  # Return empty array if there are no samples
-
-        # Get the number of CPU cores available
-        available_cores = os.cpu_count()
-        n_jobs = min(available_cores, num_samples) if n_jobs == -1 else n_jobs
-
-        chunk_size = max(1, num_samples // n_jobs)  # Ensure at least one sample per chunk
-        # chunks = [YZ_samples[i:i + chunk_size] for i in range(0, num_samples, chunk_size)]
-        chunks = [YZ_samples[i:i + chunk_size].copy() for i in range(0, num_samples, chunk_size)]
-
-        # Parallel computation of densities for each chunk
-        # densities = Parallel(n_jobs=n_jobs)(delayed(compute_density)(chunk) for chunk in chunks)
-        # Combine chunks and kde into a tuple for processing
-        chunk_kde_pairs = [(chunk, kde) for chunk in chunks]
-
-        # Parallel computation of densities for each chunk using Pool and tqdm
-        with Pool(n_jobs) as pool:
-            densities = list(tqdm(pool.imap(process_chunk, chunk_kde_pairs), 
-                                  total=len(chunks), desc=f"- {caller} density", unit="chunk"))
-            
-        # Combine the densities from all chunks
-        density = np.concatenate(densities)
-
-        return density
-    
-    
+       
+    # @profile
     @staticmethod
     def estimate(caller, YZ):
         """
-        Estimate the density through KDE.
+        Estimate the density through KDE using CuML.
 
         Args:
             YZ (Process or [Process]): Process(es) for density estimation.
@@ -232,28 +180,49 @@ class Density():
         Returns:
             ndarray: density.
         """
-        if not isinstance(YZ, list): YZ = [YZ]
+        if not isinstance(YZ, list):
+            YZ = [YZ]
         
-        YZ_data = np.column_stack([yz.aligndata for yz in YZ])
+        # Ensure aligndata is a CuPy array before stacking
+        YZ_data = cp.column_stack([cp.asarray(yz.aligndata) for yz in YZ])  # Convert to CuPy
+
+        # Create a meshgrid for samples
         YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ])
-        YZ_samples = np.column_stack([yz.ravel() for yz in YZ_mesh])
-        
-        # Create the grid search
-        bandwidths = [0.1, 0.5, 1]
-        Ks = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
+        YZ_samples = cp.column_stack([cp.ravel(cp.array(yz)) for yz in YZ_mesh])
+
+        # Set bandwidth and kernel parameters
+        bandwidth = 0.5  # Fixed bandwidth
+        kernel = 'gaussian'  # Fixed kernel
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            # grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths, 'kernel': Ks})
-            # grid_search.fit(YZ_data)
+            
+            # Initialize and fit CuML's KernelDensity
+            kde = KernelDensity(bandwidth=bandwidth, kernel=kernel)
+            kde.fit(YZ_data)  # Fit the model on GPU
 
-            # Fit a kernel density model to the data
-            # kde = KernelDensity(bandwidth=grid_search.best_params_['bandwidth'], kernel=grid_search.best_params_['kernel'])
-            kde = KernelDensity(bandwidth=0.5, kernel='gaussian', algorithm='ball_tree')
-            kde.fit(YZ_data)
+            # Use batch processing to compute log density for samples with tqdm progress bar
+            # @profile
+            def batch_score_samples(kde, YZ_samples, batch_size=1500):
+                """Scores samples in batches to avoid memory overflow."""
+                num_samples = YZ_samples.shape[0]
+                densities = []
 
-            # Compute the density
-            density = Density.compute_density_parallel(caller, kde, YZ_samples)
-            density = density.reshape(YZ_mesh[0].shape)
+                # Create a tqdm progress bar
+                for i in tqdm(range(0, num_samples, batch_size), desc=f"- {caller} density"):
+                    batch = YZ_samples[i:i + batch_size]
+                    log_density = kde.score_samples(batch)
+                    densities.append(cp.exp(log_density))  # Compute densities from log densities
+
+                return cp.concatenate(densities)  # Concatenate all batches
+
+            # Compute densities using batch processing
+            densities = batch_score_samples(kde, YZ_samples)
+
+            # Convert the densities back to numpy array (if needed)
+            density = cp.asnumpy(densities)  # Move back to CPU if you need a numpy array
+            density = density.reshape(YZ_mesh[0].shape)  # Reshape to match the meshgrid
+
         return density
               
            
@@ -312,8 +281,8 @@ class Density():
         else:
             indices_X = {}
             for p in given_p.keys():
-                # column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=0.25))[0]                
-                column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=self.atol))[0]                
+                column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=0.25))[0]                
+                # column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=self.atol))[0]                
                 indices_X[p] = np.array(sorted(set(column_indices)))
 
             eval_cond_density = copy.deepcopy(self.CondDensity)
