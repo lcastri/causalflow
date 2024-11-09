@@ -417,11 +417,12 @@ class DAG():
             node_label = {t: [] for t in r.g.keys()}
             for t in r.g:
                 if r.g[t].is_autodependent:
-                    autodep = r.g[t].get_max_autodependent
-                    if label_type == LabelType.Lag:
-                        node_label[t].append(autodep[1])
-                    elif label_type == LabelType.Score:
-                        node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
+                    for s in r.g[t].sources:
+                        if s[0] == t:
+                            if label_type == LabelType.Lag:
+                                node_label[t].append(s[1])
+                            elif label_type == LabelType.Score:
+                                node_label[t].append(round(r.g[t].sources[s][SCORE], 3))
                 node_label[t] = ",".join(str(s) for s in node_label[t])
 
         # 3. Edges definition
