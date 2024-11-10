@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from causalflow.CPrinter import CP
 from causalflow.basics.constants import *
-from causalflow.causal_reasoning.Density import Density
+from causalflow.causal_reasoning.Density_utils import *
 from causalflow.causal_reasoning.DynamicBayesianNetwork import DynamicBayesianNetwork
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
@@ -15,7 +15,7 @@ import networkx as nx
 
 
 class CausalInferenceEngine():
-    def __init__(self, dag: DAG, data_type: dict, nsample = 100, atol = 0.25, verbosity = CPLevel.DEBUG):
+    def __init__(self, dag: DAG, data_type: Dict[str, DataType], nsample = 100, atol = 0.25, use_gpu: bool = False, verbosity = CPLevel.DEBUG):
         """
         CausalEngine constructor.
 
@@ -24,6 +24,7 @@ class CausalInferenceEngine():
             data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}
             nsample (int, optional): Number of samples used for density estimation. Defaults to 100.
             atol (float, optional): Absolute tolerance used to check if a specific intervention has been already observed. Defaults to 0.25.
+            use_gpu (bool): If True, use GPU for density estimation; otherwise, use CPU.
             verbosity (CPLevel, optional): Verbosity level. Defaults to DEBUG.
         """
         CP.set_verbosity(verbosity)
@@ -36,6 +37,7 @@ class CausalInferenceEngine():
         self.Q = {}
         self.DAG = dag
         self.data_type = data_type
+        self.use_gpu = use_gpu
         
         self.DAGs = {}
         self.Ds = {}
@@ -94,7 +96,7 @@ class CausalInferenceEngine():
         self.DAGs[id] = self.DAG
         self.Ds[id] = data
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(self.DAG, data, self.nsample, self.atol, self.data_type)
+        self.DBNs[id] = DynamicBayesianNetwork(self.DAG, data, self.nsample, self.atol, self.data_type, use_gpu=self.use_gpu)
         return id
         
         
@@ -114,7 +116,7 @@ class CausalInferenceEngine():
         self.DAGs[id] = dag
         self.Ds[id] = data
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(dag, data, self.nsample, self.atol, self.data_type)
+        self.DBNs[id] = DynamicBayesianNetwork(dag, data, self.nsample, self.atol, self.data_type, use_gpu=self.use_gpu)
         return id
     
     
@@ -394,12 +396,12 @@ class CausalInferenceEngine():
         pT_adj = np.ones((self.nsample, 1)).squeeze()
             
         for node in adjset: pT_adj = pT_adj * self.DBNs[targetP].dbn[self.DBNs[targetP].data.features[node[0]]].CondDensity
-        pT_adj = Density.normalise(pT_adj)
+        pT_adj = normalise(pT_adj)
         
         # Compute the p(outcome|do(treatment)) density
         if len(pS_y_do_x_adj.shape) > 2: 
             # Sum over the adjustment set
-            p_y_do_x = Density.normalise(np.sum(pS_y_do_x_adj * pT_adj, axis = tuple(range(2, len(pS_y_do_x_adj.shape)))))
+            p_y_do_x = normalise(np.sum(pS_y_do_x_adj * pT_adj, axis = tuple(range(2, len(pS_y_do_x_adj.shape)))))
         else:
             p_y_do_x = pS_y_do_x_adj
         
@@ -422,9 +424,9 @@ class CausalInferenceEngine():
         
         # I am taking all the outcome's densities associated to the treatment == value
         # Normalise the density to ensure it sums to 1
-        p_y_do_X_x = Density.normalise(np.sum(p_y_do_x[:, indices_X], axis = 1))
-        E_p_y_do_X_x = Density.expectation(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
-        M_p_y_do_X_x = Density.mode(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
+        p_y_do_X_x = normalise(np.sum(p_y_do_x[:, indices_X], axis = 1))
+        E_p_y_do_X_x = expectation(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
+        M_p_y_do_X_x = mode(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
         # self.plot_pE(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, show = True)
         return self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, M_p_y_do_X_x
     

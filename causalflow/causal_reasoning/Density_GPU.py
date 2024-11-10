@@ -26,6 +26,7 @@ from typing import Dict
 import numpy as np
 from causalflow.basics.constants import *
 from tqdm import tqdm
+from causalflow.causal_reasoning.Density_utils import *
 
  
 class Density():
@@ -100,7 +101,7 @@ class Density():
                 self.JointDensity = Density.estimate('Joint', yz)
             else:
                 self.JointDensity = Density.estimate('Joint', self.y)
-        self.JointDensity = Density.normalise(self.JointDensity)
+        self.JointDensity = normalise(self.JointDensity)
         return self.JointDensity
     
     
@@ -114,7 +115,7 @@ class Density():
         # CP.debug("- Prior density")
         if self.PriorDensity is None: 
             self.PriorDensity = Density.estimate('Prior', self.y)
-        self.PriorDensity = Density.normalise(self.PriorDensity)
+        self.PriorDensity = normalise(self.PriorDensity)
         return self.PriorDensity
         
         
@@ -133,7 +134,7 @@ class Density():
                 # Sum over parents axis
                 self.MarginalDensity = copy.deepcopy(self.JointDensity)
                 self.MarginalDensity = np.sum(self.MarginalDensity, axis=tuple(range(1, len(self.JointDensity.shape))))  
-        self.MarginalDensity = Density.normalise(self.MarginalDensity)
+        self.MarginalDensity = normalise(self.MarginalDensity)
         return self.MarginalDensity
          
         
@@ -150,7 +151,7 @@ class Density():
                 self.CondDensity = self.JointDensity / self.ParentJointDensity + np.finfo(float).eps
             else:
                 self.CondDensity = self.PriorDensity
-        self.CondDensity = Density.normalise(self.CondDensity)
+        self.CondDensity = normalise(self.CondDensity)
         return self.CondDensity
 
 
@@ -165,10 +166,9 @@ class Density():
         if self.ParentJointDensity is None:
             if self.parents is not None: 
                 self.ParentJointDensity = Density.estimate('Parent', [p for p in self.parents.values()])
-                self.ParentJointDensity = Density.normalise(self.ParentJointDensity)
+                self.ParentJointDensity = normalise(self.ParentJointDensity)
         return self.ParentJointDensity
        
-    # @profile
     @staticmethod
     def estimate(caller, YZ):
         """
@@ -190,29 +190,28 @@ class Density():
         YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ])
         YZ_samples = cp.column_stack([cp.ravel(cp.array(yz)) for yz in YZ_mesh])
 
-        # Set bandwidth and kernel parameters
-        bandwidth = 0.5  # Fixed bandwidth
-        kernel = 'gaussian'  # Fixed kernel
-
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             
             # Initialize and fit CuML's KernelDensity
-            kde = KernelDensity(bandwidth=bandwidth, kernel=kernel)
+            kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
             kde.fit(YZ_data)  # Fit the model on GPU
 
             # Use batch processing to compute log density for samples with tqdm progress bar
             # @profile
-            def batch_score_samples(kde, YZ_samples, batch_size=1500):
+            def batch_score_samples(kde, YZ_samples, batch_size = 1000):
                 """Scores samples in batches to avoid memory overflow."""
                 num_samples = YZ_samples.shape[0]
                 densities = []
 
                 # Create a tqdm progress bar
-                for i in tqdm(range(0, num_samples, batch_size), desc=f"- {caller} density"):
+                for i in tqdm(range(0, num_samples, batch_size), desc=f"- {caller} Density"):
                     batch = YZ_samples[i:i + batch_size]
                     log_density = kde.score_samples(batch)
                     densities.append(cp.exp(log_density))  # Compute densities from log densities
+                    
+                    # Explicitly free GPU memory after processing the batch
+                    cp._default_memory_pool.free_all_blocks()
 
                 return cp.concatenate(densities)  # Concatenate all batches
 
@@ -224,55 +223,6 @@ class Density():
             density = density.reshape(YZ_mesh[0].shape)  # Reshape to match the meshgrid
 
         return density
-              
-           
-    @staticmethod
-    def expectation(y, p):
-        """
-        Compute the expectation E[y*p(y)/sum(p(y))].
-
-        Args:
-            y (ndarray): process samples.
-            p (ndarray): probability density function. Note it must be ALREADY NORMALISED.
-
-        Returns:
-            float: expectation E[y*p(y)/sum(p(y))].
-        """
-        if np.sum(p) == 0:
-            return np.nan
-        expectation_Y_given_X = np.sum(y * p)
-        return expectation_Y_given_X
-    
-    
-    @staticmethod
-    def mode(y, p):
-        """
-        Compute the mode, which is the most likely valueof y.
-
-        Args:
-            y (ndarray): process samples.
-            p (ndarray): probability density function. Note it must be ALREADY NORMALISED.
-
-        Returns:
-            float: mode Mode(y*p(y)).
-        """
-        return y[np.argmax(p)]
-
-    
-    @staticmethod
-    def normalise(p):
-        """
-        Normalise the probability density function to ensure it sums to 1.
-
-        Args:
-            p (ndarray): probability density function.
-
-        Returns:
-            ndarray: normalised probability density function.
-        """
-        if np.sum(p) != 1:
-            return p / np.sum(p)
-        return p
          
     
     def predict(self, given_p: Dict[str, float] = None):
@@ -304,8 +254,8 @@ class Density():
             eval_cond_density = np.sum(eval_cond_density, axis=tuple([list(self.parents.keys()).index(p) + 1 for p in indices_X.keys()]))
 
             # Reshape eval_cond_density
-            dens = Density.normalise(eval_cond_density.reshape(-1, 1))
+            dens = normalise(eval_cond_density.reshape(-1, 1))
             
-        # expectation = Density.expectation(self.y.samples, dens)
-        most_likely = Density.mode(self.y.samples, dens)
+        # expectation = expectation(self.y.samples, dens)
+        most_likely = mode(self.y.samples, dens)
         return dens, most_likely

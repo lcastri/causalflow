@@ -1,29 +1,34 @@
 import numpy as np
 from causalflow.CPrinter import CP
+from causalflow.causal_reasoning.Density_utils import normalise
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
+from causalflow.causal_reasoning.Density_CPU import Density as Density_CPU
+from causalflow.causal_reasoning.Density_GPU import Density as Density_GPU
 from causalflow.causal_reasoning.Density import Density
 from causalflow.causal_reasoning.Process import Process
 from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *
+from typing import Dict
 
 class DynamicBayesianNetwork():
-    def __init__(self, dag: DAG, data: Data, nsample: int, atol: float, data_type: dict):
+    def __init__(self, dag: DAG, data: Data, nsample: int, atol: float, data_type: Dict[str, DataType], use_gpu: bool = False):
         """
         Class constructor.
 
         Args:
             dag (DAG): DAG from which deriving the DBN.
-            data (Data): Data associated to the DAG.
+            data (Data): Data associated with the DAG.
             nsample (int): Number of samples used for density estimation.
-            atol (float): Absolute tolerance used to check if a specific intervention has been already observed. Defaults to 0.25.
+            atol (float): Absolute tolerance used to check if a specific intervention has been already observed.
             data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}
-
+            use_gpu (bool): If True, use GPU for density estimation; otherwise, use CPU.
         """
         self.dag = dag
         self.data = data
         self.nsample = nsample
         self.data_type = data_type
+        self.use_gpu = use_gpu
         
         self.dbn = {node: None for node in dag.g}
         for node in self.dbn:
@@ -33,6 +38,7 @@ class DynamicBayesianNetwork():
                 CP.info(f"\n### Target variable: {node}")
             else:
                 CP.info(f"\n### Target variable: {node} - parents {', '.join(list(parents.keys()))}")
+            Density = Density_GPU if self.use_gpu else Density_CPU
             self.dbn[node] = Density(Y, parents, atol)
         
         for node in self.dbn: self.computeDoDensity(node)
@@ -114,18 +120,18 @@ class DynamicBayesianNetwork():
             p_adj = np.ones((self.nsample, 1)).squeeze()
             
             for node in adjset: p_adj = p_adj * self.dbn[self.data.features[node[0]]].CondDensity # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_adj = Density.normalise(p_adj)
+            p_adj = normalise(p_adj)
             
             # Compute the p(outcome|treatment,adjustment) density
-            p_yxadj = Density.normalise(self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_xadj = Density.normalise(self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_y_given_xadj = Density.normalise(p_yxadj / p_xadj)
+            p_yxadj = normalise(self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_xadj = normalise(self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
+            p_y_given_xadj = normalise(p_yxadj / p_xadj)
             
             # Compute the p(outcome|do(treatment)) and p(outcome|do(treatment),adjustment)*p(adjustment) densities
             if len(p_y_given_xadj.shape) > 2: 
                 # Sum over the adjustment set
-                p_y_do_x_adj = Density.normalise(p_y_given_xadj * p_adj)
-                p_y_do_x = Density.normalise(np.sum(p_y_given_xadj * p_adj, axis=tuple(range(2, len(p_y_given_xadj.shape))))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
+                p_y_do_x_adj = normalise(p_y_given_xadj * p_adj)
+                p_y_do_x = normalise(np.sum(p_y_given_xadj * p_adj, axis=tuple(range(2, len(p_y_given_xadj.shape))))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
             else:
                 p_y_do_x_adj = p_y_given_xadj
                 p_y_do_x = p_y_given_xadj
