@@ -255,37 +255,50 @@ class Density():
         return density
                       
     
-    def predict(self, given_p: Dict[str, float] = None):
+    # def predict(self, given_p: Dict[str, float] = None, tol = 0.25):
+    #     if self.parents is None: 
+    #         dens = self.MarginalDensity
+    #     else:
+    #         indices_X = {}
+    #         for p in given_p.keys():
+    #             if isinstance(tol, dict):
+    #                 column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=tol[p]))[0]                
+    #             else:
+    #                 column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=tol))[0]                
+    #             indices_X[p] = np.array(sorted(set(column_indices)))
+
+    #         eval_cond_density = copy.deepcopy(self.CondDensity)
+
+    #         # For each parent, apply the conditions independently
+    #         for p, indices in indices_X.items():
+    #             parent_axis = list(self.parents.keys()).index(p) + 1
+    #             eval_cond_density = np.take(eval_cond_density, indices, axis=parent_axis)
+                    
+    #         eval_cond_density = np.sum(eval_cond_density, axis=tuple([list(self.parents.keys()).index(p) + 1 for p in indices_X.keys()]))
+
+    #         # Reshape eval_cond_density
+    #         dens = normalise(eval_cond_density.reshape(-1, 1))
+                
+    #     # expectation = expectation(self.y.samples, dens)
+    #     most_likely = mode(self.y.samples, dens)
+    #     return dens, most_likely
+    
+    def predict(self, given_p: Dict[str, float] = None, tol = 0.25):
         if self.parents is None: 
             dens = self.MarginalDensity
         else:
             indices_X = {}
             for p in given_p.keys():
-                # column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=0.25))[0]                
-                column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=self.atol))[0]                
-                indices_X[p] = np.array(sorted(set(column_indices)))
+                closest_index = np.argmin(np.abs(self.parents[p].samples - given_p[p]))
+                indices_X[p] = closest_index
 
+            # Extract the specific slice of eval_cond_density corresponding to the closest match
             eval_cond_density = copy.deepcopy(self.CondDensity)
-
-            # For each parent, apply the conditions independently
-            for p in indices_X.keys():
+            for p, idx in indices_X.items():
                 parent_axis = list(self.parents.keys()).index(p) + 1
-                parent_indices = indices_X[p]
+                eval_cond_density = np.take(eval_cond_density, indices=[idx], axis=parent_axis)
 
-                # Create a mask to zero out entries not matching parent indices along the specified axis
-                mask = np.ones(eval_cond_density.shape[parent_axis], dtype=bool)
-                mask[parent_indices] = False
-
-                # Apply mask along the specified axis
-                eval_cond_density = np.where(np.expand_dims(mask, axis=tuple(i for i in range(eval_cond_density.ndim) if i != parent_axis)), 
-                                             0, 
-                                             eval_cond_density)
-                
-            eval_cond_density = np.sum(eval_cond_density, axis=tuple([list(self.parents.keys()).index(p) + 1 for p in indices_X.keys()]))
-
-            # Reshape eval_cond_density
-            dens = normalise(eval_cond_density.reshape(-1, 1))
+            dens = normalise(eval_cond_density.flatten())  # Normalize after extracting closest match
             
-        # expectation = expectation(self.y.samples, dens)
         most_likely = mode(self.y.samples, dens)
         return dens, most_likely

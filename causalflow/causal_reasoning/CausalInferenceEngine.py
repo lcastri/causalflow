@@ -15,7 +15,12 @@ import networkx as nx
 
 
 class CausalInferenceEngine():
-    def __init__(self, dag: DAG, data_type: Dict[str, DataType], nsample = 100, atol = 0.25, use_gpu: bool = False, verbosity = CPLevel.DEBUG):
+    def __init__(self, dag: DAG, 
+                 data_type: Dict[str, DataType], 
+                 nsample = 100, 
+                 atol = 0.25, 
+                 use_gpu: bool = False, 
+                 verbosity = CPLevel.DEBUG):
         """
         CausalEngine constructor.
 
@@ -73,7 +78,7 @@ class CausalInferenceEngine():
             return 0
         
     @property
-    def features(self):
+    def features(self) -> list:
         first_item = next(iter(self.Ds.items()), (None, None))
         _, first_value = first_item
         if first_value is None: None
@@ -129,8 +134,10 @@ class CausalInferenceEngine():
         """
         pkl = dict()
         pkl['DAG'] = self.DAG
+        pkl['data_type'] = self.data_type 
         pkl['nsample'] = self.nsample
         pkl['atol'] = self.atol
+        pkl['use_gpu'] = self.use_gpu 
         pkl['verbosity'] = CP.verbosity
         pkl['DAGs'] = self.DAGs
         pkl['Ds'] = self.Ds
@@ -150,7 +157,7 @@ class CausalInferenceEngine():
         Returns:
             CausalInferenceEngine: loaded CausalInferenceEngine object.
         """
-        cie = cls(pkl['DAG'], pkl['nsample'], pkl['atol'], pkl['verbosity'])
+        cie = cls(pkl['DAG'], pkl['data_type'], pkl['nsample'], pkl['atol'], pkl['use_gpu'], pkl['verbosity'])
         cie.DAGs = pkl['DAGs']
         cie.Ds = pkl['Ds']
         cie.DBNs = pkl['DBNs']
@@ -199,49 +206,33 @@ class CausalInferenceEngine():
         return y, p_y_do_X_x, E_p_y_do_X_x
     
     
-    # def whatIf(self, outcome: str, treatment: str, value):
-    #     """
-    #     Calculate p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))].
+    def whatIf(self, 
+               treatment: str, 
+               values: np.array, 
+               data: np.array, 
+               prior_knowledge: Dict[str, np.array] = None,
+               tol: float = 0.25):
+        """
+        Predict system behaviours in response to a certain time-series intervention.
 
-    #     Args:
-    #         outcome (str): outcome variable.
-    #         treatment (str): treatment variable.
-    #         value (float): treatment value.
+        Args:
+            treatment (str): treatment variable.
+            values (np.array): treatment values.
+            data (np.array): data where to start to predict from.
+            prior_knowledge (dict[str: np.array], optional): future prior knowledge about variables different from the treatment one. Defaults to None.
 
-    #     Returns:
-    #         tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]).
-    #     """
-    #     self.Q[OUTCOME] = outcome
-    #     self.Q[TREATMENT] = treatment
-    #     self.Q[VALUE] = value
-        
-    #     CP.info("\n## Query")
-        
-    #     # searches the population with greatest number of occurrences treatment == treatment's value
-    #     otherDs = copy.deepcopy(self.Ds)
-    #     intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}
-    #     # Remove the items in intDs from self.Ds
-    #     for key in intDs.keys():
-    #         otherDs.pop(key, None)
-            
-    #     intOcc, intSource = self._findSource(intDs)
-    #     otherOcc, otherSource = self._findSource(otherDs)
-        
-    #     sourceP = intSource if intOcc != 0 else otherSource
-        
-    #     # Source population's p(output|do(treatment), adjustment)
-    #     pS_y_do_x_adj = self.DBNs[sourceP].dbn[outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
-        
-    #     y, p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(pS_y_do_x_adj, sourceP)
-    #     CP.info(f"## What happens to {self.Q[OUTCOME]} if {self.Q[TREATMENT]} = {str(self.Q[VALUE])} in population {str(targetP)} ? {self.Q[OUTCOME]} = {E_p_y_do_X_x}")
-            
-    #     return y, p_y_do_X_x, E_p_y_do_X_x
-    
-    
-    def whatIf(self, treatment: str, values: np.array, data: np.array):
+        Returns:
+            np.array: prediction.
+        """
+        if prior_knowledge is not None and len(values) != len(list(prior_knowledge.values())[0]):
+            raise ValueError("prior_knowledge items must have the same length of the treatment values")
         intT = len(values)
         res = np.full((intT + self.DAG.max_lag, len(self.features)), np.nan)
         res[:self.DAG.max_lag, :] = data[-self.DAG.max_lag:, :]
+        
+        if prior_knowledge is not None:
+            for f, f_data in prior_knowledge.items():
+                res[self.DAG.max_lag:, self.features.index(f)] = f_data
         
         for t in range(self.DAG.max_lag, intT + self.DAG.max_lag):
             self.Q[TREATMENT] = treatment
@@ -264,30 +255,42 @@ class CausalInferenceEngine():
                         given_p = {}
                         sourceP = None
                         sources = []
+
                         for s in dag.g[self.features[f]].sources:
                             given_p[s[0]] = res[t - abs(s[1]), self.features.index(s[0])]
-                            
-                            # searches the population with greatest number of occurrences treatment == treatment's value
-                            otherDs = copy.deepcopy(self.Ds) # A: all populations
-                            intOcc = 0
-                            if self.Q[TREATMENT] in given_p and self.Q[VALUE] == given_p[self.Q[TREATMENT]]:
-                                intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}  # B: all interventional populations with treatment variable == treatment
-                                for key in intDs.keys(): # A: A - B
-                                    otherDs.pop(key, None)
-                                        
-                                intOcc, intSource = self._findSourceQ(intDs)
-                                otherOcc, otherSource = self._findSourceQ(otherDs)
-                                sources.append((intSource, intOcc))
-                                sources.append((otherSource, otherOcc))
-                            else:
-                                otherOcc, otherSource = self._findSource(otherDs, s[0], given_p[s[0]])
-                                sources.append((otherSource, otherOcc))
-                                
+
+                        # Create a copy of the dataset dictionary to search
+                        otherDs = copy.deepcopy(self.Ds)
+
+                        # Initialize variables for tracking the best source
+                        intOcc = 0
+                        sources = []
+
+                        # Check if we're working with an interventional population for the treatment variable
+                        if self.Q[TREATMENT] in given_p and self.Q[VALUE] == given_p[self.Q[TREATMENT]]:
+                            # Filter interventional datasets for the treatment variable
+                            intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}
+                            for key in intDs.keys():
+                                otherDs.pop(key, None)  # Remove interventional datasets from `otherDs`
+
+                            # Find the best matching dataset for the interventional and non-interventional sets
+                            intOcc, intSource = self._findSource_intersection(intDs, given_p)  # Use the intersection of all parent values
+                            otherOcc, otherSource = self._findSource_intersection(otherDs, given_p)  # Use the same for non-interventional
+
+                            # Add results to sources list for comparison
+                            sources.append((intSource, intOcc))
+                            sources.append((otherSource, otherOcc))
+                        else:
+                            # For non-interventional population, find the source using the intersection of all parent values
+                            otherOcc, otherSource = self._findSource_intersection(otherDs, given_p)
+                            sources.append((otherSource, otherOcc))
+
+                        # Choose the source with the maximum occurrences from the intersection-based matches
                         if len(dag.g[self.features[f]].sources): 
                             sourceP = intSource if intOcc != 0 else max(sources, key=lambda x: x[1])[0]
-                        
+                                
                         if sourceP is None: sourceP = self.D 
-                        d, e = self.DBNs[sourceP].dbn[self.features[f]].predict(given_p)
+                        d, e = self.DBNs[sourceP].dbn[self.features[f]].predict(given_p, tol)
                         # self.plot_pE(self.DBNs[sourceP].dbn[self.features[f]].y, list(given_p.keys()), d, e, True)
                         res[t, f] = e
         return res[self.DAG.max_lag:, :]
@@ -368,7 +371,40 @@ class CausalInferenceEngine():
                 occurrences = len(indexes)
                 sourceP = id
                 
-        return occurrences, sourceP     
+        return occurrences, sourceP
+    
+    
+    def _findSource_intersection(self, Ds, parents_values):
+        """
+        Find the source population with the maximum number of occurrences 
+        of a given intersection of parent values.
+
+        Args:
+            Ds (dict): Dataset dictionary {id (str): d (Data)}.
+            parents_values (dict): Dictionary where keys are parent variable names 
+                                   and values are the desired values for those parents.
+
+        Returns:
+            tuple: number of occurrences, source dataset
+        """
+        max_occurrences = 0
+        sourceP = None
+
+        for id, d in Ds.items():
+            # Create a mask for each parent that matches the desired value with tolerance
+            mask = np.ones(len(d.d), dtype=bool)
+            for parent, value in parents_values.items():
+                mask &= np.isclose(d.d[parent], value, atol=self.atol)
+            
+            # Count the number of occurrences where all parents match
+            occurrences = np.sum(mask)
+            
+            # Update the best source if this dataset has more occurrences
+            if occurrences > max_occurrences:
+                max_occurrences = occurrences
+                sourceP = id
+
+        return max_occurrences, sourceP
         
         
     def transport(self, pS_y_do_x_adj, targetP: tuple, treatment: str, outcome: str):

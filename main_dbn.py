@@ -50,7 +50,7 @@ fpcmci = FPCMCI(dfA_obs,
                 alpha = alpha, 
                 min_lag = min_lag, 
                 max_lag = max_lag, 
-                sel_method = TE(TEestimator.Auto), 
+                sel_method = TE(TEestimator.Gaussian), 
                 val_condtest = GPDC(significance = 'analytic', gp_params = None),
                 verbosity = CPLevel.DEBUG,
                 resfolder = 'results/dbn')
@@ -78,7 +78,7 @@ DATA_TYPE = {
     "X_1": DataType.Continuous,
     "X_2": DataType.Continuous,
 }  
-cie = CIE(CM, nsample=100, data_type=DATA_TYPE)
+cie = CIE(CM, nsample=100, data_type=DATA_TYPE, atol=0.1)
 Aobs_id = cie.addObsData(dfA_obs)
 Aint_id = cie.addIntData('X_1', dfA_int)
 # cie.save('/home/lcastri/git/causalflow/results/dbn/cie.pkl')
