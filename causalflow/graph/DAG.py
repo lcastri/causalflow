@@ -332,14 +332,14 @@ class DAG():
         """
         edges.append((s_node, t_node))
         score = r.g[t].sources[s][SCORE] if r.g[t].sources[s][SCORE] != float('inf') else 1
-        edge_width[(s_node, t_node)] = self.__scale(score, min_width, max_width, min_score, max_score)
+        edge_width[(s_node, t_node)] = DAG.__scale(score, min_width, max_width, min_score, max_score)
         
         if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
             arrows[(s_node, t_node)] = {'h':'>', 't':''}
             
         elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
             edges.append((t_node, s_node))
-            edge_width[(t_node, s_node)] = self.__scale(score, min_width, max_width, min_score, max_score)
+            edge_width[(t_node, s_node)] = DAG.__scale(score, min_width, max_width, min_score, max_score)
             arrows[(t_node, s_node)] = {'h':'>', 't':''}
             arrows[(s_node, t_node)] = {'h':'>', 't':''}
             
@@ -406,9 +406,9 @@ class DAG():
         for t in r.g:
             border[t] = 0
             if r.g[t].is_autodependent:
-                border[t] = max(self.__scale(r.g[t].sources[r.g[t].get_max_autodependent][SCORE], 
+                border[t] = max(DAG.__scale(r.g[t].sources[r.g[t].get_max_autodependent][SCORE], 
                                              min_auto_width, max_auto_width, 
-                                             0, self.max_auto_score), 
+                                             0, r.max_auto_score), 
                                 border[t])
         
         # 3. Nodes border label definition
@@ -785,8 +785,8 @@ class DAG():
         ax.clear()              
         return res
         
-        
-    def __scale(self, score, min_width, max_width, min_score = 0, max_score = 1):
+    @staticmethod
+    def __scale(score, min_width, max_width, min_score = 0, max_score = 1):
         """
         Scale the score of the cause-effect relationship strength to a linewitdth.
 
