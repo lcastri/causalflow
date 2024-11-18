@@ -1,7 +1,9 @@
 import copy
-import warnings
+from concurrent.futures import ProcessPoolExecutor
+
 import os
 from multiprocessing import Pool
+import warnings
 from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
@@ -11,6 +13,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Density_utils import *
+from scipy.stats import multivariate_normal, norm
 
 # Define the compute_density function as a top-level function
 def compute_density(samples, kde):
@@ -34,7 +37,7 @@ def process_chunk(chunk_kde):
     return compute_density(chunk, kde)
  
 class Density():
-    def __init__(self, y: Process, parents: Dict[str, Process] = None, atol = 0.25):
+    def __init__(self, y: Process, parents: Dict[str, Process] = None):
         """
         Class constructor.
 
@@ -44,27 +47,26 @@ class Density():
         """
         self.y = y
         self.parents = parents
-        self.atol = atol
         self.DO = {}
+
         if self.parents is not None:
             self.DO = {treatment: {ADJ: None, 
-                                   P_Y_GIVEN_DOX_ADJ: None, 
-                                   P_Y_GIVEN_DOX: None} for treatment in self.parents.keys()}
+                                P_Y_GIVEN_DOX_ADJ: None, 
+                                P_Y_GIVEN_DOX: None} for treatment in self.parents.keys()}
         self._preprocess()
-        
+            
         # init density variables
+        self.PriorDensity = None
         self.JointDensity = None
         self.ParentJointDensity = None
-        self.MarginalDensity = None
         self.CondDensity = None
-        self.PriorDensity = None
-        
-        self.computePriorDensity()
-        self.computeJointDensity()
-        self.computeParentJointDensity()
-        self.computeConditionalDensity()
-        self.computeMarginalDensity()
-
+        self.MarginalDensity = None
+        self.PriorDensity = self.computePriorDensity()
+        self.JointDensity = self.computeJointDensity()
+        self.ParentJointDensity = self.computeParentJointDensity()
+        self.CondDensity = self.computeConditionalDensity()
+        self.MarginalDensity = self.computeMarginalDensity()
+            
         
     @property
     def MaxLag(self):
@@ -90,6 +92,19 @@ class Density():
                 p.align(self.MaxLag)
             
             
+    def computePriorDensity(self):
+        """
+        Compute the prior density p(y).
+
+        Returns:
+            ndarray: prior density p(y).
+        """
+        if self.PriorDensity is None: 
+            self.PriorDensity = Density.estimate('Prior', self.y)
+        self.PriorDensity = normalise(self.PriorDensity)
+        return self.PriorDensity
+        
+        
     def computeJointDensity(self):
         """
         Compute the joint density p(y, parents).
@@ -97,7 +112,6 @@ class Density():
         Returns:
             ndarray: joint density p(y, parents).
         """
-        # CP.debug("- Joint density")
         if self.JointDensity is None:
             if self.parents is not None:
                 yz = [p for p in self.parents.values()]
@@ -109,20 +123,37 @@ class Density():
         return self.JointDensity
     
     
-    def computePriorDensity(self):
+    def computeParentJointDensity(self):
         """
-        Compute the prior density p(y).
+        Compute the parents's joint density p(parents).
 
         Returns:
-            ndarray: prior density p(y).
+            ndarray: parents's joint density p(parents).
         """
-        # CP.debug("- Prior density")
-        if self.PriorDensity is None: 
-            self.PriorDensity = Density.estimate('Prior', self.y)
-        self.PriorDensity = normalise(self.PriorDensity)
-        return self.PriorDensity
-        
-        
+        if self.ParentJointDensity is None:
+            if self.parents is not None: 
+                self.ParentJointDensity = Density.estimate('Parent', [p for p in self.parents.values()])
+                self.ParentJointDensity = normalise(self.ParentJointDensity)
+        return self.ParentJointDensity
+    
+         
+    def computeConditionalDensity(self):
+        """
+        Compute the conditional density p(y|parents) = p(y, parents) / p(parents).
+
+        Returns:
+            ndarray: conditional density p(y|parents) = p(y, parents) / p(parents).
+        """
+        CP.info("- Conditional density")
+        if self.CondDensity is None:
+            if self.parents is not None:
+                self.CondDensity = self.JointDensity / self.ParentJointDensity[np.newaxis, :] + np.finfo(float).eps
+            else:
+                self.CondDensity = self.PriorDensity
+        self.CondDensity = normalise(self.CondDensity)
+        return self.CondDensity
+    
+    
     def computeMarginalDensity(self):
         """
         Compute the marginal density p(y) = \sum_parents p(y, parents).
@@ -130,7 +161,7 @@ class Density():
         Returns:
             ndarray: marginal density p(y) = \sum_parents p(y, parents).
         """
-        CP.debug("- Marginal density")
+        CP.info("- Marginal density")
         if self.MarginalDensity is None:
             if self.parents is None:
                 self.MarginalDensity = self.PriorDensity
@@ -140,41 +171,9 @@ class Density():
                 self.MarginalDensity = np.sum(self.MarginalDensity, axis=tuple(range(1, len(self.JointDensity.shape))))  
         self.MarginalDensity = normalise(self.MarginalDensity)
         return self.MarginalDensity
-         
-        
-    def computeConditionalDensity(self):
-        """
-        Compute the conditional density p(y|parents) = p(y, parents) / p(parents).
-
-        Returns:
-            ndarray: conditional density p(y|parents) = p(y, parents) / p(parents).
-        """
-        CP.debug("- Conditional density")
-        if self.CondDensity is None:
-            if self.parents is not None:
-                self.CondDensity = self.JointDensity / self.ParentJointDensity + np.finfo(float).eps
-            else:
-                self.CondDensity = self.PriorDensity
-        self.CondDensity = normalise(self.CondDensity)
-        return self.CondDensity
-
-
-    def computeParentJointDensity(self):
-        """
-        Compute the parents's joint density p(parents).
-
-        Returns:
-            ndarray: parents's joint density p(parents).
-        """
-        # CP.debug("- Parent density")
-        if self.ParentJointDensity is None:
-            if self.parents is not None: 
-                self.ParentJointDensity = Density.estimate('Parent', [p for p in self.parents.values()])
-                self.ParentJointDensity = normalise(self.ParentJointDensity)
-        return self.ParentJointDensity
     
     @staticmethod
-    def compute_density_parallel(caller, kde, YZ_samples, batch_size=1000):
+    def compute_density_parallel(caller, kde, YZ_samples, batch_size=10000):
         """
         Compute the density for a set of samples in parallel, processing in batches to reduce memory usage.
 
@@ -199,26 +198,27 @@ class Density():
         # Initialize list to collect densities from each batch
         density = []
 
-        # Process in batches
-        for batch_start in tqdm(range(0, num_samples, batch_size), desc=f"- {caller} density", unit="batch"):
-            batch = YZ_samples[batch_start:batch_start + batch_size]
-            num_batch_samples = len(batch)
-            
-            # Split the current batch into chunks for parallel processing
-            chunk_size = max(1, num_batch_samples // n_jobs)
-            chunks = [batch[i:i + chunk_size].copy() for i in range(0, num_batch_samples, chunk_size)]
-            chunk_kde_pairs = [(chunk, kde) for chunk in chunks]
+        # Create a persistent pool for all batch processing
+        with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+            # Process in batches
+            for batch_start in tqdm(range(0, num_samples, batch_size), desc=f"- {caller} density", unit="batch"):
+                batch = YZ_samples[batch_start:batch_start + batch_size]
+                num_batch_samples = len(batch)
+                
+                # Split the current batch into chunks for parallel processing
+                chunk_size = max(1, num_batch_samples // n_jobs)
+                chunks = [batch[i:i + chunk_size].copy() for i in range(0, num_batch_samples, chunk_size)]
+                chunk_kde_pairs = [(chunk, kde) for chunk in chunks]
 
-            # Parallel computation of densities for each chunk in the batch
-            with Pool(n_jobs) as pool:
-                batch_densities = list(pool.imap(process_chunk, chunk_kde_pairs))
-            
-            # Concatenate the densities from all chunks in the current batch
-            density.append(np.concatenate(batch_densities))
+                # Parallel computation of densities for each chunk in the batch
+                batch_densities = list(executor.map(process_chunk, chunk_kde_pairs))
+
+                # Concatenate the densities from all chunks in the current batch
+                density.append(np.concatenate(batch_densities))
 
         # Concatenate densities from all batches
-        return np.concatenate(density)    
-    
+        return np.concatenate(density, dtype=np.float32)
+ 
     @staticmethod
     def estimate(caller, YZ):
         """
@@ -233,27 +233,24 @@ class Density():
         if not isinstance(YZ, list): YZ = [YZ]
         
         YZ_data = np.column_stack([yz.aligndata for yz in YZ])
-        YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ])
+        YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ], indexing='ij')
         YZ_samples = np.column_stack([yz.ravel() for yz in YZ_mesh])
-        
+        mesh_shape = YZ_mesh[0].shape
+        del YZ_mesh
         # Create the grid search
-        bandwidths = [0.1, 0.5, 1]
-        Ks = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear', 'cosine']
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            # grid_search = GridSearchCV(KernelDensity(), {'bandwidth': bandwidths, 'kernel': Ks})
-            # grid_search.fit(YZ_data)
 
             # Fit a kernel density model to the data
-            # kde = KernelDensity(bandwidth=grid_search.best_params_['bandwidth'], kernel=grid_search.best_params_['kernel'])
-            kde = KernelDensity(bandwidth=0.5, kernel='gaussian', algorithm='ball_tree')
+            kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
             kde.fit(YZ_data)
 
             # Compute the density
             density = Density.compute_density_parallel(caller, kde, YZ_samples)
-            density = density.reshape(YZ_mesh[0].shape)
+            density = density.reshape(mesh_shape)
+            
         return density
-                      
+
     
     # def predict(self, given_p: Dict[str, float] = None, tol = 0.25):
     #     if self.parents is None: 
@@ -262,9 +259,9 @@ class Density():
     #         indices_X = {}
     #         for p in given_p.keys():
     #             if isinstance(tol, dict):
-    #                 column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=tol[p]))[0]                
+    #                 column_indices = np.where(np.isclose(self.parents[p].sorted_samples, given_p[p], atol=tol[p]))[0]                
     #             else:
-    #                 column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=tol))[0]                
+    #                 column_indices = np.where(np.isclose(self.parents[p].sorted_samples, given_p[p], atol=tol))[0]                
     #             indices_X[p] = np.array(sorted(set(column_indices)))
 
     #         eval_cond_density = copy.deepcopy(self.CondDensity)
@@ -279,8 +276,8 @@ class Density():
     #         # Reshape eval_cond_density
     #         dens = normalise(eval_cond_density.reshape(-1, 1))
                 
-    #     # expectation = expectation(self.y.samples, dens)
-    #     most_likely = mode(self.y.samples, dens)
+    #     # expectation = expectation(self.y.sorted_samples, dens)
+    #     most_likely = mode(self.y.sorted_samples, dens)
     #     return dens, most_likely
     
     def predict(self, given_p: Dict[str, float] = None, tol = 0.25):
@@ -289,7 +286,7 @@ class Density():
         else:
             indices_X = {}
             for p in given_p.keys():
-                closest_index = np.argmin(np.abs(self.parents[p].samples - given_p[p]))
+                closest_index = np.argmin(np.abs(self.parents[p].original_samples - given_p[p]))
                 indices_X[p] = closest_index
 
             # Extract the specific slice of eval_cond_density corresponding to the closest match
@@ -300,5 +297,5 @@ class Density():
 
             dens = normalise(eval_cond_density.flatten())  # Normalize after extracting closest match
             
-        most_likely = mode(self.y.samples, dens)
+        most_likely = mode(self.y.original_samples, dens)
         return dens, most_likely

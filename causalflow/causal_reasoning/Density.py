@@ -219,7 +219,7 @@ class Density():
         else:
             indices_X = {}
             for p in given_p.keys():
-                column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=0.25))[0]                
+                column_indices = np.where(np.isclose(self.parents[p].sorted_samples, given_p[p], atol=0.25))[0]                
                 # column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=self.atol))[0]                
                 indices_X[p] = np.array(sorted(set(column_indices)))
 
@@ -245,5 +245,5 @@ class Density():
             dens = normalise(eval_cond_density.reshape(-1, 1))
             
         # expectation = expectation(self.y.samples, dens)
-        most_likely = mode(self.y.samples, dens)
+        most_likely = mode(self.y.sorted_samples, dens)
         return dens, most_likely

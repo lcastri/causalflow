@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from causalflow.basics.constants import DataType
+from causalflow.basics.constants import DataType, NodeType
 from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
@@ -78,14 +78,21 @@ DATA_TYPE = {
     "X_1": DataType.Continuous,
     "X_2": DataType.Continuous,
 }  
-cie = CIE(CM, nsample=100, data_type=DATA_TYPE, atol=0.1)
+NODE_TYPE = {
+    "X_0": NodeType.System,
+    "X_1": NodeType.System,
+    "X_2": NodeType.System,
+}  
+cie = CIE(CM, nsample=50, data_type=DATA_TYPE, node_type=NODE_TYPE, model_path='testDBN')
 Aobs_id = cie.addObsData(dfA_obs)
-Aint_id = cie.addIntData('X_1', dfA_int)
+# Aint_id = cie.addIntData('X_1', dfA_int)
+Aint_id = cie.addObsData(dfA_int)
 # cie.save('/home/lcastri/git/causalflow/results/dbn/cie.pkl')
 
 res = cie.whatIf('X_1', 
                  dfB_obs.d.values[int(len(dfB_obs.d.values)/2):int(len(dfB_obs.d.values)/2)+50, 1], 
-                 dfB_obs.d.values[:int(len(dfB_obs.d.values)/2), :])
+                 dfB_obs.d.values[:int(len(dfB_obs.d.values)/2), :],
+                 {'X_0':dfB_obs.d.values[int(len(dfB_obs.d.values)/2):int(len(dfB_obs.d.values)/2)+50, 0]})
 
 result = np.concatenate((dfB_obs.d.values[:int(len(dfB_obs.d.values) / 2), :], res), axis=0)
 # Get the number of columns
@@ -96,8 +103,8 @@ fig, axes = plt.subplots(num_columns, 1, figsize=(8, num_columns * 3), sharex=Tr
 
 # Plot each column in a different subplot
 for i in range(num_columns):
-    axes[i].plot(result[:, i])
-    axes[i].plot(dfB_obs.d.values[:int(len(dfB_obs.d.values)/2 + 50), i])
+    axes[i].plot(result[:, i], linestyle = '--', color = "tab:blue")
+    axes[i].plot(dfB_obs.d.values[:int(len(dfB_obs.d.values)/2 + 50), i], linestyle = '-', color = "tab:orange")
     axes[i].set_ylabel(dfA_int.features[i])
     axes[i].grid(True)
 

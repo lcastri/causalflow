@@ -3,15 +3,17 @@ import os
 import pickle
 
 import pandas as pd
-from causalflow.basics.constants import DataType
+from causalflow.basics.constants import *
 from causalflow.graph.DAG import DAG
 from causalflow.causal_reasoning.CausalInferenceEngine import CausalInferenceEngine as CIE
 from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/FINAL/BL100_21102024/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/results/RAL/causal reasoning/cie_context.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
+# BAGNAME= ['BL100_21102024', 'BL75_29102024']
 BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
 USE_SUBSAMPLED = True
 
@@ -28,16 +30,32 @@ DATA_TYPE = {
     NODES.BAC.value: DataType.Continuous,
     NODES.WP.value: DataType.Discrete,
 }
-cie = CIE(CM, data_type = DATA_TYPE, nsample = 60, use_gpu = False)
+NODE_TYPE = {
+    NODES.TOD.value: NodeType.Context,
+    NODES.RV.value: NodeType.System,
+    NODES.RB.value: NodeType.System,
+    NODES.BS.value: NodeType.Context,
+    NODES.PD.value: NodeType.System,
+    NODES.BAC.value: NodeType.System,
+    NODES.WP.value: NodeType.Context,
+}
+cie = CIE(CM, 
+          data_type = DATA_TYPE, 
+          node_type = NODE_TYPE, 
+          nsample = 50, 
+          use_gpu = False, 
+          model_path = 'CIE_200samples_single')
 
 start_time = time.time()
 
 var_names = [n.value for n in NODES]
 DATA_DICT = {}
+dfs = []
 for bagname in BAGNAME:
-    dfs = []
     for wp in WP:
+    # for wp in [WP.CORR_CANTEEN_1, WP.CORR_CANTEEN_2]:
         for tod in TOD:
+        # for tod in [TOD.LUNCH, TOD.AFTERNOON]:
             if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
             print(f"Loading : {bagname}-{tod.value}-{wp.value}")
             if USE_SUBSAMPLED:
@@ -46,12 +64,13 @@ for bagname in BAGNAME:
                 filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             dfs.append(pd.read_csv(filename))
             
-    concatenated_df = pd.concat(dfs, ignore_index=True)
-    idx = len(DATA_DICT)
-    DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
-    cie.addObsData(DATA_DICT[idx])
+concatenated_df = pd.concat(dfs, ignore_index=True)
+dfs = []
+idx = len(DATA_DICT)
+DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
+cie.addObsData(DATA_DICT[idx])
     
-cie.save(f"/home/lcastri/git/causalflow/results/FINAL/BL100_21102024/cie.pkl")
+cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 
 end_time = time.time()
 

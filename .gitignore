@@ -357,7 +357,10 @@ site/
 results/
 .vscode
 *.csv
+*.pkl
+*.h5
 *.Rhistory
+*.txt
 
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/data.txt
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/knowledge.txt

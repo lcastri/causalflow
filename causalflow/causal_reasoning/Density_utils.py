@@ -42,6 +42,8 @@ def normalise(p):
     Returns:
         ndarray: normalised probability density function.
     """
-    if np.sum(p) != 1:
-        return p / np.sum(p)
-    return p
+    p_sum = np.sum(p)
+    if p_sum > 0:
+        return p / p_sum
+    else:
+        return np.zeros_like(p)

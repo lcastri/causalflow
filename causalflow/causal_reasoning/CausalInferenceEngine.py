@@ -1,3 +1,4 @@
+import itertools
 import os
 import pickle
 from typing import Dict
@@ -12,15 +13,18 @@ from causalflow.preprocessing.data import Data
 from causalflow.CPrinter import CPLevel, CP
 import copy
 import networkx as nx
+import gc
+import h5py
 
 
 class CausalInferenceEngine():
     def __init__(self, dag: DAG, 
                  data_type: Dict[str, DataType], 
+                 node_type: Dict[str, NodeType], 
                  nsample = 100, 
-                 atol = 0.25, 
                  use_gpu: bool = False, 
-                 verbosity = CPLevel.DEBUG):
+                 model_path: str = '', 
+                 verbosity = CPLevel.INFO):
         """
         CausalEngine constructor.
 
@@ -28,7 +32,6 @@ class CausalInferenceEngine():
             dag (DAG): observational dataset extracted from a causal discovery method.
             data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}
             nsample (int, optional): Number of samples used for density estimation. Defaults to 100.
-            atol (float, optional): Absolute tolerance used to check if a specific intervention has been already observed. Defaults to 0.25.
             use_gpu (bool): If True, use GPU for density estimation; otherwise, use CPU.
             verbosity (CPLevel, optional): Verbosity level. Defaults to DEBUG.
         """
@@ -38,58 +41,241 @@ class CausalInferenceEngine():
         CP.info("##")
         
         self.nsample = nsample
-        self.atol = atol
         self.Q = {}
-        self.DAG = dag
         self.data_type = data_type
+        self.node_type = node_type
+        self.DAG = {'complete': dag, 'system': self.remove_context(dag)}
         self.use_gpu = use_gpu
+        self.model_path = model_path
         
-        self.DAGs = {}
-        self.Ds = {}
-        self.DBNs = {}
+        self.contexts = []
+        self.tols = {}
+        self.obs_id = -1
+        self.int_id = -1
         
-        
-    @property        
-    def nextObs(self):
-        """
-        Return next observation ID.
-
-        Returns:
-            int: next observation ID.
-        """
-        arg = [key for key in self.DAGs.keys() if key[0] == 'obs']
-        if arg:
-            return max(arg, key=lambda x: x[1])[1] + 1
+        os.makedirs(model_path, exist_ok=True)
+        filename = os.path.join(model_path, 'CIE_DB.h5')
+        self.filename = filename
+        # Check if the file exists
+        if not os.path.exists(filename):
+            CP.debug(f"File {filename} does not exist. Creating a new one.")
+            with h5py.File(filename, 'w') as f:
+                # Initialize the structure of the file if needed
+                f.create_group('DAGs')
+                f.create_group('DBNs')
+                f.create_group('Ds')  
         else:
-            return 0
-    
-    @property
-    def nextInt(self):
-        """
-        Return next intervention ID.
-
-        Returns:
-            int: next intervention ID.
-        """
-        arg = [key for key in self.DAGs.keys() if key[0] == 'int']
-        if arg:
-            return max(arg, key=lambda x: x[1])[1] + 1
-        else:
-            return 0
-        
-    @property
-    def features(self) -> list:
-        first_item = next(iter(self.Ds.items()), (None, None))
-        _, first_value = first_item
-        if first_value is None: None
-        return first_value.features
-    
-    @property
-    def D(self):
-        for d in self.Ds:
-            if d[0] == 'obs': return d
-       
+            CP.debug(f"Model exists, proceeding to load data.")
             
+                      
+    @property
+    def isThereContext(self):
+        return any(n is NodeType.Context for n in self.node_type.values())
+    
+    def get_resolutions(self):
+        tol = {}
+        for f in self.DAG['system'].features:
+            Ds = self.load_obsDs()
+            if Ds:
+                for id in Ds:
+                    if id not in tol: tol[id] = {}
+                    if isinstance(Ds[id], dict):
+                        for context, d in Ds[id].items():
+                            if context not in tol[id]: tol[id][context] = {}
+                            tol[id][context][f] = (np.max(np.array(d.d[f])) - np.min(np.array(d.d[f])))/self.nsample
+                    else:
+                        d = Ds[id]
+                        tol[id][f] = (np.max(np.array(d.d[f])) - np.min(np.array(d.d[f])))/self.nsample
+        return tol
+    
+    # def save_DAG(self, id, dag):
+    #     with h5py.File(self.filename, 'a') as f:
+    #         group_name = f"DAGs/{id}"
+    #         # Convert the DAG object to bytes using pickle
+    #         dag_data = pickle.dumps(dag)
+    #         if group_name in f:
+    #             del f[group_name]
+    #         f.create_dataset(group_name, data=np.void(dag_data))  # Use np.void to store as binary
+
+    # def save_DBN(self, dbn, id, context = None):
+    #     with h5py.File(self.filename, 'a') as f:
+    #         group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+    #         dbn_data = pickle.dumps(dbn)  # Serialize dbn object
+    #         if group_name in f:
+    #             del f[group_name]
+    #         # f.create_dataset(group_name, data=np.void(dbn_data))
+    #         f.create_dataset(group_name, data=np.void(dbn_data), compression="gzip", compression_opts=9)
+
+            
+    # def save_D(self, d, id, context = None):
+    #     with h5py.File(self.filename, 'a') as f:
+    #         group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
+    #         d_data = pickle.dumps(d)
+    #         if group_name in f:
+    #             del f[group_name]
+    #         f.create_dataset(group_name, data=np.void(d_data))
+            
+    # def load_DAG(self, id):
+    #     with h5py.File(self.filename, 'r') as f:
+    #         group_name = f"DAGs/{id}"
+    #         if group_name in f:
+    #             # Deserialize the stored data back into a DAG object
+    #             return pickle.loads(f[group_name][()].tobytes())
+    #         else:
+    #             raise None
+            
+    # def load_DBN(self, id, context = None):
+    #     with h5py.File(self.filename, 'r') as f:
+    #         group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+    #         if group_name in f:
+    #             return pickle.loads(f[group_name][()].tobytes())
+    #         else:
+    #             raise None
+            
+    # def load_D(self, id, context = None):
+    #     with h5py.File(self.filename, 'r') as f:
+    #         group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
+    #         if group_name in f:
+    #             return pickle.loads(f[group_name][()].tobytes())
+    #         else:
+    #             return 
+    
+    def save_DAG(self, id, dag):
+        pickle_path = os.path.join(self.model_path, f"DAG_{id}.pkl")
+        with open(pickle_path, 'wb') as file:
+            pickle.dump(dag, file)
+        with h5py.File(self.filename, 'a') as f:
+            group_name = f"DAGs/{id}"
+            if group_name in f:
+                del f[group_name]
+            f.create_dataset(group_name, data=pickle_path)
+
+    def save_DBN(self, dbn, id, context=None):
+        pickle_name = f"DBN_{id}_{context}.pkl" if context is not None else f"DBN_{id}.pkl"
+        pickle_path = os.path.join(self.model_path, pickle_name)
+        with open(pickle_path, 'wb') as file:
+            pickle.dump(dbn, file)
+        with h5py.File(self.filename, 'a') as f:
+            group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+            if group_name in f:
+                del f[group_name]
+            f.create_dataset(group_name, data=pickle_path)
+
+    def save_D(self, d, id, context=None):
+        pickle_name = f"D{id}_{context}.pkl" if context is not None else f"D_{id}.pkl"
+        pickle_path = os.path.join(self.model_path, pickle_name)
+        with open(pickle_path, 'wb') as file:
+            pickle.dump(d, file)
+        with h5py.File(self.filename, 'a') as f:
+            group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
+            if group_name in f:
+                del f[group_name]
+            f.create_dataset(group_name, data=pickle_path)
+
+    def load_DAG(self, id):
+        with h5py.File(self.filename, 'r') as f:
+            group_name = f"DAGs/{id}"
+            if group_name in f:
+                pickle_path = f[group_name][()].decode()  # Read the path
+                with open(pickle_path, 'rb') as file:
+                    return pickle.load(file)
+            else:
+                raise FileNotFoundError(f"No DAG found for id {id}")
+
+    def load_DBN(self, id, context=None):
+        with h5py.File(self.filename, 'r') as f:
+            group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+            if group_name in f:
+                pickle_path = f[group_name][()].decode()  # Read the path
+                with open(pickle_path, 'rb') as file:
+                    return pickle.load(file)
+            else:
+                raise FileNotFoundError(f"No DBN found for id {id} and context {context}")
+
+    def load_D(self, id, context=None):
+        with h5py.File(self.filename, 'r') as f:
+            group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
+            if group_name in f:
+                pickle_path = f[group_name][()].decode()  # Read the path
+                with open(pickle_path, 'rb') as file:
+                    return pickle.load(file)
+            else:
+                raise FileNotFoundError(f"No D found for id {id} and context {context}")
+            
+    def load_obsDs(self, selected_context = None):
+        Ds = {}
+        for id in range(self.obs_id + 1):
+            d_id = ('obs', id)
+            if selected_context is None and self.contexts:
+                for context in self.contexts:
+                    d = self.load_D(d_id, context)
+                    if d is not None:
+                        if d_id not in Ds: Ds[d_id] = {}
+                        Ds[d_id][context] = d
+            elif selected_context is None and not self.contexts:
+                d = self.load_D(d_id)
+                if d is not None:
+                    if d_id not in Ds: Ds[d_id] = {}
+                    Ds[d_id] = d
+            else:
+                d = self.load_D(d_id, selected_context)
+                if d is not None:
+                    if d_id not in Ds: Ds[d_id] = {}
+                    Ds[d_id][selected_context] = d
+        return Ds
+
+
+    def getContextData(self, data, context):
+        context_dict = dict(context)
+
+        # Filter the dataframe based on the context dictionary
+        filtered_data = data.d
+        for key, value in context_dict.items():
+            filtered_data = filtered_data[filtered_data[key] == value]
+
+        # Check if the filtered data is non-empty (i.e., if the context combination exists)
+        return filtered_data    
+    
+    
+    def _extract_contexts(self, data):
+        contexts = {}
+        for n, ntype in self.node_type.items():
+            if ntype is NodeType.Context:
+                contexts[n] = np.array(np.unique(data.d[n]), dtype=int if self.data_type[n] is DataType.Discrete else float)
+        
+        # Generate the combinations
+        tmp = list(itertools.product(*[[(k, float(v) if self.data_type[k] is DataType.Continuous else int(v)) for v in values] for k, values in contexts.items()]))
+        combinations = []
+        for c in tmp:
+            combinations.append(CausalInferenceEngine.get_combo(c))
+        return combinations
+    
+    
+    def remove_context(self, dag: DAG):
+        tmp = copy.deepcopy(dag)
+        for t in dag.g:
+            if self.node_type[t] is NodeType.Context: continue
+            for s in dag.g[t].sources:
+                if self.node_type[s[0]] is NodeType.Context:
+                    tmp.del_source(t, s[0], s[1])
+        for t in dag.g:
+            if self.node_type[t] is NodeType.Context: 
+                tmp.g.pop(t)
+        return tmp
+    
+    @staticmethod
+    def remove_intVarParents(dag: DAG, target):
+        if target not in dag.g: return dag
+        tmp = copy.deepcopy(dag)
+        for s in dag.g[target].sources:
+            tmp.del_source(target, s[0], s[1])
+        return tmp
+        
+    @staticmethod
+    def get_combo(combo):
+        return tuple(sorted(combo))
+               
+
     def addObsData(self, data: Data):
         """
         Add new observational dataset.
@@ -97,11 +283,31 @@ class CausalInferenceEngine():
         Args:
             data (Data): new observational dataset.
         """
-        id = ('obs', self.nextObs)
-        self.DAGs[id] = self.DAG
-        self.Ds[id] = data
-        CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(self.DAG, data, self.nsample, self.atol, self.data_type, use_gpu=self.use_gpu)
+        id = ('obs', self.obs_id + 1)
+        if not self.isThereContext:
+            CP.info(f"\n## Building DBN for DAG ID {str(id)}")
+            _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], data, self.nsample, self.data_type, self.node_type, use_gpu=self.use_gpu)
+            self.save_DBN(_tmp_dbn, id)
+            self.save_D(data, id)
+        else:
+            self.contexts = self._extract_contexts(data)
+            for context in self.contexts:
+                d = self.getContextData(data, context)
+                if not d.empty:
+                    # if len([context]) == 1:
+                    #     CP.info(f"\n## Building DBN for DAG ID {id} -- Context: {', '.join([f'{c[0]}={c[1]}'for c in [context]])}")
+                    # else:
+                    CP.info(f"\n## Building DBN for DAG ID {id} -- Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+
+                    _tmp_d = Data(d, vars=d.columns)
+                    _tmp_d.shrink([c for c in d.columns if c not in list(dict(context).keys())])
+                    _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], _tmp_d, self.nsample, self.data_type, self.node_type, use_gpu=self.use_gpu)
+                    self.save_DBN(_tmp_dbn, id, context)
+                    self.save_D(_tmp_d, id, context)
+                    gc.collect()
+        self.obs_id += 1
+        
+        self.tols = self.get_resolutions()
         return id
         
         
@@ -113,15 +319,13 @@ class CausalInferenceEngine():
             target (str): Intervention treatment variable.
             data (Data): Interventional data.
         """
-        dag = copy.deepcopy(self.DAG)
-        for s in self.DAG.g[target].sources:
-            dag.del_source(target, s[0], s[1])
+        dag = CausalInferenceEngine.remove_intVarParents(self.DAG, target)
             
         id = ('int', str(target), self.nextInt)
         self.DAGs[id] = dag
         self.Ds[id] = data
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(dag, data, self.nsample, self.atol, self.data_type, use_gpu=self.use_gpu)
+        self.DBNs[id] = DynamicBayesianNetwork(dag, data, self.nsample, self.data_type, self.node_type, use_gpu=self.use_gpu)
         return id
     
     
@@ -135,16 +339,17 @@ class CausalInferenceEngine():
         pkl = dict()
         pkl['DAG'] = self.DAG
         pkl['data_type'] = self.data_type 
+        pkl['node_type'] = self.node_type 
         pkl['nsample'] = self.nsample
-        pkl['atol'] = self.atol
-        pkl['use_gpu'] = self.use_gpu 
+        pkl['use_gpu'] = self.use_gpu
+        pkl['model_path'] = self.model_path
         pkl['verbosity'] = CP.verbosity
-        pkl['DAGs'] = self.DAGs
-        pkl['Ds'] = self.Ds
-        pkl['DBNs'] = self.DBNs
+        pkl['contexts'] = self.contexts
+        pkl['obs_id'] = self.obs_id
+        pkl['int_id'] = self.int_id
+
         with open(respath, 'wb') as resfile:
-            pickle.dump(pkl, resfile)
-    
+            pickle.dump(pkl, resfile)    
     
     @classmethod
     def load(cls, pkl):
@@ -157,10 +362,11 @@ class CausalInferenceEngine():
         Returns:
             CausalInferenceEngine: loaded CausalInferenceEngine object.
         """
-        cie = cls(pkl['DAG'], pkl['data_type'], pkl['nsample'], pkl['atol'], pkl['use_gpu'], pkl['verbosity'])
-        cie.DAGs = pkl['DAGs']
-        cie.Ds = pkl['Ds']
-        cie.DBNs = pkl['DBNs']
+        cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['nsample'], pkl['use_gpu'], pkl['model_path'], pkl['verbosity'])
+        cie.contexts = pkl['contexts']
+        cie.obs_id = pkl['obs_id']
+        cie.int_id = pkl['int_id']
+        cie.tols = cie.get_resolutions()
         return cie
         
         
@@ -196,7 +402,7 @@ class CausalInferenceEngine():
         sourceP = intSource if intOcc != 0 else otherSource
         
         # Source population's p(output|do(treatment), adjustment)
-        pS_y_do_x_adj = self.DBNs[sourceP].dbn[outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
+        pS_y_do_x_adj = self.DBNs[sourceP][outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
         
         p_y_do_x = self.transport(pS_y_do_x_adj, targetP, self.Q[TREATMENT], self.Q[OUTCOME])
         
@@ -210,8 +416,7 @@ class CausalInferenceEngine():
                treatment: str, 
                values: np.array, 
                data: np.array, 
-               prior_knowledge: Dict[str, np.array] = None,
-               tol: float = 0.25):
+               prior_knowledge: Dict[str, np.array] = None):
         """
         Predict system behaviours in response to a certain time-series intervention.
 
@@ -227,73 +432,58 @@ class CausalInferenceEngine():
         if prior_knowledge is not None and len(values) != len(list(prior_knowledge.values())[0]):
             raise ValueError("prior_knowledge items must have the same length of the treatment values")
         intT = len(values)
-        res = np.full((intT + self.DAG.max_lag, len(self.features)), np.nan)
-        res[:self.DAG.max_lag, :] = data[-self.DAG.max_lag:, :]
+        res = np.full((intT + self.DAG['complete'].max_lag, len(self.DAG['complete'].features)), np.nan)
+        res[:self.DAG['complete'].max_lag, :] = data[-self.DAG['complete'].max_lag:, :]
         
         if prior_knowledge is not None:
             for f, f_data in prior_knowledge.items():
-                res[self.DAG.max_lag:, self.features.index(f)] = f_data
+                res[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
         
-        for t in range(self.DAG.max_lag, intT + self.DAG.max_lag):
+        # Build an interventional DAG where the treatment variable has no parents
+        dag = self.remove_intVarParents(self.DAG['complete'], treatment)
+        g = self._DAG2NX(dag)
+        calculation_order = list(nx.topological_sort(g))
+        for t in range(self.DAG['complete'].max_lag, intT + self.DAG['complete'].max_lag):
             self.Q[TREATMENT] = treatment
-            self.Q[VALUE] = values[t-self.DAG.max_lag]
+            self.Q[VALUE] = values[t-self.DAG['complete'].max_lag]
             
-            
-            # Build an interventional DAG where the treatment variable has no parents
-            dag = copy.deepcopy(self.DAG)
-            for s in self.DAG.g[treatment].sources:
-                dag.del_source(treatment, s[0], s[1])
-            g = self._DAG2NX(dag)
-            calculation_order = list(nx.topological_sort(g))
-
-            # data_window = res[t-dag.max_lag:t+1, :]
             for f, lag in calculation_order:
                 if np.isnan(res[t - abs(lag), f]):
-                    if self.features[f] == self.Q[TREATMENT]:
+                    if self.DAG['complete'].features[f] == self.Q[TREATMENT]:
                         res[t, f] = self.Q[VALUE]
-                    else: 
+                    else:
+                        var = self.DAG['system'].features.index(self.DAG['complete'].features[f])
                         given_p = {}
-                        sourceP = None
+                        pID = None
                         sources = []
 
-                        for s in dag.g[self.features[f]].sources:
-                            given_p[s[0]] = res[t - abs(s[1]), self.features.index(s[0])]
-
-                        # Create a copy of the dataset dictionary to search
-                        otherDs = copy.deepcopy(self.Ds)
+                        for s in self.DAG['system'].g[self.DAG['system'].features[var]].sources:
+                            given_p[s[0]] = res[t - abs(s[1]), self.DAG['complete'].features.index(s[0])]
 
                         # Initialize variables for tracking the best source
-                        intOcc = 0
                         sources = []
-
-                        # Check if we're working with an interventional population for the treatment variable
-                        if self.Q[TREATMENT] in given_p and self.Q[VALUE] == given_p[self.Q[TREATMENT]]:
-                            # Filter interventional datasets for the treatment variable
-                            intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}
-                            for key in intDs.keys():
-                                otherDs.pop(key, None)  # Remove interventional datasets from `otherDs`
-
-                            # Find the best matching dataset for the interventional and non-interventional sets
-                            intOcc, intSource = self._findSource_intersection(intDs, given_p)  # Use the intersection of all parent values
-                            otherOcc, otherSource = self._findSource_intersection(otherDs, given_p)  # Use the same for non-interventional
-
-                            # Add results to sources list for comparison
-                            sources.append((intSource, intOcc))
-                            sources.append((otherSource, otherOcc))
-                        else:
-                            # For non-interventional population, find the source using the intersection of all parent values
-                            otherOcc, otherSource = self._findSource_intersection(otherDs, given_p)
-                            sources.append((otherSource, otherOcc))
+                        
+                        # For non-interventional population, find the source using the intersection of all parent values # FIXME: this must be inside the ELSE
+                        # context = CausalInferenceEngine.get_combo((('B_S', int(res[t, self.DAG['complete'].features.index('B_S')])), 
+                        #                                            ('WP', int(res[t, self.DAG['complete'].features.index('WP')])), 
+                        #                                            ('TOD', int(res[t, self.DAG['complete'].features.index('TOD')]))))
+                        context = None
+                        tmp_pID, tmp_occ = self._findSource_intersection(given_p, context) # FIXME: this must be inside the ELSE
+                        sources.append((tmp_pID, tmp_occ)) # FIXME: this must be inside the ELSE
 
                         # Choose the source with the maximum occurrences from the intersection-based matches
-                        if len(dag.g[self.features[f]].sources): 
-                            sourceP = intSource if intOcc != 0 else max(sources, key=lambda x: x[1])[0]
-                                
-                        if sourceP is None: sourceP = self.D 
-                        d, e = self.DBNs[sourceP].dbn[self.features[f]].predict(given_p, tol)
-                        # self.plot_pE(self.DBNs[sourceP].dbn[self.features[f]].y, list(given_p.keys()), d, e, True)
+                        # if len(dag.g[self.DAG.features[f]].sources): # FIXME: uncomment me
+                        #     sourceP = intSource if intOcc != 0 else max(sources, key=lambda x: x[1])[0] # FIXME: uncomment me
+                        pID = max(sources, key=lambda x: x[1])[0] # FIXME: remove me
+                        if pID is None:
+                            e = np.nan
+                        else:
+                            dbn = self.load_DBN(pID, context)
+                            tol = self.tols[pID][context] if context is not None else self.tols[pID]
+                            d, e = dbn.dbn[self.DAG['system'].features[var]].predict(given_p, tol)
+                        # self.plot_pE(self.DBNs[sourceP][self.DAG.features[f]].y, list(given_p.keys()), d, e, True)
                         res[t, f] = e
-        return res[self.DAG.max_lag:, :]
+        return res[self.DAG['complete'].max_lag:, :]
     
     
     def _DAG2NX(self, dag: DAG) -> nx.DiGraph:
@@ -345,8 +535,7 @@ class CausalInferenceEngine():
         occurrences = 0
         sourceP = None
         for id, d in Ds.items():
-            # TODO: not sure if here I need to take the d or the DBN samples
-            indexes = np.where(np.isclose(d.d[self.Q[TREATMENT]], self.Q[VALUE], atol = self.atol))[0]
+            indexes = np.where(np.isclose(d.d[self.Q[TREATMENT]], self.Q[VALUE], atol = self.resolutions[TREATMENT]))[0]
             if len(indexes) > occurrences: 
                 occurrences = len(indexes)
                 sourceP = id
@@ -366,7 +555,7 @@ class CausalInferenceEngine():
         """
         occurrences = 0
         for id, d in Ds.items():
-            indexes = np.where(np.isclose(d.d[target], value, atol = self.atol))[0]
+            indexes = np.where(np.isclose(d.d[target], value, atol = self.resolutions[target]))[0]
             if len(indexes) > occurrences: 
                 occurrences = len(indexes)
                 sourceP = id
@@ -374,39 +563,98 @@ class CausalInferenceEngine():
         return occurrences, sourceP
     
     
-    def _findSource_intersection(self, Ds, parents_values):
+    # def _findSource_intersection(self, parents_values, context):
+    #     """
+    #     Find the source population with the maximum number of occurrences 
+    #     of a given intersection of parent values.
+
+    #     Args:
+    #         parents_values (dict): Dictionary where keys are parent variable names 
+    #                                and values are the desired values for those parents.
+
+    #     Returns:
+    #         tuple: number of occurrences, source dataset
+    #     """
+    #     max_occurrences = 0
+    #     pID = None
+    #     Ds = self.load_obsDs(context)
+                    
+    #     for id in Ds:
+    #         for context, d in Ds[id].items():
+    #             # Create a mask for each parent that matches the desired value with tolerance
+    #             mask = np.ones(len(d.d), dtype=bool)
+    #             for parent, value in parents_values.items():
+    #                 mask &= np.isclose(d.d[parent], value, atol=self.resolutions[parent])
+                
+    #             # Count the number of occurrences where all parents match
+    #             occurrences = np.sum(mask)
+                
+    #             # Update the best source if this dataset has more occurrences
+    #             if occurrences > max_occurrences:
+    #                 max_occurrences = occurrences
+    #                 pID = id
+
+    #     return pID, max_occurrences
+    
+    def _findSource_intersection(self, parents_values, context=None, resolution_multiplier=1):
         """
         Find the source population with the maximum number of occurrences 
         of a given intersection of parent values.
 
         Args:
-            Ds (dict): Dataset dictionary {id (str): d (Data)}.
             parents_values (dict): Dictionary where keys are parent variable names 
-                                   and values are the desired values for those parents.
+                                and values are the desired values for those parents.
+            resolution_multiplier (float): A multiplier for adjusting the resolution 
+                                        (default is 1 for the original resolution).
 
         Returns:
             tuple: number of occurrences, source dataset
         """
         max_occurrences = 0
-        sourceP = None
-
-        for id, d in Ds.items():
-            # Create a mask for each parent that matches the desired value with tolerance
-            mask = np.ones(len(d.d), dtype=bool)
-            for parent, value in parents_values.items():
-                mask &= np.isclose(d.d[parent], value, atol=self.atol)
-            
-            # Count the number of occurrences where all parents match
-            occurrences = np.sum(mask)
-            
-            # Update the best source if this dataset has more occurrences
-            if occurrences > max_occurrences:
-                max_occurrences = occurrences
-                sourceP = id
-
-        return max_occurrences, sourceP
+        pID = None
+        Ds = self.load_obsDs(context)
         
+        # Update the resolution based on the multiplier
+        # current_resolutions = {parent: self.resolutions[parent] * resolution_multiplier for parent in parents_values}
         
+        for id in Ds:
+            if context is not None:
+                for context, d in Ds[id].items():
+                    # Create a mask for each parent that matches the desired value with the adjusted resolution
+                    mask = np.ones(len(d.d), dtype=bool)
+                    current_resolutions = {parent: self.tols[id][context][parent] * resolution_multiplier for parent in parents_values}
+                    for parent, value in parents_values.items():
+                        mask &= np.isclose(d.d[parent], value, atol=current_resolutions[parent])
+                    
+                    # Count the number of occurrences where all parents match
+                    occurrences = np.sum(mask)
+                    
+                    # Update the best source if this dataset has more occurrences
+                    if occurrences > max_occurrences:
+                        max_occurrences = occurrences
+                        pID = id
+            else:
+                d = Ds[id]
+                mask = np.ones(len(d.d), dtype=bool)
+                current_resolutions = {parent: self.tols[id][parent] * resolution_multiplier for parent in parents_values}
+                for parent, value in parents_values.items():
+                    mask &= np.isclose(d.d[parent], value, atol=current_resolutions[parent])
+                    
+                # Count the number of occurrences where all parents match
+                occurrences = np.sum(mask)
+                    
+                # Update the best source if this dataset has more occurrences
+                if occurrences > max_occurrences:
+                    max_occurrences = occurrences
+                    pID = id
+
+        # If no matching source is found, call the function recursively with a higher resolution multiplier
+        if pID is None and resolution_multiplier < 10:  # Arbitrary limit to prevent infinite recursion
+            return self._findSource_intersection(parents_values, context, resolution_multiplier * 2)
+
+        return pID, max_occurrences
+        
+    # TODO: to change self.DBNs[targetP].data -- self.DBNs[targetP] does not have data attribute
     def transport(self, pS_y_do_x_adj, targetP: tuple, treatment: str, outcome: str):
         """
         Computes the target population's p_y_do(x) from the source population by using the transportability formula [1].
@@ -426,12 +674,12 @@ class CausalInferenceEngine():
         adjset = self.DBNs[targetP].get_adjset(treatment, outcome) # TODO: to test
         
         # # Source population's p(output|do(treatment), adjustment)
-        # pS_y_do_x_adj = self.DBNs[sourceP].dbn[outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
+        # pS_y_do_x_adj = self.DBNs[sourceP][outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
         
         # Compute the adjustment density for the target population
         pT_adj = np.ones((self.nsample, 1)).squeeze()
             
-        for node in adjset: pT_adj = pT_adj * self.DBNs[targetP].dbn[self.DBNs[targetP].data.features[node[0]]].CondDensity
+        for node in adjset: pT_adj = pT_adj * self.DBNs[targetP][self.DBNs[targetP].data.features[node[0]]].CondDensity
         pT_adj = normalise(pT_adj)
         
         # Compute the p(outcome|do(treatment)) density
@@ -455,16 +703,18 @@ class CausalInferenceEngine():
         Returns:
             tuple: outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))], Mode(outcome*p(outcome|do(treatment = t))
         """
-        indices_X = np.where(np.isclose(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].parents[self.Q[TREATMENT]].samples, self.Q[VALUE], atol = self.atol))[0]
+        indices_X = np.where(np.isclose(self.DBNs[sourceP][self.Q[OUTCOME]].parents[self.Q[TREATMENT]].samples, 
+                                        self.Q[VALUE], 
+                                        atol = self.resolutions[TREATMENT]))[0]
         indices_X = np.array(sorted(indices_X))               
         
         # I am taking all the outcome's densities associated to the treatment == value
         # Normalise the density to ensure it sums to 1
         p_y_do_X_x = normalise(np.sum(p_y_do_x[:, indices_X], axis = 1))
-        E_p_y_do_X_x = expectation(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
-        M_p_y_do_X_x = mode(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x)
-        # self.plot_pE(self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, show = True)
-        return self.DBNs[sourceP].dbn[self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, M_p_y_do_X_x
+        E_p_y_do_X_x = expectation(self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x)
+        M_p_y_do_X_x = mode(self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x)
+        # self.plot_pE(self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, show = True)
+        return self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, M_p_y_do_X_x
     
     
     def plot_pEQ(self, ysamples, density, expectation = None, show = False, path = None):

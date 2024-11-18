@@ -45,6 +45,13 @@ class DataType(Enum):
     Discrete = 1
     
     
+class NodeType(Enum):
+    """NodeType Enumerator."""
+    
+    System = 0
+    Context = 1
+    
+    
 class LinkType(Enum):
     """LinkType Enumerator."""
     
