@@ -31,7 +31,18 @@ CausalFlow is a python library for causal analysis from time-series data. It com
   [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
   Advanced Intelligent Systems.<br>
   ```
-  BibTex coming soon!
+  @article{https://doi.org/10.1002/aisy.202400181,
+    author = {Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
+    title = {CAnDOIT: Causal Discovery with Observational and Interventional Data from Time Series},
+    journal = {Advanced Intelligent Systems},
+    volume = {n/a},
+    number = {n/a},
+    pages = {2400181},
+    keywords = {causal robotics, observations and interventions-based causal discoveries, time series},
+    doi = {https://doi.org/10.1002/aisy.202400181},
+    url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/aisy.202400181},
+    eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/aisy.202400181},
+  }
   ```
 * Tutorials [Coming soon..]
 
@@ -393,7 +404,18 @@ Please consider citing the following papers depending on which method you use:
   [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
   Advanced Intelligent Systems.<br>
   ```
-  BibTex coming soon!
+  @article{https://doi.org/10.1002/aisy.202400181,
+    author = {Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
+    title = {CAnDOIT: Causal Discovery with Observational and Interventional Data from Time Series},
+    journal = {Advanced Intelligent Systems},
+    volume = {n/a},
+    number = {n/a},
+    pages = {2400181},
+    keywords = {causal robotics, observations and interventions-based causal discoveries, time series},
+    doi = {https://doi.org/10.1002/aisy.202400181},
+    url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/aisy.202400181},
+    eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/aisy.202400181},
+  }
   ```
 
 
