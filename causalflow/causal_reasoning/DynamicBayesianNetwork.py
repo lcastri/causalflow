@@ -1,63 +1,69 @@
-import sys
+import copy
 import numpy as np
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Density_utils import normalise
+from causalflow.basics.constants import SampleMode
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
-from causalflow.causal_reasoning.Density_CPU import Density as Density_CPU
-from causalflow.causal_reasoning.Density_GPU import Density as Density_GPU
-from causalflow.causal_reasoning.Density import Density
+from causalflow.causal_reasoning.Density_CPU import Density
 from causalflow.causal_reasoning.Process import Process
 from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *
 from typing import Dict
-from memory_profiler import profile
 from sklearn.neighbors import KernelDensity
 
 class DynamicBayesianNetwork():
-    def __init__(self, dag: DAG, data: Data, nsample: int, data_type: Dict[str, DataType], node_type: Dict[str, NodeType], use_gpu: bool = False):
+    def __init__(self, 
+                 dag: DAG, 
+                 data: Data, 
+                 nsample, 
+                 data_type: Dict[str, DataType], 
+                 node_type: Dict[str, NodeType], 
+                 batch_size: int,
+                 recycle = None):
         """
         Class constructor.
 
         Args:
             dag (DAG): DAG from which deriving the DBN.
             data (Data): Data associated with the DAG.
-            nsample (int): Number of samples used for density estimation.
-            data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}
-            use_gpu (bool): If True, use GPU for density estimation; otherwise, use CPU.
+            nsample (SampleMode/int): if SampleMode - Mode to discovery the number of samples.
+                                      if int- Number of samples used for density estimation.
+            data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}.
+            node_type (dict[str:NodeType]): node type for each node (system|context). E.g., {"X_2": NodeType.Context}.
+            batch_size (int): Batch Size.
+            recycle ((list[str], DynamicBayesianNetwork)): tuple containing the list of features to recycle and the 
+                                                           DBN from which extract their densities. Default None.
         """
-        # self.nsample = nsample
+        if not isinstance(nsample, SampleMode) and not isinstance(nsample, int):
+            raise ValueError("nsample field must be either SampleMode or int!")
+        
+        if recycle is not None: Fs, DBN = recycle
+        
         self.data_type = data_type
         self.node_type = node_type
-        self.use_gpu = use_gpu
-        self.nsamples = DynamicBayesianNetwork.estimate_optimal_samples(data)
+        if isinstance(nsample, SampleMode):
+            self.nsamples = DynamicBayesianNetwork.estimate_optimal_samples(data, nsample)
+        else:
+            self.nsamples = {f: nsample for f in data.features}
+        for k, v in self.nsamples.items(): CP.info(f"    {k} samples : {v}")
         
         self.dbn = {node: None for node in dag.g}
         for node in self.dbn:
             Y = Process(data.d[node].to_numpy(), node, 0, self.nsamples[node], self.data_type[node], self.node_type[node])
-
             parents = self._extract_parents(node, data, dag)
-            if parents is None:
-                CP.info(f"\n### Target variable: {node}")
+            if recycle is not None and node in Fs and all(p in Fs for p in parents.keys()):
+                CP.info(f"\n    ### Recycling {node} densities")
+                self.dbn[node] = copy.deepcopy(DBN.dbn[node])
             else:
-                CP.info(f"\n### Target variable: {node} - parents {', '.join(list(parents.keys()))}")
-            Density = Density_GPU if self.use_gpu else Density_CPU
-            self.dbn[node] = Density(Y, parents)
+                if parents is None:
+                    CP.info(f"\n    ### Target variable: {node}")
+                else:
+                    CP.info(f"\n    ### Target variable: {node} - parents {', '.join(list(parents.keys()))}")
+                self.dbn[node] = Density(Y, batch_size, parents)
             
-        # for node in self.dbn: self.computeDoDensity(node, data.features, dag)
-        
-        # Check memory usage of top-level elements
-        for v, density in self.dbn.items():
-            CP.debug(f"Memory used by {v} - PriorDensity: {sys.getsizeof(density.PriorDensity)} bytes")
-            CP.debug(f"Memory used by {v} - JointDensity: {sys.getsizeof(density.JointDensity)} bytes")
-            CP.debug(f"Memory used by {v} - ParentJointDensity: {sys.getsizeof(density.ParentJointDensity)} bytes")
-            CP.debug(f"Memory used by {v} - CondDensity: {sys.getsizeof(density.CondDensity)} bytes")
-            CP.debug(f"Memory used by {v} - MarginalDensity: {sys.getsizeof(density.MarginalDensity)} bytes")
-            # for t in density.DO:
-            #     CP.debug(f"Memory used by {v} - DO {t} adj: {sys.getsizeof(density.DO[t][ADJ])} bytes")
-            #     CP.debug(f"Memory used by {v} - DO {t} {P_Y_GIVEN_DOX_ADJ}: {sys.getsizeof(density.DO[t][P_Y_GIVEN_DOX_ADJ])} bytes")
-            #     CP.debug(f"Memory used by {v} - DO {t} {P_Y_GIVEN_DOX}: {sys.getsizeof(density.DO[t][P_Y_GIVEN_DOX])} bytes")
-        del dag, data
+        # for node in self.dbn: self.computeDoDensity(node, data.features, dag)        
+        del dag, data, recycle
         
     @staticmethod
     def estimate_entropy(data, bandwidth=0.5):
@@ -72,7 +78,7 @@ class DynamicBayesianNetwork():
             entropy (ndarray): Estimated entropy for each variable.
         """
         
-        n_samples, n_features = data.shape
+        _, n_features = data.shape
         entropy = np.zeros(n_features)
         
         # Fit KDE for each feature (variable)
@@ -89,7 +95,7 @@ class DynamicBayesianNetwork():
         return entropy
 
     @staticmethod
-    def estimate_optimal_samples(data, mode = 'entropy'):
+    def estimate_optimal_samples(data, mode = SampleMode.Entropy):
         """
         Allocate samples based on the entropy of each variable.
         
@@ -100,11 +106,11 @@ class DynamicBayesianNetwork():
         Returns:
             optimal_samples (ndarray): Sample sizes for each variable based on entropy.
         """
-        if mode == 'entropy':
+        if mode is SampleMode.Entropy:
             entropy = DynamicBayesianNetwork.estimate_entropy(data.d.values)
             proportions = entropy / np.sum(entropy)  # Normalize entropy values            
         
-        elif mode == 'variance':
+        elif mode is SampleMode.Variance:
             variances = np.var(data.d.values, axis=0)
             total_variance = np.sum(variances)
             proportions = variances / total_variance

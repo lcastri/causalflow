@@ -41,10 +41,9 @@ NODE_TYPE = {
 }
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
-          node_type = NODE_TYPE, 
-          nsample = 50, 
-          use_gpu = False, 
-          model_path = 'CIE_200samples_single')
+          node_type = NODE_TYPE,
+          batch_size = 10000,
+          model_path = 'CIE_allbags')
 
 start_time = time.time()
 
@@ -53,10 +52,8 @@ DATA_DICT = {}
 dfs = []
 for bagname in BAGNAME:
     for wp in WP:
-    # for wp in [WP.CORR_CANTEEN_1, WP.CORR_CANTEEN_2]:
+        if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
         for tod in TOD:
-        # for tod in [TOD.LUNCH, TOD.AFTERNOON]:
-            if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
             print(f"Loading : {bagname}-{tod.value}-{wp.value}")
             if USE_SUBSAMPLED:
                 filename = os.path.join(INDIR, "my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
@@ -68,15 +65,13 @@ concatenated_df = pd.concat(dfs, ignore_index=True)
 dfs = []
 idx = len(DATA_DICT)
 DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
+del concatenated_df
 cie.addObsData(DATA_DICT[idx])
     
 cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 
 end_time = time.time()
-
-# Calculate and print the elapsed time in HH:mm:ss format
 elapsed_time = end_time - start_time
-# Calculate days, hours, minutes, and seconds
 days = elapsed_time // (24 * 3600)
 remaining_time = elapsed_time % (24 * 3600)
 formatted_time = time.strftime("%H:%M:%S", time.gmtime(remaining_time))

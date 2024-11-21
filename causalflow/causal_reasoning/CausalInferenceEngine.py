@@ -8,6 +8,7 @@ from causalflow.CPrinter import CP
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Density_utils import *
 from causalflow.causal_reasoning.DynamicBayesianNetwork import DynamicBayesianNetwork
+from causalflow.basics.constants import SampleMode
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.CPrinter import CPLevel, CP
@@ -18,11 +19,12 @@ import h5py
 
 
 class CausalInferenceEngine():
-    def __init__(self, dag: DAG, 
+    def __init__(self, 
+                 dag: DAG, 
                  data_type: Dict[str, DataType], 
                  node_type: Dict[str, NodeType], 
-                 nsample = 100, 
-                 use_gpu: bool = False, 
+                 nsample = SampleMode.Entropy, 
+                 batch_size: int = 10000, 
                  model_path: str = '', 
                  verbosity = CPLevel.INFO):
         """
@@ -31,21 +33,33 @@ class CausalInferenceEngine():
         Args:
             dag (DAG): observational dataset extracted from a causal discovery method.
             data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}
-            nsample (int, optional): Number of samples used for density estimation. Defaults to 100.
-            use_gpu (bool): If True, use GPU for density estimation; otherwise, use CPU.
+            node_type (dict[str:NodeType]): node type for each node (system|context). E.g., {"X_2": NodeType.Context}
+            nsample (SampleMode/int): if SampleMode - Mode to discovery the number of samples.
+                                      if int- Number of samples used for density estimation.
+                                      Default SampleMode.Entropy.
+            batch_size (int): Batch Size. Default 10000.
             verbosity (CPLevel, optional): Verbosity level. Defaults to DEBUG.
         """
         CP.set_verbosity(verbosity)
         CP.info("\n##")
         CP.info("## Causal Inference Engine")
+        CP.info(f"## - Data Type:")
+        for k, v in data_type.items(): CP.info(f"##    {k} : {v.name}")
+        CP.info(f"## - Node Type:")
+        for k, v in node_type.items(): CP.info(f"##    {k} : {v.name}")
+        CP.info(f"## - Batch Size: {batch_size}")
+        if isinstance(nsample, SampleMode): 
+            CP.info(f"## - NSample Mode: {nsample.name}")
+        else:
+            CP.info(f"## - NSample : {nsample}")
         CP.info("##")
         
-        self.nsample = nsample
         self.Q = {}
         self.data_type = data_type
         self.node_type = node_type
+        self.batch_size = batch_size
+        self.nsample = nsample
         self.DAG = {'complete': dag, 'system': self.remove_context(dag)}
-        self.use_gpu = use_gpu
         self.model_path = model_path
         
         self.contexts = []
@@ -66,79 +80,30 @@ class CausalInferenceEngine():
                 f.create_group('Ds')  
         else:
             CP.debug(f"Model exists, proceeding to load data.")
-            
                       
     @property
     def isThereContext(self):
         return any(n is NodeType.Context for n in self.node_type.values())
     
+    
     def get_resolutions(self):
         tol = {}
-        for f in self.DAG['system'].features:
-            Ds = self.load_obsDs()
-            if Ds:
-                for id in Ds:
-                    if id not in tol: tol[id] = {}
-                    if isinstance(Ds[id], dict):
-                        for context, d in Ds[id].items():
-                            if context not in tol[id]: tol[id][context] = {}
-                            tol[id][context][f] = (np.max(np.array(d.d[f])) - np.min(np.array(d.d[f])))/self.nsample
-                    else:
-                        d = Ds[id]
-                        tol[id][f] = (np.max(np.array(d.d[f])) - np.min(np.array(d.d[f])))/self.nsample
+        Ds = self.load_obsDs()
+        if Ds:
+            for id in Ds:
+                if id not in tol: tol[id] = {}
+                if isinstance(Ds[id], dict):
+                    for context, d in Ds[id].items():
+                        DBN = self.load_DBN(id, context)
+                        if context not in tol[id]: tol[id][context] = {}
+                        for f in self.DAG['system'].features:
+                            tol[id][context][f] = (np.max(np.array(d.d[f])) - np.min(np.array(d.d[f])))/DBN.nsamples[f]
+                else:
+                    DBN = self.load_DBN(id)
+                    for f in self.DAG['system'].features:
+                        tol[id][f] = (np.max(np.array(Ds[id].d[f])) - np.min(np.array(Ds[id].d[f])))/DBN.nsamples[f]
         return tol
     
-    # def save_DAG(self, id, dag):
-    #     with h5py.File(self.filename, 'a') as f:
-    #         group_name = f"DAGs/{id}"
-    #         # Convert the DAG object to bytes using pickle
-    #         dag_data = pickle.dumps(dag)
-    #         if group_name in f:
-    #             del f[group_name]
-    #         f.create_dataset(group_name, data=np.void(dag_data))  # Use np.void to store as binary
-
-    # def save_DBN(self, dbn, id, context = None):
-    #     with h5py.File(self.filename, 'a') as f:
-    #         group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
-    #         dbn_data = pickle.dumps(dbn)  # Serialize dbn object
-    #         if group_name in f:
-    #             del f[group_name]
-    #         # f.create_dataset(group_name, data=np.void(dbn_data))
-    #         f.create_dataset(group_name, data=np.void(dbn_data), compression="gzip", compression_opts=9)
-
-            
-    # def save_D(self, d, id, context = None):
-    #     with h5py.File(self.filename, 'a') as f:
-    #         group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
-    #         d_data = pickle.dumps(d)
-    #         if group_name in f:
-    #             del f[group_name]
-    #         f.create_dataset(group_name, data=np.void(d_data))
-            
-    # def load_DAG(self, id):
-    #     with h5py.File(self.filename, 'r') as f:
-    #         group_name = f"DAGs/{id}"
-    #         if group_name in f:
-    #             # Deserialize the stored data back into a DAG object
-    #             return pickle.loads(f[group_name][()].tobytes())
-    #         else:
-    #             raise None
-            
-    # def load_DBN(self, id, context = None):
-    #     with h5py.File(self.filename, 'r') as f:
-    #         group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
-    #         if group_name in f:
-    #             return pickle.loads(f[group_name][()].tobytes())
-    #         else:
-    #             raise None
-            
-    # def load_D(self, id, context = None):
-    #     with h5py.File(self.filename, 'r') as f:
-    #         group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
-    #         if group_name in f:
-    #             return pickle.loads(f[group_name][()].tobytes())
-    #         else:
-    #             return 
     
     def save_DAG(self, id, dag):
         pickle_path = os.path.join(self.model_path, f"DAG_{id}.pkl")
@@ -149,6 +114,7 @@ class CausalInferenceEngine():
             if group_name in f:
                 del f[group_name]
             f.create_dataset(group_name, data=pickle_path)
+
 
     def save_DBN(self, dbn, id, context=None):
         pickle_name = f"DBN_{id}_{context}.pkl" if context is not None else f"DBN_{id}.pkl"
@@ -161,6 +127,7 @@ class CausalInferenceEngine():
                 del f[group_name]
             f.create_dataset(group_name, data=pickle_path)
 
+
     def save_D(self, d, id, context=None):
         pickle_name = f"D{id}_{context}.pkl" if context is not None else f"D_{id}.pkl"
         pickle_path = os.path.join(self.model_path, pickle_name)
@@ -172,6 +139,7 @@ class CausalInferenceEngine():
                 del f[group_name]
             f.create_dataset(group_name, data=pickle_path)
 
+
     def load_DAG(self, id):
         with h5py.File(self.filename, 'r') as f:
             group_name = f"DAGs/{id}"
@@ -180,7 +148,8 @@ class CausalInferenceEngine():
                 with open(pickle_path, 'rb') as file:
                     return pickle.load(file)
             else:
-                raise FileNotFoundError(f"No DAG found for id {id}")
+                return None
+
 
     def load_DBN(self, id, context=None):
         with h5py.File(self.filename, 'r') as f:
@@ -190,7 +159,8 @@ class CausalInferenceEngine():
                 with open(pickle_path, 'rb') as file:
                     return pickle.load(file)
             else:
-                raise FileNotFoundError(f"No DBN found for id {id} and context {context}")
+                return None
+
 
     def load_D(self, id, context=None):
         with h5py.File(self.filename, 'r') as f:
@@ -200,7 +170,8 @@ class CausalInferenceEngine():
                 with open(pickle_path, 'rb') as file:
                     return pickle.load(file)
             else:
-                raise FileNotFoundError(f"No D found for id {id} and context {context}")
+                return None
+            
             
     def load_obsDs(self, selected_context = None):
         Ds = {}
@@ -223,6 +194,12 @@ class CausalInferenceEngine():
                     if d_id not in Ds: Ds[d_id] = {}
                     Ds[d_id][selected_context] = d
         return Ds
+    
+    
+    def alreadyEstimated(self, id, context):
+        d = self.load_D(id, context)
+        dbn = self.load_DBN(id, context)
+        return d is not None and dbn is not None
 
 
     def getContextData(self, data, context):
@@ -250,6 +227,49 @@ class CausalInferenceEngine():
             combinations.append(CausalInferenceEngine.get_combo(c))
         return combinations
     
+    
+    def get_Recycle(self, d):
+        """
+        Find the dataset ID with the largest number of matching variables to the given data,
+        and return the list of matching features.
+
+        Args:
+            d (np.ndarray): The data array to compare against.
+
+        Returns:
+            tuple: (dataset ID, number of matching variables, list of matching features),
+                or None if no matches are found.
+        """
+        max_match = 0
+        best_match_id = None
+        best_match_features = []
+        Ds = self.load_obsDs()
+
+        for id in Ds:
+            if isinstance(Ds[id], Data):
+                D = Ds[id]
+                matching_features = [
+                    f for f in D.features if np.array_equal(D.d[f], d[:, D.features.index(f)])
+                ]
+                match_count = len(matching_features)
+                if match_count > max_match:
+                    max_match = match_count
+                    best_match_id = id
+                    best_match_features = matching_features
+            else:
+                for context in Ds[id]:
+                    D = Ds[id][context]
+                    matching_features = [
+                        f for f in D.features if np.array_equal(D.d[f].values, d.d[f].values)
+                    ]
+                    match_count = len(matching_features)
+                    if match_count > max_match:
+                        max_match = match_count
+                        best_match_id = (id, context)
+                        best_match_features = matching_features
+
+        return (best_match_id, best_match_features) if best_match_id else None
+        
     
     def remove_context(self, dag: DAG):
         tmp = copy.deepcopy(dag)
@@ -283,29 +303,45 @@ class CausalInferenceEngine():
         Args:
             data (Data): new observational dataset.
         """
-        id = ('obs', self.obs_id + 1)
+        self.obs_id += 1
+        id = ('obs', self.obs_id)
         if not self.isThereContext:
             CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-            _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], data, self.nsample, self.data_type, self.node_type, use_gpu=self.use_gpu)
+            _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], data, self.nsample, self.data_type, self.node_type, self.batch_size)
             self.save_DBN(_tmp_dbn, id)
             self.save_D(data, id)
         else:
             self.contexts = self._extract_contexts(data)
             for context in self.contexts:
+                if self.alreadyEstimated(id, context): continue
+                
                 d = self.getContextData(data, context)
                 if not d.empty:
-                    # if len([context]) == 1:
-                    #     CP.info(f"\n## Building DBN for DAG ID {id} -- Context: {', '.join([f'{c[0]}={c[1]}'for c in [context]])}")
-                    # else:
-                    CP.info(f"\n## Building DBN for DAG ID {id} -- Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-
                     _tmp_d = Data(d, vars=d.columns)
                     _tmp_d.shrink([c for c in d.columns if c not in list(dict(context).keys())])
-                    _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], _tmp_d, self.nsample, self.data_type, self.node_type, use_gpu=self.use_gpu)
+                    _tmp = self.get_Recycle(_tmp_d)
+                    if _tmp is not None:
+                        id_context, same_features = _tmp
+                        pID, pContext = id_context
+                        CP.info(f"\n## Recycling DBN {pID}-{', '.join([f'{c[0]}={c[1]}' for c in pContext])}\n   -> DBN ID {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                        _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
+                                                          _tmp_d, 
+                                                          self.nsample, 
+                                                          self.data_type, 
+                                                          self.node_type, 
+                                                          self.batch_size, 
+                                                          recycle = (same_features, self.load_DBN(pID, pContext)))
+                    else:
+                        CP.info(f"\n## Building DBN ID {id}\n   Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                        _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
+                                                          _tmp_d, 
+                                                          self.nsample, 
+                                                          self.data_type, 
+                                                          self.node_type, 
+                                                          self.batch_size)
                     self.save_DBN(_tmp_dbn, id, context)
                     self.save_D(_tmp_d, id, context)
                     gc.collect()
-        self.obs_id += 1
         
         self.tols = self.get_resolutions()
         return id
@@ -341,7 +377,7 @@ class CausalInferenceEngine():
         pkl['data_type'] = self.data_type 
         pkl['node_type'] = self.node_type 
         pkl['nsample'] = self.nsample
-        pkl['use_gpu'] = self.use_gpu
+        pkl['batch_size'] = self.batch_size
         pkl['model_path'] = self.model_path
         pkl['verbosity'] = CP.verbosity
         pkl['contexts'] = self.contexts
@@ -362,7 +398,7 @@ class CausalInferenceEngine():
         Returns:
             CausalInferenceEngine: loaded CausalInferenceEngine object.
         """
-        cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['nsample'], pkl['use_gpu'], pkl['model_path'], pkl['verbosity'])
+        cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['nsample'], pkl['batch_size'], pkl['model_path'], pkl['verbosity'])
         cie.contexts = pkl['contexts']
         cie.obs_id = pkl['obs_id']
         cie.int_id = pkl['int_id']
@@ -464,10 +500,10 @@ class CausalInferenceEngine():
                         sources = []
                         
                         # For non-interventional population, find the source using the intersection of all parent values # FIXME: this must be inside the ELSE
-                        # context = CausalInferenceEngine.get_combo((('B_S', int(res[t, self.DAG['complete'].features.index('B_S')])), 
-                        #                                            ('WP', int(res[t, self.DAG['complete'].features.index('WP')])), 
-                        #                                            ('TOD', int(res[t, self.DAG['complete'].features.index('TOD')]))))
-                        context = None
+                        context = CausalInferenceEngine.get_combo((('B_S', int(res[t, self.DAG['complete'].features.index('B_S')])), 
+                                                                   ('WP', int(res[t, self.DAG['complete'].features.index('WP')])), 
+                                                                   ('TOD', int(res[t, self.DAG['complete'].features.index('TOD')]))))
+                        # context = None
                         tmp_pID, tmp_occ = self._findSource_intersection(given_p, context) # FIXME: this must be inside the ELSE
                         sources.append((tmp_pID, tmp_occ)) # FIXME: this must be inside the ELSE
 

@@ -1,21 +1,20 @@
 import copy
-from concurrent.futures import ProcessPoolExecutor
-
+from itertools import product
+import math
 import os
-from multiprocessing import Pool
 import warnings
+from multiprocessing import Manager
+import numpy as np
+from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from typing import Dict
-import numpy as np
-from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Density_utils import *
-from scipy.stats import multivariate_normal, norm
 
-# Define the compute_density function as a top-level function
+
 def compute_density(samples, kde):
     """
     Compute density for a subset of samples.
@@ -31,21 +30,36 @@ def compute_density(samples, kde):
     log_density = kde.score_samples(samples)
     return np.exp(log_density)
 
-# Define a helper function for imap that takes a chunk and kde
+
 def process_chunk(chunk_kde):
+    """
+    Define a helper function for imap that takes a chunk and kde
+
+    Args:
+        chunk_kde (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     chunk, kde = chunk_kde
     return compute_density(chunk, kde)
  
+ 
 class Density():
-    def __init__(self, y: Process, parents: Dict[str, Process] = None):
+    def __init__(self, 
+                 y: Process, 
+                 batch_size: int, 
+                 parents: Dict[str, Process] = None):
         """
         Class constructor.
 
         Args:
             y (Process): target process.
+            batch_size (int): Batch size.
             parents (Dict[str, Process], optional): Target's parents. Defaults to None.
         """
         self.y = y
+        self.batch_size = batch_size
         self.parents = parents
         self.DO = {}
 
@@ -100,8 +114,8 @@ class Density():
             ndarray: prior density p(y).
         """
         if self.PriorDensity is None: 
-            self.PriorDensity = Density.estimate('Prior', self.y)
-        self.PriorDensity = normalise(self.PriorDensity)
+            self.PriorDensity = Density.estimate('Prior', self.y, self.batch_size)
+        # self.PriorDensity = normalise(self.PriorDensity)
         return self.PriorDensity
         
         
@@ -116,10 +130,11 @@ class Density():
             if self.parents is not None:
                 yz = [p for p in self.parents.values()]
                 yz.insert(0, self.y)
-                self.JointDensity = Density.estimate('Joint', yz)
+                self.JointDensity = Density.estimate('Joint', yz, self.batch_size)
+                del yz
             else:
-                self.JointDensity = Density.estimate('Joint', self.y)
-        self.JointDensity = normalise(self.JointDensity)
+                self.JointDensity = Density.estimate('Joint', self.y, self.batch_size)
+        # self.JointDensity = normalise(self.JointDensity)
         return self.JointDensity
     
     
@@ -132,8 +147,9 @@ class Density():
         """
         if self.ParentJointDensity is None:
             if self.parents is not None: 
-                self.ParentJointDensity = Density.estimate('Parent', [p for p in self.parents.values()])
-                self.ParentJointDensity = normalise(self.ParentJointDensity)
+                self.ParentJointDensity = Density.estimate('Parent', [p for p in self.parents.values()], self.batch_size)
+                self.ParentJointDensity = self.ParentJointDensity
+                # self.ParentJointDensity = normalise(self.ParentJointDensity)
         return self.ParentJointDensity
     
          
@@ -144,13 +160,13 @@ class Density():
         Returns:
             ndarray: conditional density p(y|parents) = p(y, parents) / p(parents).
         """
-        CP.info("- Conditional density")
+        CP.info("    - Conditional density")
         if self.CondDensity is None:
             if self.parents is not None:
                 self.CondDensity = self.JointDensity / self.ParentJointDensity[np.newaxis, :] + np.finfo(float).eps
             else:
                 self.CondDensity = self.PriorDensity
-        self.CondDensity = normalise(self.CondDensity)
+        # self.CondDensity = normalise(self.CondDensity)
         return self.CondDensity
     
     
@@ -161,19 +177,20 @@ class Density():
         Returns:
             ndarray: marginal density p(y) = \sum_parents p(y, parents).
         """
-        CP.info("- Marginal density")
+        CP.info("    - Marginal density")
         if self.MarginalDensity is None:
             if self.parents is None:
                 self.MarginalDensity = self.PriorDensity
-            else:                
+            else:
                 # Sum over parents axis
-                self.MarginalDensity = copy.deepcopy(self.JointDensity)
-                self.MarginalDensity = np.sum(self.MarginalDensity, axis=tuple(range(1, len(self.JointDensity.shape))))  
-        self.MarginalDensity = normalise(self.MarginalDensity)
+                self.MarginalDensity = np.sum(
+                    self.JointDensity, axis=tuple(range(1, len(self.JointDensity.shape)))
+                )
+        # self.MarginalDensity = normalise(self.MarginalDensity)
         return self.MarginalDensity
     
     @staticmethod
-    def compute_density_parallel(caller, kde, YZ_samples, batch_size=10000):
+    def compute_density_parallel(caller, kde, YZ_samples, batch_size):
         """
         Compute the density for a set of samples in parallel, processing in batches to reduce memory usage.
 
@@ -196,31 +213,68 @@ class Density():
         n_jobs = min(available_cores, num_samples)
 
         # Initialize list to collect densities from each batch
-        density = []
+        density = np.empty(num_samples, dtype=np.float32)  # Pre-allocate the array
 
         # Create a persistent pool for all batch processing
         with ProcessPoolExecutor(max_workers=n_jobs) as executor:
             # Process in batches
-            for batch_start in tqdm(range(0, num_samples, batch_size), desc=f"- {caller} density", unit="batch"):
+            for batch_start in tqdm(range(0, num_samples, batch_size), desc=f"    - {caller} density", unit="batch"):
                 batch = YZ_samples[batch_start:batch_start + batch_size]
                 num_batch_samples = len(batch)
                 
                 # Split the current batch into chunks for parallel processing
                 chunk_size = max(1, num_batch_samples // n_jobs)
-                chunks = [batch[i:i + chunk_size].copy() for i in range(0, num_batch_samples, chunk_size)]
-                chunk_kde_pairs = [(chunk, kde) for chunk in chunks]
+                chunk_kde_pairs = [(batch[i:i + chunk_size], kde) for i in range(0, num_batch_samples, chunk_size)]
 
                 # Parallel computation of densities for each chunk in the batch
                 batch_densities = list(executor.map(process_chunk, chunk_kde_pairs))
 
                 # Concatenate the densities from all chunks in the current batch
-                density.append(np.concatenate(batch_densities))
-
+                density[batch_start:batch_start + num_batch_samples] = np.concatenate(batch_densities)
+        
         # Concatenate densities from all batches
-        return np.concatenate(density, dtype=np.float32)
+        return density
  
+    # @staticmethod
+    # def estimate(caller, YZ, batch_size):
+    #     """
+    #     Estimate the density through KDE.
+
+    #     Args:
+    #         YZ (Process or [Process]): Process(es) for density estimation.
+
+    #     Returns:
+    #         ndarray: density.
+    #     """
+    #     if not isinstance(YZ, list): YZ = [YZ]
+        
+    #     YZ_data = np.column_stack([yz.aligndata for yz in YZ])
+    #     YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ], indexing='ij')
+    #     YZ_samples = np.column_stack([yz.ravel() for yz in YZ_mesh])
+        
+    #     grids = [yz.samples for yz in YZ]
+    #     mesh_shape = tuple(len(grid) for grid in grids)
+        
+    #     mesh_shape = YZ_mesh[0].shape
+    #     del YZ_mesh
+    #     # Create the grid search
+    #     with warnings.catch_warnings():
+    #         warnings.simplefilter("ignore")
+
+    #         # Fit a kernel density model to the data
+    #         kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
+    #         kde.fit(YZ_data)
+
+    #         # Compute the density
+    #         density = Density.compute_density_parallel(caller, kde, YZ_samples, batch_size)
+    #         density = density.reshape(mesh_shape)
+            
+    #     return density
+    
+
+
     @staticmethod
-    def estimate(caller, YZ):
+    def estimate(caller, YZ, batch_size):
         """
         Estimate the density through KDE.
 
@@ -230,26 +284,69 @@ class Density():
         Returns:
             ndarray: density.
         """
-        if not isinstance(YZ, list): YZ = [YZ]
+        if not isinstance(YZ, list):
+            YZ = [YZ]
         
+        # Prepare the input data for KDE fitting
         YZ_data = np.column_stack([yz.aligndata for yz in YZ])
-        YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ], indexing='ij')
-        YZ_samples = np.column_stack([yz.ravel() for yz in YZ_mesh])
-        mesh_shape = YZ_mesh[0].shape
-        del YZ_mesh
-        # Create the grid search
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        grids = [yz.samples for yz in YZ]
+        mesh_shape = tuple(len(grid) for grid in grids)
+        
+        # Fit the KDE model
+        kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
+        kde.fit(YZ_data)
+        
+        # Create a generator to lazily generate batches of YZ_samples
+        def lazy_sample_generator():
+            for combination in product(*grids):
+                yield np.array(combination)
 
-            # Fit a kernel density model to the data
-            kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
-            kde.fit(YZ_data)
+        # Create the batch generator to yield samples in chunks
+        def batch_generator():
+            batch = []
+            for sample in lazy_sample_generator():
+                batch.append(sample)
+                if len(batch) == batch_size:
+                    yield np.array(batch)
+                    batch = []
+            if batch:
+                yield np.array(batch)
 
-            # Compute the density
-            density = Density.compute_density_parallel(caller, kde, YZ_samples)
-            density = density.reshape(mesh_shape)
-            
+        # Calculate total batches without fully iterating over the generator
+        total_samples = np.prod([len(grid) for grid in grids])  # Total number of samples
+        total_batches = math.ceil(total_samples / batch_size)  # Total batches (rounded up)        
+        
+        # Manager for progress bar
+        manager = Manager()
+        progress = manager.Value('i', 0)  # Shared value for progress tracking
+
+        # Compute the density in parallel for each batch
+        density_batches = []
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            for batch in tqdm(batch_generator(), desc=f"    - {caller} density", total=total_batches, unit="batch"):
+                num_batch_samples = len(batch)
+                
+                # Split the current batch into chunks for parallel processing
+                chunk_size = max(1, num_batch_samples // os.cpu_count())
+                chunk_kde_pairs = [(batch[i:i + chunk_size], kde) for i in range(0, num_batch_samples, chunk_size)]
+
+                # Parallel computation of densities for each chunk in the batch
+                batch_densities = list(executor.map(process_chunk, chunk_kde_pairs))
+
+                progress.value += 1
+
+                # Flatten the list of densities from all chunks in the current batch
+                density_batches.extend(batch_densities)
+
+        # Concatenate and reshape to match the grid
+        density = np.concatenate(density_batches).reshape(mesh_shape)
+
+        del YZ_data, grids, mesh_shape, kde, total_samples, density_batches
         return density
+
+
+
+
 
     
     # def predict(self, given_p: Dict[str, float] = None, tol = 0.25):

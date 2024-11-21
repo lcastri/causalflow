@@ -67,3 +67,10 @@ class ImageExt(Enum):
     PNG = ".png"
     PDF = ".pdf"
     JPG = ".jpg"
+    
+    
+class SampleMode(Enum):
+    """SampleMode Enumerator."""
+    
+    Variance = "variance"
+    Entropy = "entropy"

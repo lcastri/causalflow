@@ -3,7 +3,13 @@ from causalflow.basics.constants import *
 import numpy as np
 
 class Process():
-    def __init__(self, data: np.ndarray, varname: str, lag: int, nsample: int, data_type: DataType, node_type: NodeType):
+    def __init__(self, 
+                 data: np.ndarray, 
+                 varname: str, 
+                 lag: int, 
+                 nsample: int, 
+                 data_type: DataType, 
+                 node_type: NodeType):
         """
         Process contructer
 
