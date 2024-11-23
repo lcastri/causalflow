@@ -1,4 +1,3 @@
-# Imports
 import os
 import pickle
 
@@ -11,10 +10,8 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/results/RAL/causal reasoning/cie_context.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-# BAGNAME= ['BL100_21102024', 'BL75_29102024']
-BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
+BAGNAME= ['BL100_21102024', 'BL100_07112024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024', 'BL20_06112024']
 USE_SUBSAMPLED = True
 
 
@@ -43,7 +40,8 @@ cie = CIE(CM,
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
           batch_size = 10000,
-          model_path = 'CIE_allbags')
+          nsample=SampleMode.Variance,
+          model_path = 'CIE')
 
 start_time = time.time()
 
@@ -61,12 +59,12 @@ for bagname in BAGNAME:
                 filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             dfs.append(pd.read_csv(filename))
             
-concatenated_df = pd.concat(dfs, ignore_index=True)
-dfs = []
-idx = len(DATA_DICT)
-DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
-del concatenated_df
-cie.addObsData(DATA_DICT[idx])
+    concatenated_df = pd.concat(dfs, ignore_index=True)
+    dfs = []
+    idx = len(DATA_DICT)
+    DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
+    del concatenated_df
+    cie.addObsData(DATA_DICT[idx])
     
 cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 

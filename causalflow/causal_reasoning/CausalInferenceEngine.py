@@ -1,4 +1,6 @@
+import io
 import itertools
+import json
 import os
 import pickle
 from typing import Dict
@@ -23,7 +25,7 @@ class CausalInferenceEngine():
                  dag: DAG, 
                  data_type: Dict[str, DataType], 
                  node_type: Dict[str, NodeType], 
-                 nsample = SampleMode.Entropy, 
+                 nsample = SampleMode.Variance, 
                  batch_size: int = 10000, 
                  model_path: str = '', 
                  verbosity = CPLevel.INFO):
@@ -40,7 +42,9 @@ class CausalInferenceEngine():
             batch_size (int): Batch Size. Default 10000.
             verbosity (CPLevel, optional): Verbosity level. Defaults to DEBUG.
         """
+        os.makedirs(model_path, exist_ok=True)
         CP.set_verbosity(verbosity)
+        CP.set_logpath(os.path.join(model_path, 'log.txt'))
         CP.info("\n##")
         CP.info("## Causal Inference Engine")
         CP.info(f"## - Data Type:")
@@ -67,7 +71,6 @@ class CausalInferenceEngine():
         self.obs_id = -1
         self.int_id = -1
         
-        os.makedirs(model_path, exist_ok=True)
         filename = os.path.join(model_path, 'CIE_DB.h5')
         self.filename = filename
         # Check if the file exists
@@ -86,89 +89,98 @@ class CausalInferenceEngine():
         return any(n is NodeType.Context for n in self.node_type.values())
     
     
+    def extract_nsamples_from(self, id, context = None):
+        """
+        _summary_
+
+        Args:
+            id (_type_): _description_
+            context (_type_, optional): _description_. Defaults to None.
+
+        Raises:
+            KeyError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        with h5py.File(self.filename, 'r') as file:
+            group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+            dbn_group = file.get(group_name)
+            
+            if dbn_group is None: raise KeyError(f"{group_name} not present!")
+            
+            # Extract nsamples metadata directly
+            return json.loads(dbn_group.attrs["nsamples"])
+        
+    
     def get_resolutions(self):
         tol = {}
         Ds = self.load_obsDs()
-        if Ds:
-            for id in Ds:
-                if id not in tol: tol[id] = {}
-                if isinstance(Ds[id], dict):
-                    for context, d in Ds[id].items():
-                        DBN = self.load_DBN(id, context)
+        
+        if not Ds:
+            return tol
+
+        with h5py.File(self.filename, 'r') as file:
+            for id, data in Ds.items():
+                if id not in tol:
+                    tol[id] = {}
+
+                if isinstance(data, dict):  # Multiple contexts
+                    for context, d in data.items():
+                        nsamples = self.extract_nsamples_from(id, context)
+                        
                         if context not in tol[id]: tol[id][context] = {}
+
                         for f in self.DAG['system'].features:
-                            tol[id][context][f] = (np.max(np.array(d.d[f])) - np.min(np.array(d.d[f])))/DBN.nsamples[f]
+                            tol[id][context][f] = (
+                                (np.max(np.array(d.d[f])) - np.min(np.array(d.d[f]))) / nsamples[f]
+                            )
                 else:
-                    DBN = self.load_DBN(id)
+                    nsamples = self.extract_nsamples_from(id)
+
                     for f in self.DAG['system'].features:
-                        tol[id][f] = (np.max(np.array(Ds[id].d[f])) - np.min(np.array(Ds[id].d[f])))/DBN.nsamples[f]
-        return tol
+                        tol[id][f] = (
+                            (np.max(np.array(data.d[f])) - np.min(np.array(data.d[f]))) / nsamples[f]
+                        )
+
+        return tol     
+
+
+    def save_D(self, d:Data, id, context=None):
+        # Define the group name in the HDF5 file
+        group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
+        
+        with h5py.File(self.filename, 'a') as f:
+            # Check if the group exists, and delete it if it does
+            if group_name in f: del f[group_name]
+            
+            # Create the group where the data will be stored
+            group = f.create_group(group_name)
+
+            # Store the DataFrame directly as a dataset in HDF5
+            # Convert the DataFrame to a numpy array and store it
+            group.create_dataset('data', data=d.d.to_numpy())
+            
+            # Store the features as a variable-length string array in HDF5
+            group.create_dataset('columns', data=np.array(d.features, dtype=h5py.special_dtype(vlen=str)))  # 'features' assumed to be a list of strings
+     
     
-    
-    def save_DAG(self, id, dag):
-        pickle_path = os.path.join(self.model_path, f"DAG_{id}.pkl")
-        with open(pickle_path, 'wb') as file:
-            pickle.dump(dag, file)
-        with h5py.File(self.filename, 'a') as f:
-            group_name = f"DAGs/{id}"
-            if group_name in f:
-                del f[group_name]
-            f.create_dataset(group_name, data=pickle_path)
-
-
-    def save_DBN(self, dbn, id, context=None):
-        pickle_name = f"DBN_{id}_{context}.pkl" if context is not None else f"DBN_{id}.pkl"
-        pickle_path = os.path.join(self.model_path, pickle_name)
-        with open(pickle_path, 'wb') as file:
-            pickle.dump(dbn, file)
-        with h5py.File(self.filename, 'a') as f:
-            group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
-            if group_name in f:
-                del f[group_name]
-            f.create_dataset(group_name, data=pickle_path)
-
-
-    def save_D(self, d, id, context=None):
-        pickle_name = f"D{id}_{context}.pkl" if context is not None else f"D_{id}.pkl"
-        pickle_path = os.path.join(self.model_path, pickle_name)
-        with open(pickle_path, 'wb') as file:
-            pickle.dump(d, file)
-        with h5py.File(self.filename, 'a') as f:
-            group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
-            if group_name in f:
-                del f[group_name]
-            f.create_dataset(group_name, data=pickle_path)
-
-
-    def load_DAG(self, id):
-        with h5py.File(self.filename, 'r') as f:
-            group_name = f"DAGs/{id}"
-            if group_name in f:
-                pickle_path = f[group_name][()].decode()  # Read the path
-                with open(pickle_path, 'rb') as file:
-                    return pickle.load(file)
-            else:
-                return None
-
-
-    def load_DBN(self, id, context=None):
-        with h5py.File(self.filename, 'r') as f:
-            group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
-            if group_name in f:
-                pickle_path = f[group_name][()].decode()  # Read the path
-                with open(pickle_path, 'rb') as file:
-                    return pickle.load(file)
-            else:
-                return None
-
-
     def load_D(self, id, context=None):
+        """Load DataFrame `d` directly from the HDF5 file."""
         with h5py.File(self.filename, 'r') as f:
+            # Define the group name
             group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
+            
+            # Check if the group exists in the file
             if group_name in f:
-                pickle_path = f[group_name][()].decode()  # Read the path
-                with open(pickle_path, 'rb') as file:
-                    return pickle.load(file)
+                # Load the data and columns
+                group = f[group_name]
+                data = group['data'][:]  # Load the dataset
+                columns = [str(col, 'utf-8') if isinstance(col, bytes) else str(col) for col in group['columns'][:]]  # Convert to Python strings
+                
+                # Reconstruct the DataFrame
+                df = Data(data, vars=columns)
+                return df
             else:
                 return None
             
@@ -196,10 +208,13 @@ class CausalInferenceEngine():
         return Ds
     
     
-    def alreadyEstimated(self, id, context):
-        d = self.load_D(id, context)
-        dbn = self.load_DBN(id, context)
-        return d is not None and dbn is not None
+    def alreadyEstimated(self, id, context=None):
+        """Check if both the D and DBN groups exist in the HDF5 file."""
+        d_group_name = f"Ds/{id}/{context}" if context is not None else f"Ds/{id}"
+        dbn_group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+        
+        with h5py.File(self.filename, 'r') as f:
+            return d_group_name in f and dbn_group_name in f
 
 
     def getContextData(self, data, context):
@@ -308,12 +323,15 @@ class CausalInferenceEngine():
         if not self.isThereContext:
             CP.info(f"\n## Building DBN for DAG ID {str(id)}")
             _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], data, self.nsample, self.data_type, self.node_type, self.batch_size)
-            self.save_DBN(_tmp_dbn, id)
+            _tmp_dbn.save(self.filename, id)
+            del _tmp_dbn
             self.save_D(data, id)
         else:
             self.contexts = self._extract_contexts(data)
             for context in self.contexts:
-                if self.alreadyEstimated(id, context): continue
+                if self.alreadyEstimated(id, context): 
+                    CP.info(f"\n## DBN {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])} alredy processed!")
+                    continue
                 
                 d = self.getContextData(data, context)
                 if not d.empty:
@@ -323,26 +341,29 @@ class CausalInferenceEngine():
                     if _tmp is not None:
                         id_context, same_features = _tmp
                         pID, pContext = id_context
-                        CP.info(f"\n## Recycling DBN {pID}-{', '.join([f'{c[0]}={c[1]}' for c in pContext])}\n   -> DBN ID {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                        CP.info(f"\n## Recycling DBN {pID}-{', '.join([f'{c[0]}={c[1]}' for c in pContext])}")
+                        CP.info(f"## -> DBN ID {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])}")
                         _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
                                                           _tmp_d, 
                                                           self.nsample, 
                                                           self.data_type, 
                                                           self.node_type, 
                                                           self.batch_size, 
-                                                          recycle = (same_features, self.load_DBN(pID, pContext)))
+                                                          recycle = (same_features, pID, pContext, self.extract_nsamples_from(pID, pContext)))
                     else:
-                        CP.info(f"\n## Building DBN ID {id}\n   Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                        CP.info(f"\n## Building DBN ID {id}")
+                        CP.info(f"## Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
                         _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
                                                           _tmp_d, 
                                                           self.nsample, 
                                                           self.data_type, 
                                                           self.node_type, 
                                                           self.batch_size)
-                    self.save_DBN(_tmp_dbn, id, context)
+                    _tmp_dbn.save(self.filename, id, context)
+                    del _tmp_dbn
                     self.save_D(_tmp_d, id, context)
-                    gc.collect()
-        
+                    del _tmp_d
+        gc.collect()
         self.tols = self.get_resolutions()
         return id
         
@@ -500,10 +521,10 @@ class CausalInferenceEngine():
                         sources = []
                         
                         # For non-interventional population, find the source using the intersection of all parent values # FIXME: this must be inside the ELSE
-                        context = CausalInferenceEngine.get_combo((('B_S', int(res[t, self.DAG['complete'].features.index('B_S')])), 
-                                                                   ('WP', int(res[t, self.DAG['complete'].features.index('WP')])), 
-                                                                   ('TOD', int(res[t, self.DAG['complete'].features.index('TOD')]))))
-                        # context = None
+                        # context = CausalInferenceEngine.get_combo((('B_S', int(res[t, self.DAG['complete'].features.index('B_S')])), 
+                        #                                            ('WP', int(res[t, self.DAG['complete'].features.index('WP')])), 
+                        #                                            ('TOD', int(res[t, self.DAG['complete'].features.index('TOD')]))))
+                        context = None
                         tmp_pID, tmp_occ = self._findSource_intersection(given_p, context) # FIXME: this must be inside the ELSE
                         sources.append((tmp_pID, tmp_occ)) # FIXME: this must be inside the ELSE
 
@@ -514,9 +535,12 @@ class CausalInferenceEngine():
                         if pID is None:
                             e = np.nan
                         else:
-                            dbn = self.load_DBN(pID, context)
-                            tol = self.tols[pID][context] if context is not None else self.tols[pID]
-                            d, e = dbn.dbn[self.DAG['system'].features[var]].predict(given_p, tol)
+                            # dbn = self.load_DBN(pID, context)
+                            DBN = DynamicBayesianNetwork.load(self.filename, self.DAG['system'], self.load_D(pID, context), 
+                                                              self.batch_size, self.data_type, self.node_type,
+                                                              pID, context)
+                            # tol = self.tols[pID][context] if context is not None else self.tols[pID]
+                            _, e = DBN.dbn[self.DAG['system'].features[var]].predict(given_p)
                         # self.plot_pE(self.DBNs[sourceP][self.DAG.features[f]].y, list(given_p.keys()), d, e, True)
                         res[t, f] = e
         return res[self.DAG['complete'].max_lag:, :]

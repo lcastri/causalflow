@@ -13,7 +13,7 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_optimised/cie.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_allbags_again/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
@@ -34,7 +34,7 @@ for bagname in BAGNAME:
             dfs.append(pd.read_csv(filename))
             
 concat_df = pd.concat(dfs, ignore_index=True)
-concat_df.drop(concat_df[concat_df['B_S'] == 1].index, inplace=True)
+# concat_df.drop(concat_df[concat_df['B_S'] == 1].index, inplace=True)
 DATA_DICT_TRAIN = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[:len(concat_df) - treatment_len], vars = CM.features + ["pf_elapsed_time"])
 DATA_DICT_TEST = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[len(concat_df) - treatment_len:], vars = CM.features + ["pf_elapsed_time"])
 T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], DATA_DICT_TEST.d["pf_elapsed_time"].values[0:]), axis=0)

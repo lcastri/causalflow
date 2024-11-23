@@ -83,7 +83,7 @@ NODE_TYPE = {
     "X_1": NodeType.System,
     "X_2": NodeType.System,
 }  
-cie = CIE(CM, nsample=50, data_type=DATA_TYPE, node_type=NODE_TYPE, model_path='testDBN')
+cie = CIE(CM, data_type=DATA_TYPE, node_type=NODE_TYPE, model_path='testDBN')
 Aobs_id = cie.addObsData(dfA_obs)
 # Aint_id = cie.addIntData('X_1', dfA_int)
 Aint_id = cie.addObsData(dfA_int)

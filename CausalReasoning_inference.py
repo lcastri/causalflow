@@ -14,7 +14,7 @@ INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/c
 BAGNAME = 'BL100_21102024'
 tod = TOD.LUNCH.value
 wp = WP.TABLE2.value
-with open('CIE_200samples/cie.pkl', 'rb') as f:
+with open('CIE_allbags_again/cie.pkl', 'rb') as f:
     cie = CIE.load(pickle.load(f))
 lag = cie.DAG['complete'].max_lag
 treatment_len = 10

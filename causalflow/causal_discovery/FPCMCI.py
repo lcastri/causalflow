@@ -112,7 +112,7 @@ class FPCMCI(CausalDiscoveryMethod):
         if not nofilter: self._print_differences(f_dag, self.CM)
         self.save()
         
-        if self.resfolder is not None: self.logger.close()
+        # if self.resfolder is not None: self.logger.close()
         return self.CM
               
     

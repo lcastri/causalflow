@@ -74,3 +74,4 @@ class SampleMode(Enum):
     
     Variance = "variance"
     Entropy = "entropy"
+    Full = "full"

@@ -1,16 +1,19 @@
+import ast
 import copy
+import json
 import numpy as np
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Density_utils import normalise
 from causalflow.basics.constants import SampleMode
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
-from causalflow.causal_reasoning.Density_CPU import Density
+from causalflow.causal_reasoning.Density import Density
 from causalflow.causal_reasoning.Process import Process
 from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *
 from typing import Dict
 from sklearn.neighbors import KernelDensity
+import h5py
 
 class DynamicBayesianNetwork():
     def __init__(self, 
@@ -20,6 +23,7 @@ class DynamicBayesianNetwork():
                  data_type: Dict[str, DataType], 
                  node_type: Dict[str, NodeType], 
                  batch_size: int,
+                 dbn = None,
                  recycle = None):
         """
         Class constructor.
@@ -27,43 +31,52 @@ class DynamicBayesianNetwork():
         Args:
             dag (DAG): DAG from which deriving the DBN.
             data (Data): Data associated with the DAG.
-            nsample (SampleMode/int): if SampleMode - Mode to discovery the number of samples.
-                                      if int- Number of samples used for density estimation.
+            nsample (SampleMode/int/dict): if SampleMode - Mode to discovery the number of samples.
+                                           if int - Common number of samples for all the variables.
+                                           if dict - Number of samples for each variable.
             data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}.
             node_type (dict[str:NodeType]): node type for each node (system|context). E.g., {"X_2": NodeType.Context}.
             batch_size (int): Batch Size.
             recycle ((list[str], DynamicBayesianNetwork)): tuple containing the list of features to recycle and the 
                                                            DBN from which extract their densities. Default None.
         """
-        if not isinstance(nsample, SampleMode) and not isinstance(nsample, int):
-            raise ValueError("nsample field must be either SampleMode or int!")
-        
-        if recycle is not None: Fs, DBN = recycle
+        if not isinstance(nsample, SampleMode) and not isinstance(nsample, int) and not isinstance(nsample, dict):
+            raise ValueError("nsample field must be either SampleMode or int or dict!")
         
         self.data_type = data_type
         self.node_type = node_type
-        if isinstance(nsample, SampleMode):
-            self.nsamples = DynamicBayesianNetwork.estimate_optimal_samples(data, nsample)
+        if recycle is not None: 
+            Fs, recycle_id, recycle_context, self.nsamples = recycle
         else:
-            self.nsamples = {f: nsample for f in data.features}
-        for k, v in self.nsamples.items(): CP.info(f"    {k} samples : {v}")
+            if isinstance(nsample, SampleMode):
+                self.nsamples = DynamicBayesianNetwork.estimate_optimal_samples(data, nsample)
+            elif isinstance(nsample, int):
+                self.nsamples = {f: nsample for f in data.features}
+            elif isinstance(nsample, dict):
+                self.nsamples = nsample                
         
-        self.dbn = {node: None for node in dag.g}
-        for node in self.dbn:
-            Y = Process(data.d[node].to_numpy(), node, 0, self.nsamples[node], self.data_type[node], self.node_type[node])
-            parents = self._extract_parents(node, data, dag)
-            if recycle is not None and node in Fs and all(p in Fs for p in parents.keys()):
-                CP.info(f"\n    ### Recycling {node} densities")
-                self.dbn[node] = copy.deepcopy(DBN.dbn[node])
-            else:
-                if parents is None:
-                    CP.info(f"\n    ### Target variable: {node}")
+        if dbn is None:
+            for k, v in self.nsamples.items(): CP.info(f"    {k} samples : {v}")
+            self.dbn = {node: None for node in dag.g}
+            for node in self.dbn:
+                Y = Process(data.d[node].to_numpy(), node, 0, self.nsamples[node], self.data_type[node], self.node_type[node])
+                parents = self._extract_parents(node, data, dag, self.nsamples, self.data_type, self.node_type)
+                if recycle is not None and node in Fs and all(p in Fs for p in parents.keys()):
+                    CP.info(f"\n    ### Recycling {node} densities")
+                    self.dbn[node] = (recycle_id, recycle_context)
                 else:
-                    CP.info(f"\n    ### Target variable: {node} - parents {', '.join(list(parents.keys()))}")
-                self.dbn[node] = Density(Y, batch_size, parents)
-            
-        # for node in self.dbn: self.computeDoDensity(node, data.features, dag)        
+                    if parents is None:
+                        CP.info(f"\n    ### Target variable: {node}")
+                    else:
+                        CP.info(f"\n    ### Target variable: {node} - parents {', '.join(list(parents.keys()))}")
+                    self.dbn[node] = Density(Y, batch_size, parents)
+                
+            # for node in self.dbn: self.computeDoDensity(node, data.features, dag)
+        else:
+            self.dbn = dbn          
+              
         del dag, data, recycle
+
         
     @staticmethod
     def estimate_entropy(data, bandwidth=0.5):
@@ -100,7 +113,7 @@ class DynamicBayesianNetwork():
         Allocate samples based on the entropy of each variable.
         
         Args:
-            data (ndarray): The input data matrix (samples x variables).
+            data (Data): Data obj.
             max_samples (int): Maximum number of samples to allocate.
         
         Returns:
@@ -115,15 +128,18 @@ class DynamicBayesianNetwork():
             total_variance = np.sum(variances)
             proportions = variances / total_variance
             
+        elif mode is SampleMode.Full:
+            return {f: data.T for f in data.features}
+            
         # Scale the sample size based on the variance proportion
         optimal_samples = (proportions * data.T).astype(int)
             
         # Ensure at least 10 samples per variable (or some minimum threshold)
         optimal_samples = np.maximum(optimal_samples, 10)
-        return {f: s for f, s in zip(*[data.features, optimal_samples])}    
+        return {f: int(s) for f, s in zip(*[data.features, optimal_samples])}    
         
-        
-    def _extract_parents(self, node, data, dag: DAG):
+    @staticmethod
+    def _extract_parents(node, data, dag: DAG, nsamples, data_type, node_type):
         """
         Extract the parents of a specified node.
 
@@ -133,7 +149,7 @@ class DynamicBayesianNetwork():
         Returns:
             dict: parents express as dict[parent name (str), parent process (Process)].
         """
-        parents = {s[0]: Process(data.d[s[0]].to_numpy(), s[0], s[1], self.nsamples[s[0]], self.data_type[s[0]], self.node_type[s[0]]) 
+        parents = {s[0]: Process(data.d[s[0]].to_numpy(), s[0], s[1], nsamples[s[0]], data_type[s[0]], node_type[s[0]]) 
                    for s in dag.g[node].sources}
         if not parents: return None
         return parents
@@ -223,4 +239,124 @@ class DynamicBayesianNetwork():
             
             del adjset, p_y_do_x_adj, p_y_do_x, p_adj, p_yxadj, p_xadj, p_y_given_xadj
         
+    
+    def save(self, filename: str, id, context = None):
+        """Save the DBN object to an HDF5 file."""
+        with h5py.File(filename, 'a') as f:
+            group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+            if group_name in f: del f[group_name]
+            dbn_group = f.require_group(group_name)
+            dbn_group.attrs["nsamples"] = json.dumps(self.nsamples)
+            for node, density in self.dbn.items():                        
+                node_group = dbn_group.require_group(node)
+                node_group.attrs["linked"] = isinstance(density, tuple)
+                if not node_group.attrs["linked"]:
+                    node_group.create_dataset("PriorDensity", data=density.PriorDensity)
+                    node_group.create_dataset("JointDensity", data=density.JointDensity)
+                    if density.parents is not None:
+                        node_group.create_dataset("ParentJointDensity", data=density.ParentJointDensity)
+                    else:
+                        node_group.create_dataset("ParentJointDensity", data=[])
+                    node_group.create_dataset("CondDensity", data=density.CondDensity)
+                    node_group.create_dataset("MarginalDensity", data=density.MarginalDensity)
+                else:
+                    node_group.attrs["linked_to"] = json.dumps({"id": str(density[0]), "context": str(density[1])})
+            
+    @staticmethod
+    def load(filename: str, dag, data, batch_size, data_type, node_type, id, context = None):
+        """Load the DBN object from an HDF5 file."""
+        with h5py.File(filename, 'r') as f:          
+            
+            # Load the DBN group
+            group_name = f"DBNs/{id}/{context}" if context is not None else f"DBNs/{id}"
+            dbn_group = f.get(group_name)
+            if dbn_group is None: raise KeyError(f"{group_name} group not found in the file.")
+            nsamples = json.loads(dbn_group.attrs["nsamples"])
+            
+            dbn = {}
+            for node in dbn_group:
+                node_group = dbn_group.get(node)
+                
+                Y = Process(data.d[node].to_numpy(), node, 0, 
+                            nsamples[node], 
+                            data_type[node], 
+                            node_type[node])
+                if not node_group.attrs["linked"]:
+                    prior = node_group["PriorDensity"][:]
+                    joint = node_group["JointDensity"][:]
+                    parent_joint_density = node_group["ParentJointDensity"][:]
+                    if parent_joint_density.size == 0: parent_joint_density = None
+                    parentjoint = node_group["ParentJointDensity"][:]
+                    conditional = node_group["CondDensity"][:]
+                    marginal = node_group["MarginalDensity"][:]
+                else:
+                    # Resolve linked node from the other DBN
+                    linked_info = json.loads(node_group.attrs["linked_to"])
+                    linked_id = ast.literal_eval(linked_info["id"])
+                    linked_context = ast.literal_eval(linked_info["context"])
+                    
+                    # Only load the linked node's densities, not the entire DBN
+                    prior, joint, parentjoint, conditional, marginal = DynamicBayesianNetwork.load_density_from_dbn_file(
+                        filename, linked_id, linked_context, node
+                    )
+                    
+                dbn[node] = Density(
+                        y = Y,
+                        batch_size=batch_size,
+                        parents=DynamicBayesianNetwork._extract_parents(node, data, dag, nsamples, data_type, node_type), # Adjust as needed if parents are available in the HDF5 file
+                        
+                        # Load precomputed densities directly
+                        prior_density=prior,
+                        joint_density=joint,
+                        parent_joint_density=parentjoint,
+                        cond_density=conditional,
+                        marginal_density=marginal
+                    )
+
+        # Rebuild the DBN object, assuming dag and data need to be recreated
+        return DynamicBayesianNetwork(
+            dag=dag,  
+            data=data,
+            nsample=nsamples,
+            data_type=data_type,
+            node_type=node_type,
+            batch_size=batch_size,
+            dbn=dbn
+        )
         
+    @staticmethod
+    def load_density_from_dbn_file(filename, linked_id, linked_context, node):
+        """Helper function to load a specific node's density from the DBN file, handling recursive links."""
+        with h5py.File(filename, 'r') as f:
+            # Define the group name based on the linked ID and context
+            group_name = f"DBNs/{linked_id}/{linked_context}"
+            dbn_group = f.get(group_name)
+            if dbn_group is None:
+                raise KeyError(f"{group_name} group not found in the file.")
+
+            # Get the specific node's group
+            node_group = dbn_group.get(node)
+            if node_group is None:
+                raise KeyError(f"Node {node} not found in the file.")
+
+            # Check if the node is linked to another DBN
+            if node_group.attrs.get("linked", False):
+                # Parse the linked ID and context
+                linked_info = json.loads(node_group.attrs["linked_to"])
+                new_linked_id = linked_info["id"]
+                new_linked_context = linked_info["context"]
+
+                # Recurse with the new linked ID, context, and node
+                return DynamicBayesianNetwork.load_density_from_dbn_file(
+                    filename, new_linked_id, new_linked_context, node
+                )
+            else:
+                # Load the densities for the specific node
+                prior_density = node_group["PriorDensity"][:]
+                joint_density = node_group["JointDensity"][:]
+                parent_joint_density = node_group["ParentJointDensity"][:]
+                cond_density = node_group["CondDensity"][:]
+                marginal_density = node_group["MarginalDensity"][:]
+
+        # Return the densities as a tuple or a custom object if necessary
+        return (prior_density, joint_density, parent_joint_density, cond_density, marginal_density)
