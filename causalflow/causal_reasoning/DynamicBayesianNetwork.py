@@ -108,35 +108,43 @@ class DynamicBayesianNetwork():
         return entropy
 
     @staticmethod
-    def estimate_optimal_samples(data, mode = SampleMode.Entropy):
+    def estimate_optimal_samples(data, mode=SampleMode.Entropy):
         """
-        Allocate samples based on the entropy of each variable.
+        Allocate samples based on the entropy or variance of each variable.
         
-        Args:
-            data (Data): Data obj.
-            max_samples (int): Maximum number of samples to allocate.
+        Parameters
+        ----------
+        data : Data
+            Data obj.
+        mode : Sample mode. Options:
+               'entropy': Allocate samples based on the entropy of each variable.
+               'variance': Allocate samples based on the variance of each variable.
+               'full': Allocate all samples to each variable.
         
-        Returns:
-            optimal_samples (ndarray): Sample sizes for each variable based on entropy.
+        Returns
+        -------
+        optimal_samples : dict
+            Sample sizes for each variable based on the selected mode.
         """
         if mode is SampleMode.Entropy:
-            entropy = DynamicBayesianNetwork.estimate_entropy(data.d.values)
-            proportions = entropy / np.sum(entropy)  # Normalize entropy values            
+            entropies = DynamicBayesianNetwork.estimate_entropy(data.d.values)
+            proportions = entropies / np.sum(entropies)
         
         elif mode is SampleMode.Variance:
             variances = np.var(data.d.values, axis=0)
             total_variance = np.sum(variances)
             proportions = variances / total_variance
-            
+        
         elif mode is SampleMode.Full:
-            return {f: data.T for f in data.features}
-            
-        # Scale the sample size based on the variance proportion
+            return {feature: data.T for feature in data.features}
+        
+        # Scale the sample size based on the proportion
         optimal_samples = (proportions * data.T).astype(int)
-            
-        # Ensure at least 10 samples per variable (or some minimum threshold)
+        
+        # Ensure at least 10 samples per variable
         optimal_samples = np.maximum(optimal_samples, 10)
-        return {f: int(s) for f, s in zip(*[data.features, optimal_samples])}    
+        
+        return {feature: int(samples) for feature, samples in zip(data.features, optimal_samples)}
         
     @staticmethod
     def _extract_parents(node, data, dag: DAG, nsamples, data_type, node_type):
