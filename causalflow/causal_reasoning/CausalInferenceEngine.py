@@ -9,7 +9,7 @@ import numpy as np
 from causalflow.CPrinter import CP
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Utils import *
-from causalflow.causal_reasoning.DynamicBayesianNetwork_GMM import DynamicBayesianNetwork
+from causalflow.causal_reasoning.DynamicBayesianNetwork import DynamicBayesianNetwork
 from causalflow.basics.constants import SampleMode
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
