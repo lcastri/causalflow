@@ -86,7 +86,7 @@ NODE_TYPE = {
 cie = CIE(CM, data_type=DATA_TYPE, node_type=NODE_TYPE, model_path='testDBN')
 Aobs_id = cie.addObsData(dfA_obs)
 # Aint_id = cie.addIntData('X_1', dfA_int)
-Aint_id = cie.addObsData(dfA_int)
+# Aint_id = cie.addObsData(dfA_int)
 # cie.save('/home/lcastri/git/causalflow/results/dbn/cie.pkl')
 
 res = cie.whatIf('X_1', 

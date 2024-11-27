@@ -1,60 +1,21 @@
-import copy
-from itertools import product
-import math
-import os
-from multiprocessing import Manager
-import numpy as np
-from concurrent.futures import ProcessPoolExecutor
-from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from typing import Dict
-# from sklearn.neighbors import KernelDensity
-from scipy.stats import gaussian_kde
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Utils import *
-
-
-def compute_density(samples, kde):
-    """
-    Compute density for a subset of samples.
-
-    Args:
-        samples (ndarray): The input samples for which to compute density.
-        kde (KernelDensity): Fitted KernelDensity model.
-
-    Returns:
-        ndarray: Density for the input samples.
-    """
-    samples = samples.copy()  # Ensure writable samples
-    # log_density = kde.score_samples(samples)
-    # return np.exp(log_density)
-    return kde.evaluate(samples)
-
-
-def process_chunk(chunk_kde):
-    """
-    Define a helper function for imap that takes a chunk and kde
-
-    Args:
-        chunk_kde (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    chunk, kde = chunk_kde
-    return compute_density(chunk, kde)
+from sklearn.mixture import GaussianMixture
+import numpy as np
+from scipy.stats import multivariate_normal
  
- 
+
 class Density():       
     def __init__(self, 
                  y: Process, 
-                 batch_size: int, 
                  parents: Dict[str, Process] = None,
+                 max_components = 50,
                  prior_density=None, 
                  joint_density=None, 
                  parent_joint_density=None, 
-                 cond_density=None, 
                  marginal_density=None):
         """
         Class constructor.
@@ -66,12 +27,11 @@ class Density():
             prior_density (np.array, optional): Precomputed prior density. Defaults to None.
             joint_density (np.array, optional): Precomputed joint density. Defaults to None.
             parent_joint_density (np.array, optional): Precomputed parent joint density. Defaults to None.
-            cond_density (np.array, optional): Precomputed conditional density. Defaults to None.
             marginal_density (np.array, optional): Precomputed marginal density. Defaults to None.
         """
         self.y = y
-        self.batch_size = batch_size
         self.parents = parents
+        self.max_components = max_components
         self.DO = {}
 
         if self.parents is not None:
@@ -83,7 +43,6 @@ class Density():
         self.PriorDensity = prior_density
         self.JointDensity = joint_density
         self.ParentJointDensity = parent_joint_density
-        self.CondDensity = cond_density
         self.MarginalDensity = marginal_density
         
         # Check if any density is None and run _preprocess() if needed
@@ -93,8 +52,6 @@ class Density():
         if self.PriorDensity is None: self.PriorDensity = self.computePriorDensity()
         if self.JointDensity is None: self.JointDensity = self.computeJointDensity()
         if self.ParentJointDensity is None: self.ParentJointDensity = self.computeParentJointDensity()
-        if self.CondDensity is None: self.CondDensity = self.computeConditionalDensity()
-        if self.MarginalDensity is None: self.MarginalDensity = self.computeMarginalDensity()
             
         
     @property
@@ -121,296 +78,246 @@ class Density():
                 p.align(self.MaxLag)
             
             
+    def fit_gmm(self, data):
+        """
+        Fit a Gaussian Mixture Model (GMM) to the data.
+
+        Args:
+            data (ndarray): Data to fit the GMM.
+            n_components (int): Number of Gaussian components.
+
+        Returns:
+            dict: Parameters of the GMM (means, covariances, weights).
+        """
+        # Initialize lists to store AIC and BIC values
+        aic = []
+        bic = []
+        
+        # Range of components to test
+        components = range(1, self.max_components + 1)
+
+        # Fit GMMs for different numbers of components and compute AIC/BIC
+        for n in components:
+            gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
+            gmm.fit(data)
+            aic.append(gmm.aic(data))
+            bic.append(gmm.bic(data))
+
+        # Choose the optimal number of components based on the minimum AIC or BIC
+        optimal_n_components_aic = components[np.argmin(aic)]
+        optimal_n_components_bic = components[np.argmin(bic)]
+
+        CP.debug(f"Optimal number of components based on AIC: {optimal_n_components_aic}")
+        CP.debug(f"Optimal number of components based on BIC: {optimal_n_components_bic}")
+        
+        # Choose the optimal number of components (you can choose AIC or BIC-based on preference)
+        optimal_n_components = optimal_n_components_aic  # Or use BIC: optimal_n_components_bic
+        
+        # Fit the GMM with the chosen optimal number of components
+        gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
+        gmm.fit(data)
+        
+        # Return the parameters as a dictionary
+        return {
+            "means": gmm.means_,
+            "covariances": gmm.covariances_,
+            "weights": gmm.weights_
+        }
+
     def computePriorDensity(self):
         """
-        Compute the prior density p(y).
+        Compute the prior density p(y) using GMM.
 
         Returns:
-            ndarray: prior density p(y).
+            dict: GMM parameters for the prior density.
         """
-        if self.PriorDensity is None: 
-            self.PriorDensity = Density.estimate('Prior', self.y, self.batch_size)
-        return self.PriorDensity
-        
-        
+        CP.info("    - Prior density")
+        return self.fit_gmm(self.y.aligndata)
+
     def computeJointDensity(self):
         """
-        Compute the joint density p(y, parents).
+        Compute the joint density p(y, parents) using GMM.
 
         Returns:
-            ndarray: joint density p(y, parents).
+            dict: GMM parameters for the joint density.
         """
-        if self.JointDensity is None:
-            if self.parents is not None:
-                yz = [p for p in self.parents.values()]
-                yz.insert(0, self.y)
-                self.JointDensity = Density.estimate('Joint', yz, self.batch_size)
-                del yz
-            else:
-                self.JointDensity = Density.estimate('Joint', self.y, self.batch_size)
-        return self.JointDensity
-    
-    
+        CP.info("    - Joint density")
+        if self.parents:
+            processes = [self.y] + list(self.parents.values())
+            data = np.column_stack([p.aligndata for p in processes])
+        else:
+            data = self.y.aligndata
+
+        return self.fit_gmm(data)
+
     def computeParentJointDensity(self):
         """
-        Compute the parents's joint density p(parents).
+        Compute the joint density of the parents p(parents) using GMM.
 
         Returns:
-            ndarray: parents's joint density p(parents).
+            dict: GMM parameters for the parents' joint density.
         """
-        if self.ParentJointDensity is None:
-            if self.parents is not None: 
-                self.ParentJointDensity = Density.estimate('Parent', [p for p in self.parents.values()], self.batch_size)
-                self.ParentJointDensity = self.ParentJointDensity
-        return self.ParentJointDensity
-    
-         
-    def computeConditionalDensity(self):
-        """
-        Compute the conditional density p(y|parents) = p(y, parents) / p(parents).
+        CP.info("    - Parent joint density")
+        if self.parents:
+            data = np.column_stack([p.aligndata for p in self.parents.values()])
+            return self.fit_gmm(data)
+        return None
 
-        Returns:
-            ndarray: conditional density p(y|parents) = p(y, parents) / p(parents).
-        """
-        CP.info("    - Conditional density")
-        if self.CondDensity is None:
-            if self.parents is not None:
-                self.CondDensity = self.JointDensity / self.ParentJointDensity[np.newaxis, :] + np.finfo(float).eps
-            else:
-                self.CondDensity = self.PriorDensity
-        return self.CondDensity
-    
-    
-    def computeMarginalDensity(self):
-        """
-        Compute the marginal density p(y) = \sum_parents p(y, parents).
-
-        Returns:
-            ndarray: marginal density p(y) = \sum_parents p(y, parents).
-        """
-        CP.info("    - Marginal density")
-        if self.MarginalDensity is None:
-            if self.parents is None:
-                self.MarginalDensity = self.PriorDensity
-            else:
-                # Sum over parents axis
-                self.MarginalDensity = np.sum(
-                    self.JointDensity, axis=tuple(range(1, len(self.JointDensity.shape)))
-                )
-        return self.MarginalDensity
-    
-    # @staticmethod
-    # def compute_density_parallel(caller, kde, YZ_samples, batch_size):
+    # def computeMarginalDensity(self):
     #     """
-    #     Compute the density for a set of samples in parallel, processing in batches to reduce memory usage.
-
-    #     Args:
-    #         caller (str): Identifier for the caller, used in tqdm display.
-    #         kde (KernelDensity): Fitted KernelDensity model.
-    #         YZ_samples (ndarray): Samples for which to compute the density.
-    #         batch_size (int): Number of samples to process in each batch.
+    #     Compute the marginal density p(y).
 
     #     Returns:
-    #         ndarray: Computed density for the input samples.
+    #         dict: GMM parameters for the marginal density.
     #     """
-    #     YZ_samples = np.array(YZ_samples, copy=True)
-    #     num_samples = len(YZ_samples)
-    #     if num_samples == 0:
-    #         return np.array([])
-
-    #     # Get the number of CPU cores available
-    #     available_cores = os.cpu_count()
-    #     n_jobs = min(available_cores, num_samples)
-
-    #     # Initialize list to collect densities from each batch
-    #     density = np.empty(num_samples, dtype=np.float32)  # Pre-allocate the array
-
-    #     # Create a persistent pool for all batch processing
-    #     with ProcessPoolExecutor(max_workers=n_jobs) as executor:
-    #         # Process in batches
-    #         for batch_start in tqdm(range(0, num_samples, batch_size), desc=f"    - {caller} density", unit="batch"):
-    #             batch = YZ_samples[batch_start:batch_start + batch_size]
-    #             num_batch_samples = len(batch)
-                
-    #             # Split the current batch into chunks for parallel processing
-    #             chunk_size = max(1, num_batch_samples // n_jobs)
-    #             chunk_kde_pairs = [(batch[i:i + chunk_size], kde) for i in range(0, num_batch_samples, chunk_size)]
-
-    #             # Parallel computation of densities for each chunk in the batch
-    #             batch_densities = list(executor.map(process_chunk, chunk_kde_pairs))
-
-    #             # Concatenate the densities from all chunks in the current batch
-    #             density[batch_start:batch_start + num_batch_samples] = np.concatenate(batch_densities)
-        
-    #     # Concatenate densities from all batches
-    #     return density
- 
-    # @staticmethod
-    # def estimate(caller, YZ, batch_size):
-    #     """
-    #     Estimate the density through KDE.
-
-    #     Args:
-    #         YZ (Process or [Process]): Process(es) for density estimation.
-
-    #     Returns:
-    #         ndarray: density.
-    #     """
-    #     if not isinstance(YZ, list): YZ = [YZ]
-        
-    #     YZ_data = np.column_stack([yz.aligndata for yz in YZ])
-    #     YZ_mesh = np.meshgrid(*[yz.samples for yz in YZ], indexing='ij')
-    #     YZ_samples = np.column_stack([yz.ravel() for yz in YZ_mesh])
-        
-    #     grids = [yz.samples for yz in YZ]
-    #     mesh_shape = tuple(len(grid) for grid in grids)
-        
-    #     mesh_shape = YZ_mesh[0].shape
-    #     del YZ_mesh
-    #     # Create the grid search
-    #     with warnings.catch_warnings():
-    #         warnings.simplefilter("ignore")
-
-    #         # Fit a kernel density model to the data
-    #         kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
-    #         kde.fit(YZ_data)
-
-    #         # Compute the density
-    #         density = Density.compute_density_parallel(caller, kde, YZ_samples, batch_size)
-    #         density = density.reshape(mesh_shape)
+    #     CP.info("    - Marginal density")
+    #     if not self.parents:
+    #         return self.PriorDensity
+    #     else:
+    #         # Compute the marginal density over y by summing out the parent variables
+    #         joint_params = self.JointDensity
             
-    #     return density
+    #         # Initialize containers for the marginal parameters
+    #         marginal_params = {
+    #             "means": [],
+    #             "covariances": [],
+    #             "weights": joint_params["weights"]  # The weights remain the same
+    #         }
+
+    #         for k in range(len(joint_params["weights"])):
+    #             # Extract the parameters for the k-th component
+    #             mean_joint = joint_params["means"][k]
+    #             cov_joint = joint_params["covariances"][k]
+                
+    #             # Extract the blocks corresponding to y and the parents
+    #             mean_y = mean_joint[:len(self.y.samples)]  # The mean for the target (y)
+    #             cov_yy = cov_joint[:len(self.y.samples), :len(self.y.samples)]  # Covariance for y
+                
+    #             # The marginal density is obtained by summing out the parent dimensions
+    #             # This is equivalent to removing the parent parts of the covariance matrix
+    #             marginal_params["means"].append(mean_y)
+    #             marginal_params["covariances"].append(cov_yy)
+
+    #         return marginal_params
     
+    def computeConditionalDensity(self, parent_values):
+        """
+        Compute the conditional density p(y | parents) = p(y, parents) / p(parents) online.
+
+        Args:
+            parent_values (ndarray): Values of the parent variables (e.g., [p1, p2, ...]) for conditioning.
+
+        Returns:
+            dict: GMM parameters for the conditional density.
+        """
+
+        # Compute conditional GMM parameters dynamically
+        conditional_params = {
+            "means": [],
+            "covariances": [],
+            "weights": self.JointDensity["weights"]
+        }
+
+        for k in range(len(self.JointDensity["weights"])):
+            # Extract joint parameters for component k
+            mean_joint = self.JointDensity["means"][k]
+            cov_joint = self.JointDensity["covariances"][k]
+
+            # Split into parent and target components
+            dim_y = 1
+            mean_parents = mean_joint[dim_y:]
+            mean_target = mean_joint[:dim_y]
+            cov_pp = cov_joint[dim_y:, dim_y:]  # Covariance of parents
+            cov_yp = cov_joint[:dim_y, dim_y:]  # Cross-covariance between y and parents
+            cov_yy = cov_joint[:dim_y, :dim_y]  # Covariance of y
+
+            # Update conditional mean and covariance
+            cond_mean = mean_target + cov_yp @ np.linalg.inv(cov_pp) @ (parent_values - mean_parents)
+            cond_cov = cov_yy - cov_yp @ np.linalg.inv(cov_pp) @ cov_yp.T
+
+            conditional_params["means"].append(cond_mean)
+            conditional_params["covariances"].append(cond_cov)
+
+        # Stack means and covariances
+        conditional_params["means"] = np.array(conditional_params["means"])
+        conditional_params["covariances"] = np.array(conditional_params["covariances"])
+
+        return conditional_params
 
 
     @staticmethod
-    def estimate(caller, YZ, batch_size):
+    def get_density(x, params):
         """
-        Estimate the density through KDE.
+        Query the density for a given point `x` using the GMM parameters.
 
         Args:
-            YZ (Process or [Process]): Process(es) for density estimation.
+            x (ndarray): The point(s) at which to evaluate the density.
+            params (dict): The GMM parameters (means, covariances, weights).
 
         Returns:
-            ndarray: density.
+            ndarray: The computed density at the point(s) x.
         """
-        if not isinstance(YZ, list):
-            YZ = [YZ]
-        
-        # Prepare the input data for KDE fitting
-        YZ_data = np.column_stack([yz.aligndata for yz in YZ])
-        grids = [yz.samples for yz in YZ]
-        mesh_shape = tuple(len(grid) for grid in grids)
-        
-        # Fit the KDE model
-        # kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
-        # kde.fit(YZ_data)
-        kde = gaussian_kde(YZ_data.T)
-
-        
-        # Create a generator to lazily generate batches of YZ_samples
-        def lazy_sample_generator():
-            for combination in product(*grids):
-                yield np.array(combination)
-
-        # Create the batch generator to yield samples in chunks
-        def batch_generator():
-            batch = []
-            for sample in lazy_sample_generator():
-                batch.append(sample)
-                if len(batch) == batch_size:
-                    yield np.array(batch)
-                    batch = []
-            if batch:
-                yield np.array(batch)
-
-        # Calculate total batches without fully iterating over the generator
-        total_samples = np.prod([len(grid) for grid in grids])  # Total number of samples
-        total_batches = math.ceil(total_samples / batch_size)  # Total batches (rounded up)        
-        
-        # Manager for progress bar
-        manager = Manager()
-        progress = manager.Value('i', 0)  # Shared value for progress tracking
-
-        # Compute the density in parallel for each batch
-        density_batches = []
-        # density_batches = np.empty((total_batches, batch_size, *mesh_shape))
-        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            CP.info(f"    - {caller} density", noConsole=True)
-            for batch in tqdm(batch_generator(), desc=f"[INFO]:     - {caller} density", total=total_batches, unit="batch"):
-            # for batch in tqdm(batch_generator(), desc=f"[INFO]:     - {caller} density", total=total_batches, unit="batch"):
-                num_batch_samples = len(batch)
-                
-                # Split the current batch into chunks for parallel processing
-                chunk_size = max(1, num_batch_samples // os.cpu_count())
-                chunk_kde_pairs = [(batch[i:i + chunk_size].T, kde) for i in range(0, num_batch_samples, chunk_size)]
-
-                # Parallel computation of densities for each chunk in the batch
-                batch_densities = list(executor.map(process_chunk, chunk_kde_pairs))
-
-                progress.value += 1
-
-                # Flatten the list of densities from all chunks in the current batch
-                # density_batches[batch_idx] = np.concatenate(batch_densities)
-                density_batches.extend(batch_densities)
-
-        # Concatenate and reshape to match the grid
-        # density = density_batches.reshape(mesh_shape)
-        density = np.concatenate(density_batches).reshape(mesh_shape)
-
-        del YZ_data, grids, mesh_shape, kde, total_samples, density_batches
+        # Compute the density using the GMM parameters
+        density = np.zeros(x.shape[0])
+        for k in range(len(params["weights"])):
+            mvn = multivariate_normal(mean=params["means"][k], cov=params["covariances"][k])
+            density += params["weights"][k] * mvn.pdf(x)
         return density
-
-
-
-
-
     
-    # def predict(self, given_p: Dict[str, float] = None, tol = 0.25):
-    #     if self.parents is None: 
-    #         dens = self.MarginalDensity
-    #     else:
-    #         indices_X = {}
-    #         for p in given_p.keys():
-    #             if isinstance(tol, dict):
-    #                 column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=tol[p]))[0]                
-    #             else:
-    #                 column_indices = np.where(np.isclose(self.parents[p].samples, given_p[p], atol=tol))[0]                
-    #             indices_X[p] = np.array(sorted(set(column_indices)))
-
-    #         eval_cond_density = copy.deepcopy(self.CondDensity)
-
-    #         # For each parent, apply the conditions independently
-    #         for p, indices in indices_X.items():
-    #             parent_axis = list(self.parents.keys()).index(p) + 1
-    #             indices = np.array(indices, dtype=np.int64)
-    #             eval_cond_density = np.take(eval_cond_density, indices, axis=parent_axis)
-                    
-    #         eval_cond_density = np.sum(eval_cond_density, axis=tuple([list(self.parents.keys()).index(p) + 1 for p in indices_X.keys()]))
-
-    #         # Reshape eval_cond_density
-    #         dens = normalise(eval_cond_density.reshape(-1, 1))
-                
-    #     # expectation = expectation(self.y.samples, dens)
-    #     most_likely = mode(self.y.samples, dens)
-    #     return dens, most_likely
     
     def predict(self, given_p: Dict[str, float] = None):
-        if self.parents is None: 
-            dens = self.MarginalDensity
+        """
+        Predict the conditional density p(y | parents) and the most likely value of y.
+
+        Args:
+            given_p (Dict[str, float], optional): A dictionary of parent variable values (e.g., {"p1": 1.5, "p2": 2.0}).
+
+        Returns:
+            Tuple[np.ndarray, float]: The conditional density and the most likely value of y.
+        """
+        if self.parents is None:
+            conditional_params = self.PriorDensity
         else:
-            indices_X = {}
-            for p in given_p.keys():
-                closest_index = np.argmin(np.abs(self.parents[p].samples - given_p[p]))
-                indices_X[p] = closest_index
+            # Extract parent samples and match with given parent values
+            parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
+            conditional_params = self.computeConditionalDensity(parent_values)
 
-            # Extract the specific slice of eval_cond_density corresponding to the closest match
-            eval_cond_density = copy.deepcopy(self.CondDensity)
-            for p, idx in indices_X.items():
-                parent_axis = list(self.parents.keys()).index(p) + 1
-                eval_cond_density = np.take(eval_cond_density, indices=[idx], axis=parent_axis)
+            # # Compute conditional GMM parameters dynamically
+            # conditional_params = {
+            #     "means": [],
+            #     "covariances": [],
+            #     "weights": self.JointDensity["weights"]
+            # }
 
-            dens = normalise(eval_cond_density.flatten())  # Normalize after extracting closest match
+            # for k in range(len(self.JointDensity["weights"])):
+            #     # Extract joint parameters for component k
+            #     mean_joint = self.JointDensity["means"][k]
+            #     cov_joint = self.JointDensity["covariances"][k]
+
+            #     # Split into parent and target components
+            #     dim_y = 1
+            #     mean_parents = mean_joint[dim_y:]
+            #     mean_target = mean_joint[:dim_y]
+            #     cov_pp = cov_joint[dim_y:, dim_y:]  # Covariance of parents
+            #     cov_yp = cov_joint[:dim_y, dim_y:]  # Cross-covariance between y and parents
+            #     cov_yy = cov_joint[:dim_y, :dim_y]  # Covariance of y
+
+            #     # Update conditional mean and covariance
+            #     cond_mean = mean_target + cov_yp @ np.linalg.inv(cov_pp) @ (parent_values - mean_parents)
+            #     cond_cov = cov_yy - cov_yp @ np.linalg.inv(cov_pp) @ cov_yp.T
+
+            #     conditional_params["means"].append(cond_mean)
+            #     conditional_params["covariances"].append(cond_cov)
+
+            # # Stack means and covariances
+            # conditional_params["means"] = np.array(conditional_params["means"])
+            # conditional_params["covariances"] = np.array(conditional_params["covariances"])
+
             
-        most_likely = mode(self.y.samples, dens)
+        dens = Density.get_density(self.y.aligndata, conditional_params)
+        dens = dens / np.sum(dens)
+
+        # Find the most likely value (mode)
+        most_likely = self.y.aligndata[np.argmax(dens)]
+
         return dens, most_likely

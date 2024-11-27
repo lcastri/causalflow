@@ -40,8 +40,6 @@ NODE_TYPE = {
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          batch_size = 10000,
-          nsample = SampleMode.Full,
           model_path = 'CIE',
           verbosity = CPLevel.DEBUG)
 
