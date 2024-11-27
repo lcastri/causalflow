@@ -8,8 +8,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 from causalflow.CPrinter import CP
 from causalflow.basics.constants import *
-from causalflow.causal_reasoning.Density_utils import *
-from causalflow.causal_reasoning.DynamicBayesianNetwork import DynamicBayesianNetwork
+from causalflow.causal_reasoning.Utils import *
+from causalflow.causal_reasoning.DynamicBayesianNetwork_GMM import DynamicBayesianNetwork
 from causalflow.basics.constants import SampleMode
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
@@ -82,11 +82,7 @@ class CausalInferenceEngine():
                 f.create_group('DBNs')
                 f.create_group('Ds')  
         else:
-            CP.debug(f"Model exists, proceeding to load data.")
-                      
-    @property
-    def isThereContext(self):
-        return any(n is NodeType.Context for n in self.node_type.values())
+            CP.debug(f"Model exists, proceeding to load data.")   
     
     
     def extract_nsamples_from(self, id, context = None):
@@ -215,33 +211,7 @@ class CausalInferenceEngine():
         
         with h5py.File(self.filename, 'r') as f:
             return d_group_name in f and dbn_group_name in f
-
-
-    def getContextData(self, data, context):
-        context_dict = dict(context)
-
-        # Filter the dataframe based on the context dictionary
-        filtered_data = data.d
-        for key, value in context_dict.items():
-            filtered_data = filtered_data[filtered_data[key] == value]
-
-        # Check if the filtered data is non-empty (i.e., if the context combination exists)
-        return filtered_data    
-    
-    
-    def _extract_contexts(self, data):
-        contexts = {}
-        for n, ntype in self.node_type.items():
-            if ntype is NodeType.Context:
-                contexts[n] = np.array(np.unique(data.d[n]), dtype=int if self.data_type[n] is DataType.Discrete else float)
-        
-        # Generate the combinations
-        tmp = list(itertools.product(*[[(k, float(v) if self.data_type[k] is DataType.Continuous else int(v)) for v in values] for k, values in contexts.items()]))
-        combinations = []
-        for c in tmp:
-            combinations.append(CausalInferenceEngine.get_combo(c))
-        return combinations
-    
+      
     
     def get_Recycle(self, d):
         """
@@ -305,10 +275,6 @@ class CausalInferenceEngine():
         for s in dag.g[target].sources:
             tmp.del_source(target, s[0], s[1])
         return tmp
-        
-    @staticmethod
-    def get_combo(combo):
-        return tuple(sorted(combo))
                
 
     def addObsData(self, data: Data):
@@ -320,49 +286,54 @@ class CausalInferenceEngine():
         """
         self.obs_id += 1
         id = ('obs', self.obs_id)
-        if not self.isThereContext:
-            CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-            _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], data, self.nsample, self.data_type, self.node_type, self.batch_size)
-            _tmp_dbn.save(self.filename, id)
-            del _tmp_dbn
-            self.save_D(data, id)
-        else:
-            self.contexts = self._extract_contexts(data)
-            for context in self.contexts:
-                if self.alreadyEstimated(id, context): 
-                    CP.info(f"\n## DBN {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])} alredy processed!")
-                    continue
+        CP.info(f"\n## Building DBN for DAG ID {str(id)}")
+        _tmp_dbn = DynamicBayesianNetwork(self.filename, id, self.DAG['complete'], data, self.nsample, self.data_type, self.node_type, self.batch_size)
+        # _tmp_dbn.save(self.filename, id)
+        del _tmp_dbn
+        self.save_D(data, id)
+        # if not self.isThereContext:
+            # CP.info(f"\n## Building DBN for DAG ID {str(id)}")
+            # _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], data, self.nsample, self.data_type, self.node_type, self.batch_size)
+            # _tmp_dbn.save(self.filename, id)
+            # del _tmp_dbn
+            # self.save_D(data, id)
+        # else:
+        #     self.contexts = self._extract_contexts(data)
+        #     for context in self.contexts:
+        #         if self.alreadyEstimated(id, context): 
+        #             CP.info(f"\n## DBN {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])} alredy processed!")
+        #             continue
                 
-                d = self.getContextData(data, context)
-                if not d.empty:
-                    _tmp_d = Data(d, vars=d.columns)
-                    _tmp_d.shrink([c for c in d.columns if c not in list(dict(context).keys())])
-                    _tmp = self.get_Recycle(_tmp_d)
-                    if _tmp is not None:
-                        id_context, same_features = _tmp
-                        pID, pContext = id_context
-                        CP.info(f"\n## Recycling DBN {pID}-{', '.join([f'{c[0]}={c[1]}' for c in pContext])}")
-                        CP.info(f"## -> DBN ID {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                        _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
-                                                          _tmp_d, 
-                                                          self.nsample, 
-                                                          self.data_type, 
-                                                          self.node_type, 
-                                                          self.batch_size, 
-                                                          recycle = (same_features, pID, pContext, self.extract_nsamples_from(pID, pContext)))
-                    else:
-                        CP.info(f"\n## Building DBN ID {id}")
-                        CP.info(f"## Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                        _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
-                                                          _tmp_d, 
-                                                          self.nsample, 
-                                                          self.data_type, 
-                                                          self.node_type, 
-                                                          self.batch_size)
-                    _tmp_dbn.save(self.filename, id, context)
-                    del _tmp_dbn
-                    self.save_D(_tmp_d, id, context)
-                    del _tmp_d
+        #         d = self.getContextData(data, context)
+        #         if not d.empty:
+        #             _tmp_d = Data(d, vars=d.columns)
+        #             _tmp_d.shrink([c for c in d.columns if c not in list(dict(context).keys())])
+        #             _tmp = self.get_Recycle(_tmp_d)
+        #             if _tmp is not None:
+        #                 id_context, same_features = _tmp
+        #                 pID, pContext = id_context
+        #                 CP.info(f"\n## Recycling DBN {pID}-{', '.join([f'{c[0]}={c[1]}' for c in pContext])}")
+        #                 CP.info(f"## -> DBN ID {id}-{', '.join([f'{c[0]}={c[1]}' for c in context])}")
+        #                 _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
+        #                                                   _tmp_d, 
+        #                                                   self.nsample, 
+        #                                                   self.data_type, 
+        #                                                   self.node_type, 
+        #                                                   self.batch_size, 
+        #                                                   recycle = (same_features, pID, pContext, self.extract_nsamples_from(pID, pContext)))
+        #             else:
+        #                 CP.info(f"\n## Building DBN ID {id}")
+        #                 CP.info(f"## Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+        #                 _tmp_dbn = DynamicBayesianNetwork(self.DAG['system'], 
+        #                                                   _tmp_d, 
+        #                                                   self.nsample, 
+        #                                                   self.data_type, 
+        #                                                   self.node_type, 
+        #                                                   self.batch_size)
+        #             _tmp_dbn.save(self.filename, id, context)
+        #             del _tmp_dbn
+        #             self.save_D(_tmp_d, id, context)
+        #             del _tmp_d
         gc.collect()
         self.tols = self.get_resolutions()
         return id

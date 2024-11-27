@@ -47,3 +47,7 @@ def normalise(p):
         return p / p_sum
     else:
         return np.zeros_like(p)
+    
+    
+def format_combo(combo):
+    return tuple(sorted(combo))

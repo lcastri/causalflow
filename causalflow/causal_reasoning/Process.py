@@ -66,7 +66,7 @@ class Process():
             ndarray: aligned data
         """
         if self.node_type is not NodeType.Context:
-            self.aligndata = np.array(self.data[maxlag - self.lag : self.T - self.lag], dtype=np.float32)
+            self.aligndata = np.array(self.data[maxlag - self.lag : self.T - self.lag], dtype=np.float32).reshape(-1, 1)
             self.get_samples()
             # self.original_indices = self.get_original_indices()
             return self.aligndata

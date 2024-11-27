@@ -2,6 +2,7 @@ import os
 import pickle
 
 import pandas as pd
+from causalflow.CPrinter import CPLevel
 from causalflow.basics.constants import *
 from causalflow.graph.DAG import DAG
 from causalflow.causal_reasoning.CausalInferenceEngine import CausalInferenceEngine as CIE
@@ -11,7 +12,7 @@ import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-BAGNAME= ['BL100_21102024', 'BL100_07112024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024', 'BL20_06112024']
+BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
 USE_SUBSAMPLED = True
 
 
@@ -40,8 +41,9 @@ cie = CIE(CM,
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
           batch_size = 10000,
-          nsample=SampleMode.Variance,
-          model_path = 'CIE')
+          nsample = SampleMode.Full,
+          model_path = 'CIE',
+          verbosity = CPLevel.DEBUG)
 
 start_time = time.time()
 

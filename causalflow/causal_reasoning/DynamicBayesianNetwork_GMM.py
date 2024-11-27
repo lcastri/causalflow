@@ -9,7 +9,7 @@ from causalflow.causal_reasoning.Utils import *
 from causalflow.basics.constants import SampleMode
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
-from causalflow.causal_reasoning.Density import Density
+from causalflow.causal_reasoning.Density_GMM import Density
 from causalflow.causal_reasoning.Process import Process
 from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *

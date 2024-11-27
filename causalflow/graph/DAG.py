@@ -246,6 +246,24 @@ class DAG():
                     
                 # Removing context var from dag
                 del self.g[context_var]
+                
+                
+    def get_node_anchestors(self, t, _anchestors = None):
+        """
+        Return node ancestors.
+
+        Args:
+            t (str): node name.
+
+        Returns:
+            list: node ancestors.
+        """
+        if _anchestors is None: _anchestors = set()
+        for s in self.g[t].sources:
+            if s[0] not in _anchestors:
+                _anchestors.add(s[0])
+                _anchestors.update(self.get_node_anchestors(s[0], _anchestors))
+        return list(_anchestors)
                                                                   
                 
     def get_link_assumptions(self, autodep_ok = False) -> dict:

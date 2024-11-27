@@ -2,7 +2,6 @@ import copy
 from itertools import product
 import math
 import os
-import warnings
 from multiprocessing import Manager
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
@@ -10,9 +9,10 @@ from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from typing import Dict
-from sklearn.neighbors import KernelDensity
+# from sklearn.neighbors import KernelDensity
+from scipy.stats import gaussian_kde
 from causalflow.basics.constants import *
-from causalflow.causal_reasoning.Density_utils import *
+from causalflow.causal_reasoning.Utils import *
 
 
 def compute_density(samples, kde):
@@ -27,8 +27,9 @@ def compute_density(samples, kde):
         ndarray: Density for the input samples.
     """
     samples = samples.copy()  # Ensure writable samples
-    log_density = kde.score_samples(samples)
-    return np.exp(log_density)
+    # log_density = kde.score_samples(samples)
+    # return np.exp(log_density)
+    return kde.evaluate(samples)
 
 
 def process_chunk(chunk_kde):
@@ -45,42 +46,7 @@ def process_chunk(chunk_kde):
     return compute_density(chunk, kde)
  
  
-class Density():
-    # def __init__(self, 
-    #              y: Process, 
-    #              batch_size: int, 
-    #              parents: Dict[str, Process] = None):
-    #     """
-    #     Class constructor.
-
-    #     Args:
-    #         y (Process): target process.
-    #         batch_size (int): Batch size.
-    #         parents (Dict[str, Process], optional): Target's parents. Defaults to None.
-    #     """
-    #     self.y = y
-    #     self.batch_size = batch_size
-    #     self.parents = parents
-    #     self.DO = {}
-
-    #     if self.parents is not None:
-    #         self.DO = {treatment: {ADJ: None, 
-    #                             P_Y_GIVEN_DOX_ADJ: None, 
-    #                             P_Y_GIVEN_DOX: None} for treatment in self.parents.keys()}
-    #     self._preprocess()
-            
-    #     # init density variables
-    #     self.PriorDensity = None
-    #     self.JointDensity = None
-    #     self.ParentJointDensity = None
-    #     self.CondDensity = None
-    #     self.MarginalDensity = None
-    #     self.PriorDensity = self.computePriorDensity()
-    #     self.JointDensity = self.computeJointDensity()
-    #     self.ParentJointDensity = self.computeParentJointDensity()
-    #     self.CondDensity = self.computeConditionalDensity()
-    #     self.MarginalDensity = self.computeMarginalDensity()
-        
+class Density():       
     def __init__(self, 
                  y: Process, 
                  batch_size: int, 
@@ -337,8 +303,10 @@ class Density():
         mesh_shape = tuple(len(grid) for grid in grids)
         
         # Fit the KDE model
-        kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
-        kde.fit(YZ_data)
+        # kde = KernelDensity(bandwidth=0.5, kernel='gaussian')
+        # kde.fit(YZ_data)
+        kde = gaussian_kde(YZ_data.T)
+
         
         # Create a generator to lazily generate batches of YZ_samples
         def lazy_sample_generator():
@@ -366,14 +334,16 @@ class Density():
 
         # Compute the density in parallel for each batch
         density_batches = []
+        # density_batches = np.empty((total_batches, batch_size, *mesh_shape))
         with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
             CP.info(f"    - {caller} density", noConsole=True)
             for batch in tqdm(batch_generator(), desc=f"[INFO]:     - {caller} density", total=total_batches, unit="batch"):
+            # for batch in tqdm(batch_generator(), desc=f"[INFO]:     - {caller} density", total=total_batches, unit="batch"):
                 num_batch_samples = len(batch)
                 
                 # Split the current batch into chunks for parallel processing
                 chunk_size = max(1, num_batch_samples // os.cpu_count())
-                chunk_kde_pairs = [(batch[i:i + chunk_size], kde) for i in range(0, num_batch_samples, chunk_size)]
+                chunk_kde_pairs = [(batch[i:i + chunk_size].T, kde) for i in range(0, num_batch_samples, chunk_size)]
 
                 # Parallel computation of densities for each chunk in the batch
                 batch_densities = list(executor.map(process_chunk, chunk_kde_pairs))
@@ -381,9 +351,11 @@ class Density():
                 progress.value += 1
 
                 # Flatten the list of densities from all chunks in the current batch
+                # density_batches[batch_idx] = np.concatenate(batch_densities)
                 density_batches.extend(batch_densities)
 
         # Concatenate and reshape to match the grid
+        # density = density_batches.reshape(mesh_shape)
         density = np.concatenate(density_batches).reshape(mesh_shape)
 
         del YZ_data, grids, mesh_shape, kde, total_samples, density_batches
