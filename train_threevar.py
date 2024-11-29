@@ -48,20 +48,20 @@ cie = CIE(CM,
 treatment_len = 25
 dfs = []
 for bagname in BAGNAME:
-    for wp in [WP.CORR_CANTEEN_1]:
+    for wp in WP:
         for tod in TOD:
             if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
             print(f"Loading : {bagname}-{tod.value}-{wp.value}")
             filename = os.path.join(INDIR, "my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             dfs.append(pd.read_csv(filename))
             
-concat_df = pd.concat(dfs, ignore_index=True)
-concat_df.drop(concat_df[concat_df['B_S'] == 1].index, inplace=True)
-DATA_DICT_TRAIN = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[:len(concat_df) - treatment_len], vars = CM.features + ["pf_elapsed_time"])
-DATA_DICT_TEST = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[len(concat_df) - treatment_len:], vars = CM.features + ["pf_elapsed_time"])
-T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], DATA_DICT_TEST.d["pf_elapsed_time"].values[0:]), axis=0)
-DATA_DICT_TRAIN.shrink(CM.features)
-DATA_DICT_TEST.shrink(CM.features)
+    concat_df = pd.concat(dfs, ignore_index=True)
+    concat_df.drop(concat_df[concat_df['B_S'] == 1].index, inplace=True)
+    DATA_DICT_TRAIN = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[:len(concat_df) - treatment_len], vars = CM.features + ["pf_elapsed_time"])
+    DATA_DICT_TEST = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[len(concat_df) - treatment_len:], vars = CM.features + ["pf_elapsed_time"])
+    T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], DATA_DICT_TEST.d["pf_elapsed_time"].values[0:]), axis=0)
+    DATA_DICT_TRAIN.shrink(CM.features)
+    DATA_DICT_TEST.shrink(CM.features)
 
-cie.addObsData(DATA_DICT_TRAIN)
-cie.save(os.path.join(cie.model_path, 'cie.pkl'))
+    cie.addObsData(DATA_DICT_TRAIN)
+    cie.save(os.path.join(cie.model_path, 'cie.pkl'))

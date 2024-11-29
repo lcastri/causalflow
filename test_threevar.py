@@ -34,7 +34,7 @@ with open(DAGDIR, 'rb') as f:
 treatment_len = 125
 dfs = []
 for bagname in BAGNAME:
-    for wp in [WP.CORR_CANTEEN_1]:
+    for wp in [WP.SHELF1]:
         for tod in [TOD.LUNCH]:
             if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
             print(f"Loading : {bagname}-{tod.value}-{wp.value}")

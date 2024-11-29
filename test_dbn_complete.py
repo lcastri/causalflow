@@ -13,7 +13,7 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE/cie.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_test/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
@@ -23,7 +23,7 @@ with open(CIEDIR, 'rb') as f:
 with open(DAGDIR, 'rb') as f:
     CM = DAG.load(pickle.load(f))
     
-treatment_len = 25
+treatment_len = 125
 dfs = []
 for bagname in BAGNAME:
     for wp in [WP.CORR_CANTEEN_1]:
@@ -41,16 +41,12 @@ T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], 
 DATA_DICT_TRAIN.shrink(CM.features)
 DATA_DICT_TEST.shrink(CM.features)
 prior_knowledge = {f: DATA_DICT_TEST.d[f].values[:] for f in ['TOD', 'B_S', 'WP']}
-cie.atol = 0.15
+cie.atol = 0.5
 res = cie.whatIf(NODES.RV.value, 
                  DATA_DICT_TEST.d.values[:, DATA_DICT_TEST.features.index(NODES.RV.value)], 
                  DATA_DICT_TRAIN.d.values,
                  prior_knowledge
                  )
-# res = cie.whatIf(NODES.RV.value, 
-#                  DATA_DICT_TEST.d.values[:, DATA_DICT_TEST.features.index(NODES.RV.value)], 
-#                  DATA_DICT_TRAIN.d.values
-#                  )
 
 FEATURES = [f for f in CM.features if cie.node_type[f] is not NodeType.Context]
 N = len(FEATURES)

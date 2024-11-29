@@ -1,3 +1,4 @@
+import copy
 import gc
 import itertools
 import numpy as np
@@ -46,7 +47,6 @@ class DynamicBayesianNetwork():
                 self.dbn[node][context] = {idx: None for idx, _ in enumerate(segments)}
                 self.data[node][context] = {idx: None for idx, _ in enumerate(segments)}
                 
-                
                 for idx, segment in enumerate(segments):
                     # Target Y process
                     Y = Process(segment[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
@@ -62,9 +62,42 @@ class DynamicBayesianNetwork():
 
                     self.dbn[node][context][idx] = Density(Y, X if X else None)
                     self.data[node][context][idx] = Data(segment)
+                self.dbn[node][context]['combined'] = copy.deepcopy(self.dbn[node][context][0])
+                self.dbn[node][context]['combined'].PriorDensity = self.combine_segment_densities([self.dbn[node][context][idx].PriorDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                self.dbn[node][context]['combined'].JointDensity = self.combine_segment_densities([self.dbn[node][context][idx].JointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                self.dbn[node][context]['combined'].ParentJointDensity = self.combine_segment_densities([self.dbn[node][context][idx].ParentJointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
                 
         del dag, data
         gc.collect()
+        
+    def combine_segment_densities(self, segment_densities, segment_sizes):
+        """
+        Combine densities from multiple segments into a single density.
+
+        Args:
+            segment_densities (list): List of GMM parameters (means, covariances, weights) for each segment.
+            segment_sizes (list): List of sizes (number of points) for each segment.
+
+        Returns:
+            dict: Combined GMM parameters.
+        """
+        total_points = sum(segment_sizes)
+        combined_means = []
+        combined_covariances = []
+        combined_weights = []
+
+        for segment_density, size in zip(segment_densities, segment_sizes):
+            weight_factor = size / total_points
+            for k in range(len(segment_density["weights"])):
+                combined_means.append(segment_density["means"][k])
+                combined_covariances.append(segment_density["covariances"][k])
+                combined_weights.append(segment_density["weights"][k] * weight_factor)
+
+        return {
+            "means": np.array(combined_means),
+            "covariances": np.array(combined_covariances),
+            "weights": np.array(combined_weights)
+        }
         
         
     def _extract_contexts(self, data, contexts):
