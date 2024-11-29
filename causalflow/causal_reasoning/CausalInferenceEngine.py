@@ -258,7 +258,8 @@ class CausalInferenceEngine():
                             e = np.nan
                         else:
                             # _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][format_combo(tuple(context_p.items()))].predict(system_p)
-                            _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext][pSegment].predict(system_p)
+                            _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['combined'].predict(system_p)
+                            # _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext][pSegment].predict(system_p)
                         res[t, f] = m
         return res[self.DAG['complete'].max_lag:, :]
     
@@ -427,7 +428,8 @@ class CausalInferenceEngine():
         def _find_occurrences(d, parents, atol):
             mask = np.ones(len(d.d), dtype=bool)
             for parent, value in parents.items():
-                mask &= np.isclose(d.d[parent], value, atol = atol)
+                # mask &= np.isclose(d.d[parent], value, atol = atol)
+                mask &= np.isclose(d.d[parent], value, atol = atol, rtol=0.01)
                     
             # Count the number of occurrences where all parents match
             occurrences = np.sum(mask)
