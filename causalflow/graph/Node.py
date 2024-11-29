@@ -113,7 +113,7 @@ class Node():
         Returns:
             list(str): Returns list of source names.
         """
-        return [s[0] for s in self.sources]
+        return list(dict.fromkeys([s[0] for s in self.sources]))
     
     
     @property

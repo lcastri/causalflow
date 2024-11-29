@@ -14,10 +14,10 @@ INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/c
 BAGNAME = 'BL100_21102024'
 tod = TOD.LUNCH.value
 wp = WP.TABLE2.value
-with open('CIE_allbags_again/cie.pkl', 'rb') as f:
+with open('CIE_test/cie.pkl', 'rb') as f:
     cie = CIE.load(pickle.load(f))
 lag = cie.DAG['complete'].max_lag
-treatment_len = 10
+treatment_len = 100
 
 var_names = [n.value for n in NODES]
 DATA_DICT = {}
@@ -60,7 +60,8 @@ for i in range(num_columns):
 # Show the plot
 plt.xlabel('Time')
 plt.xticks(ticks = list(range(len(np.concatenate([OBS.d.values[-1-lag:, i], np.nan*np.ones_like(res[:, i])], axis=0)))),
-           labels = [time.strftime("%H:%M:%S", time.gmtime(8*3600+t)) for t in list(T)])
+           labels = [time.strftime("%H:%M:%S", time.gmtime(8*3600+t)) for t in list(T)],
+           rotation=45)
 plt.tight_layout()
 plt.legend()
 plt.show()

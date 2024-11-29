@@ -189,7 +189,7 @@ class DAG():
             mode (LinkType): link type. E.g., Directed -->
         """
         self.g[t].sources[(s, abs(lag))] = {SCORE: score, PVAL: pval, TYPE: mode}
-        self.g[s].children.append(t)
+        if t not in self.g[s].children: self.g[s].children.append(t)
        
         
     def del_source(self, t, s, lag):
@@ -202,7 +202,7 @@ class DAG():
             lag (int): dependency lag.
         """
         del self.g[t].sources[(s, lag)]
-        self.g[s].children.remove(t)
+        if t not in self.g[s].children: self.g[s].children.remove(t)
         
         
     def remove_unneeded_features(self):

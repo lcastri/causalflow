@@ -1,12 +1,9 @@
-import ast
-import copy
 import gc
 import itertools
-import json
 import numpy as np
+import pandas as pd
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Utils import *
-from causalflow.basics.constants import SampleMode
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_reasoning.Density import Density
@@ -14,17 +11,13 @@ from causalflow.causal_reasoning.Process import Process
 from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *
 from typing import Dict
-from scipy.stats import entropy
-import h5py
 
 class DynamicBayesianNetwork():
     def __init__(self, 
-                 filename, id, 
                  dag: DAG, 
                  data: Data, 
                  data_type: Dict[str, DataType], 
-                 node_type: Dict[str, NodeType], 
-                 dbn = None):
+                 node_type: Dict[str, NodeType]):
         """
         Class constructor.
 
@@ -33,134 +26,45 @@ class DynamicBayesianNetwork():
             data (Data): Data associated with the DAG.
             data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}.
             node_type (dict[str:NodeType]): node type for each node (system|context). E.g., {"X_2": NodeType.Context}.
-            dbn (DynamicBayesianNetwork): DBN to load. Default None.
         """
-
         self.data_type = data_type
         self.node_type = node_type
         
-        if dbn is None:
-            self.dbn = {node: None for node in dag.g}
-            for node in dag.g:
-                if self.node_type[node] == NodeType.Context: continue
-                anchestors = dag.get_node_anchestors(node)
-                context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
-                contexts = self._extract_contexts(data, context_anchestors)
-                for context in contexts:
-                    # Retrieve data for each node
-                    d = self.get_context_specific_data(data, context, node, dag.g[node].sourcelist)      
+        self.dbn = {node: None for node in dag.g}
+        self.data = {node: None for node in dag.g}
+        for node in dag.g:
+            if self.node_type[node] == NodeType.Context: continue
+            anchestors = dag.get_node_anchestors(node)
+            context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
+            contexts = self._extract_contexts(data, context_anchestors)
+            self.dbn[node] = {context: None for context in contexts}
+            self.data[node] = {context: None for context in contexts}
+            
+            for context in contexts:
+                # Retrieve data for each node
+                segments = self.get_context_specific_segments(data, context, node, dag.g[node].sourcelist) 
+                self.dbn[node][context] = {idx: None for idx, _ in enumerate(segments)}
+                self.data[node][context] = {idx: None for idx, _ in enumerate(segments)}
+                
+                
+                for idx, segment in enumerate(segments):
+                    # Target Y process
+                    Y = Process(segment[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
+                                                    
+                    # Parent(s) X process
+                    X = {s[0]: Process(segment[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
+                        for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
                     
-                    Y = Process(d[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
-                    X = self._extract_parents(node, d, dag, self.data_type, self.node_type)
-
+                    # Density params estimation
                     parents_str = f" - parents {', '.join(list(X.keys()))}" if X else ""
                     CP.info(f"\n    ### Target variable: {node}{parents_str}")
-                    CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                    if self.dbn[node] is None: self.dbn[node] = {}
-                    self.dbn[node][context] = Density(Y, X)
-                    # self.save(filename, id, node, context)
+                    CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])} -- ### Segment: {idx + 1}/{len(segments)}")
+
+                    self.dbn[node][context][idx] = Density(Y, X if X else None)
+                    self.data[node][context][idx] = Data(segment)
                 
-        else:
-            self.dbn = dbn          
-              
         del dag, data
         gc.collect()
-        
-        
-    def save(self, filename: str, id, node, context = None):
-        """Save the DBN object to an HDF5 file."""
-        with h5py.File(filename, 'a') as f:
-            group_name = f"DBNs/{id}/{node}/{context}" if context is not None else f"DBNs/{id}/{node}"
-                
-            if group_name in f: del f[group_name]
-            node_group = f.require_group(group_name)
-            density = self.dbn[node][context] if context is not None else self.dbn[node]
-                        
-            node_group.create_dataset("PriorDensity", data=json.dumps(density.PriorDensity), dtype=h5py.special_dtype(vlen=str))
-            node_group.create_dataset("JointDensity", data=json.dumps(density.JointDensity), dtype=h5py.special_dtype(vlen=str)) #density.JointDensity)
-            if density.parents is not None:
-                node_group.create_dataset("ParentJointDensity", data=json.dumps(density.ParentJointDensity), dtype=h5py.special_dtype(vlen=str)) #density.ParentJointDensity)
-            else:
-                node_group.create_dataset("ParentJointDensity", data=[])
-            # node_group.create_dataset("CondDensity", data=density.CondDensity)
-            # node_group.create_dataset("MarginalDensity", data=density.MarginalDensity)
-            
-    @property
-    def isThereContext(self):
-        return any(n is NodeType.Context for n in self.node_type.values())
-
-    @staticmethod
-    def estimate_optimal_samples(data, mode=SampleMode.Entropy):
-        """
-        Allocate samples based on the entropy or variance of each variable.
-        
-        Parameters:
-            data (DataFrame): Data obj.
-            mode (Sample mode): 'entropy': Allocate samples based on the entropy of each variable.
-                                'variance': Allocate samples based on the variance of each variable.
-                                'full': Allocate all samples to each variable.
-        
-        Returns:
-            optimal_samples : dict
-                Sample sizes for each variable based on the selected mode.
-        """
-        optimal_samples = {}
-        tolerance = 0.3
-        
-        for node in data.columns:
-            series = data[node].dropna()
-            if mode is SampleMode.Entropy:
-                _, counts = np.unique(series, return_counts=True)
-                prob_dist = counts / len(series)
-                series_entropy = entropy(prob_dist) 
-
-                # Estimate sample size based on entropy
-                sample_size = int(np.ceil(series_entropy / tolerance ** 2))  
-            
-            elif mode is SampleMode.Variance:
-                variance = np.var(series)  # Calculate the variance of the series
-                std_dev = np.sqrt(variance)  # Standard deviation
-
-                # Estimate sample size based on variance (rule of thumb)
-                sample_size = int(np.ceil(std_dev ** 2 / tolerance ** 2))  # Adjust based on the desired tolerance
-            
-            elif mode is SampleMode.Full:
-                return {feature: data.shape[0] for feature in data.columns}
-                
-            sample_size = min(max(sample_size, 10), len(data))
-            optimal_samples[node] = sample_size
-        
-        return optimal_samples
-        
-        
-    def _extract_parents(self, node, data, dag: DAG, data_type, node_type):
-        """
-        Extract the parents of a specified node.
-
-        Args:
-            node (str): Node belonging to the dag.
-
-        Returns:
-            dict: parents express as dict[parent name (str), parent process (Process)].
-        """
-        parents = {s[0]: Process(data[s[0]].to_numpy(), s[0], s[1], data_type[s[0]], node_type[s[0]]) 
-                   for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
-        if not parents: return None
-        return parents
-    
-    
-    def get_context_specific_data(self, data, context, node, parents):
-        context_dict = dict(context)
-
-        # Filter the dataframe based on the context dictionary
-        filtered_data = data.d
-        for key, value in context_dict.items():
-            filtered_data = filtered_data[filtered_data[key] == value]
-
-        system_parents = list(set([node] + [p for p in parents]))
-        system_parents = [p for p in system_parents if self.node_type[p] is not NodeType.Context]
-        # Check if the filtered data is non-empty (i.e., if the context combination exists)
-        return filtered_data[system_parents]
         
         
     def _extract_contexts(self, data, contexts):
@@ -174,21 +78,139 @@ class DynamicBayesianNetwork():
         return [format_combo(c) for c in tmp]
     
     
-    def get_lag(self, treatment: str, outcome: str, dag: DAG):
+    # def split_by_context(self, data, context_column, target_context):
+    #     """
+    #     Split the data into separate datasets based on continuous segments of the specified context.
+
+    #     Args:
+    #         data (pd.DataFrame): The input dataset containing a context column.
+    #         context_column (str): The name of the context column.
+    #         target_context (any): The target context value to extract.
+
+    #     Returns:
+    #         List[pd.DataFrame]: A list of DataFrames, each representing a continuous segment of the target context.
+    #     """
+        
+    #     def isDuplicate():
+    #         for existing_segment in segments:
+    #             if len(current_segment_df) == len(existing_segment):  # Check lengths first
+    #                 if (current_segment_df.columns == existing_segment.columns).all():
+    #                     if all((current_segment_df[col].values == existing_segment[col].values).all()
+    #                         for col in current_segment_df.columns):
+    #                         return True
+    #         return False
+        
+    #     segments = []
+    #     current_segment = []
+
+    #     for i in range(len(data)):
+    #         if data[context_column].iloc[i] == target_context:
+    #             current_segment.append(data.iloc[i])
+    #         else:
+    #             if current_segment:
+    #                 current_segment_df = pd.DataFrame(current_segment)
+    #                 if not isDuplicate():
+    #                     segments.append(current_segment_df)
+    #                 current_segment = []
+
+    #     # Add the last segment if it exists
+    #     if current_segment:
+    #         current_segment_df = pd.DataFrame(current_segment)
+    #         if not isDuplicate():
+    #             segments.append(pd.DataFrame(current_segment))
+        
+    #     return segments
+
+    
+    
+    # def get_context_specific_segments(self, data, context, node, parents):
+    #     context_dict = dict(context)
+
+    #     # Filter the dataframe based on the context dictionary
+    #     filtered_data = data.d[list(set([node] + [p for p in parents]))]
+    #     for key, value in context_dict.items():
+    #         segments = self.split_by_context(filtered_data, key, value)
+
+    #     system_parents = list(set([node] + [p for p in parents]))
+    #     system_parents = [p for p in system_parents if self.node_type[p] is not NodeType.Context]
+    #     # Check if the filtered data is non-empty (i.e., if the context combination exists)
+    #     return filtered_data[system_parents]
+    
+    def split_by_context(self, data, target_context_conditions):
         """
-        Output the lag-time associated to the treatment -> outcome link.
+        Split the data into separate datasets based on continuous segments 
+        that match all the specified context conditions.
 
         Args:
-            treatment (str): treatment variable.
-            outcome (str): outcome variable.
+            data (pd.DataFrame): The input dataset.
+            target_context_conditions (dict): Dictionary of context conditions 
+                                            (e.g., {'context1': 'a', 'context2': 1}).
 
         Returns:
-            int: treatment -> outcome link's lag-time.
+            List[pd.DataFrame]: A list of DataFrames, each representing a continuous segment 
+                                matching all the context conditions.
         """
-        matching_keys = [key[1] for key in dag.g[outcome].sources.keys() if key[0] == treatment]
-        # if multiple, here it is returned only the minimum lag (closest to 0)
-        return min(matching_keys)
+        def isDuplicate():
+            for existing_segment in segments:
+                if len(current_segment_df) == len(existing_segment):  # Check lengths first
+                    if (current_segment_df.columns == existing_segment.columns).all():
+                        if all((current_segment_df[col].values == existing_segment[col].values).all()
+                            for col in current_segment_df.columns):
+                            return True
+            return False
 
+        # Ensure that all rows satisfy the context conditions
+        filtered_data = data.copy()
+        for context_column, target_context in target_context_conditions.items():
+            filtered_data = filtered_data[filtered_data[context_column] == target_context]
+
+        segments = []
+        current_segment = []
+
+        for i in range(len(filtered_data)):
+            if i == 0 or filtered_data.index[i] == filtered_data.index[i - 1] + 1:
+                current_segment.append(filtered_data.iloc[i])
+            else:
+                if current_segment:
+                    current_segment_df = pd.DataFrame(current_segment)
+                    if not isDuplicate():
+                        segments.append(current_segment_df)
+                    current_segment = [filtered_data.iloc[i]]
+
+        # Add the last segment if it exists
+        if current_segment:
+            current_segment_df = pd.DataFrame(current_segment)
+            if not isDuplicate():
+                segments.append(current_segment_df)
+
+        return segments
+
+
+    def get_context_specific_segments(self, data, context, node, parents):
+        """
+        Extract continuous segments of data that match the specified context combination.
+
+        Args:
+            data (DataFrame): The dataset.
+            context (dict): A dictionary specifying the desired context conditions.
+            node (str): The target node for which segments are extracted.
+            parents (list): List of parent nodes.
+
+        Returns:
+            List[pd.DataFrame]: A list of DataFrames, each representing a continuous segment
+                                matching the specified context combination.
+        """
+        context_dict = dict(context)
+
+        # Filter the dataframe to keep only relevant columns
+        system_parents = list(set([node] + [p for p in parents]))
+        system_parents = [p for p in system_parents if self.node_type[p] is not NodeType.Context]
+        filtered_data = data.d[system_parents + list(context_dict.keys())]
+
+        # Get segments that match the intersection of all context conditions
+        segments = self.split_by_context(filtered_data, context_dict)
+        return [segment[system_parents] for segment in segments]
+                    
     
     def get_adjset(self, treatment: str, outcome: str, dag: DAG):
         """
@@ -207,7 +229,7 @@ class DynamicBayesianNetwork():
         Returns:
             tuple: optimal adjustment set for the treatment -> outcome link.
         """
-        lag = self.get_lag(treatment, outcome, dag)
+        lag = min([key[1] for key in dag.g[outcome].sources.keys() if key[0] == treatment])
         
         graph = CausalEffects.get_graph_from_dict(dag.get_Adj(indexed=True), tau_max = dag.max_lag)
         opt_adj_set = CausalEffects(graph, graph_type='stationary_dag', 
@@ -231,22 +253,19 @@ class DynamicBayesianNetwork():
                     
             # Select the adjustment set
             adjset = self.get_adjset(treatment, outcome, dag)
-                        
-            # Compute the adjustment density
-            p_adj = np.ones((self.nsample, 1)).squeeze()
-            
-            for node in adjset: p_adj = p_adj * self.dbn[features[node[0]]].CondDensity # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_adj = normalise(p_adj)
+                
+            # Compute the p(adjustment) density            
+            for node in adjset: p_adj = p_adj * self.dbn[features[node[0]]].CondDensity
             
             # Compute the p(outcome|treatment,adjustment) density
-            p_yxadj = normalise(self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_xadj = normalise(self.dbn[treatment].CondDensity * p_adj) # TODO: to verify if computed like this is equal to compute the joint density directly through KDE
-            p_y_given_xadj = normalise(p_yxadj / p_xadj)
+            p_yxadj = self.dbn[outcome].CondDensity * self.dbn[treatment].CondDensity * p_adj
+            p_xadj = self.dbn[treatment].CondDensity * p_adj
+            p_y_given_xadj = p_yxadj / p_xadj
             
             # Compute the p(outcome|do(treatment)) and p(outcome|do(treatment),adjustment)*p(adjustment) densities
             if len(p_y_given_xadj.shape) > 2: 
                 # Sum over the adjustment set
-                p_y_do_x_adj = normalise(p_y_given_xadj * p_adj)
+                p_y_do_x_adj = p_y_given_xadj * p_adj
                 p_y_do_x = normalise(np.sum(p_y_given_xadj * p_adj, axis=tuple(range(2, len(p_y_given_xadj.shape))))) #* np.sum(p_adj, axis=tuple(range(0, len(p_adj.shape))))
             else:
                 p_y_do_x_adj = p_y_given_xadj

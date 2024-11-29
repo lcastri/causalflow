@@ -12,7 +12,8 @@ import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
+BAGNAME= ['BL100_21102024']
+# BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
 USE_SUBSAMPLED = True
 
 
@@ -40,7 +41,7 @@ NODE_TYPE = {
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE',
+          model_path = 'CIE_test',
           verbosity = CPLevel.DEBUG)
 
 start_time = time.time()

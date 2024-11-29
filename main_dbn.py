@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from causalflow.basics.constants import DataType, NodeType
+from causalflow.graph import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_discovery.tigramite.independence_tests.gpdc import GPDC
 from causalflow.CPrinter import CPLevel
@@ -8,7 +9,7 @@ from causalflow.causal_discovery.FPCMCI import FPCMCI
 from causalflow.preprocessing.data import Data
 from causalflow.selection_methods.TE import TE, TEestimator
 from causalflow.causal_reasoning.CausalInferenceEngine import CausalInferenceEngine as CIE
-
+from causalflow.basics.metrics import fully_connected_dag
 
 # Parameters
 alpha = 0.05
@@ -55,12 +56,12 @@ fpcmci = FPCMCI(dfA_obs,
                 verbosity = CPLevel.DEBUG,
                 resfolder = 'results/dbn')
 CM = fpcmci.run()
-CM.dag(node_layout = 'circular', node_size = 4, min_cross_width = 0.5, max_cross_width = 1.5,
-       save_name=fpcmci.dag_path, node_color=NODE_COLOURS)
-CM.ts_dag(node_size = 4, 
-          min_cross_width = 0.5, max_cross_width = 1.5, 
-          x_disp=1.5, y_disp=0.2,
-          save_name=fpcmci.ts_dag_path, node_color=NODE_COLOURS)
+# CM.dag(node_layout = 'circular', node_size = 4, min_cross_width = 0.5, max_cross_width = 1.5,
+#        save_name=fpcmci.dag_path, node_color=NODE_COLOURS)
+# CM.ts_dag(node_size = 4, 
+#           min_cross_width = 0.5, max_cross_width = 1.5, 
+#           x_disp=1.5, y_disp=0.2,
+#           save_name=fpcmci.ts_dag_path, node_color=NODE_COLOURS)
 
 # Population B
 np.random.seed(8)
@@ -82,19 +83,26 @@ NODE_TYPE = {
     "X_0": NodeType.System,
     "X_1": NodeType.System,
     "X_2": NodeType.System,
-}  
-cie = CIE(CM, data_type=DATA_TYPE, node_type=NODE_TYPE, model_path='testDBN')
+}
+cie = CIE(CM, data_type=DATA_TYPE, node_type=NODE_TYPE, model_path='testDBN', verbosity=CPLevel.DEBUG)
 Aobs_id = cie.addObsData(dfA_obs)
-# Aint_id = cie.addIntData('X_1', dfA_int)
-# Aint_id = cie.addObsData(dfA_int)
-# cie.save('/home/lcastri/git/causalflow/results/dbn/cie.pkl')
+
+fullg = fully_connected_dag(list(CM.features), min_lag, max_lag)
+fulldag = DAG(list(CM.features), min_lag, max_lag, scm = fullg)
+cie2 = CIE(fulldag, data_type=DATA_TYPE, node_type=NODE_TYPE, model_path='testDBNfull', verbosity=CPLevel.DEBUG)
+Aobs_id = cie2.addObsData(dfA_obs)
 
 res = cie.whatIf('X_1', 
                  dfB_obs.d.values[int(len(dfB_obs.d.values)/2):int(len(dfB_obs.d.values)/2)+50, 1], 
                  dfB_obs.d.values[:int(len(dfB_obs.d.values)/2), :],
                  {'X_0':dfB_obs.d.values[int(len(dfB_obs.d.values)/2):int(len(dfB_obs.d.values)/2)+50, 0]})
+# res2 = cie2.whatIf('X_1', 
+#                  dfB_obs.d.values[int(len(dfB_obs.d.values)/2):int(len(dfB_obs.d.values)/2)+50, 1], 
+#                  dfB_obs.d.values[:int(len(dfB_obs.d.values)/2), :],
+#                  {'X_0':dfB_obs.d.values[int(len(dfB_obs.d.values)/2):int(len(dfB_obs.d.values)/2)+50, 0]})
 
 result = np.concatenate((dfB_obs.d.values[:int(len(dfB_obs.d.values) / 2), :], res), axis=0)
+# result2 = np.concatenate((dfB_obs.d.values[:int(len(dfB_obs.d.values) / 2), :], res2), axis=0)
 # Get the number of columns
 num_columns = result.shape[1]
 
@@ -104,6 +112,7 @@ fig, axes = plt.subplots(num_columns, 1, figsize=(8, num_columns * 3), sharex=Tr
 # Plot each column in a different subplot
 for i in range(num_columns):
     axes[i].plot(result[:, i], linestyle = '--', color = "tab:blue")
+    # axes[i].plot(result2[:, i], linestyle = '--', color = "tab:green")
     axes[i].plot(dfB_obs.d.values[:int(len(dfB_obs.d.values)/2 + 50), i], linestyle = '-', color = "tab:orange")
     axes[i].set_ylabel(dfA_int.features[i])
     axes[i].grid(True)
