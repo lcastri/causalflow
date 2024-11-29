@@ -238,27 +238,23 @@ class CausalInferenceEngine():
                     if self.DAG['complete'].features[f] == self.Q[TREATMENT]:
                         res[t, f] = self.Q[VALUE]
                     else:
-                        var = self.DAG['system'].features.index(self.DAG['complete'].features[f])
+                        var = self.DAG['complete'].features[f]
                         system_p = {}
-                        context_p = {}
                         pID = None
 
-                        for s in self.DAG['system'].g[self.DAG['system'].features[var]].sources:
+                        for s in self.DAG['complete'].g[self.DAG['complete'].features[var]].sources:
                             system_p[s[0]] = res[t - abs(s[1]), self.DAG['complete'].features.index(s[0])]
-                        anchestors = self.DAG['complete'].get_node_anchestors(self.DAG['complete'].features[f])
-                        context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
-                        for a in context_anchestors:
-                            context_p[a] = int(res[t, self.DAG['complete'].features.index(a)])
+
 
                         # pID, occ = self._findSource_intersection(system_p)
-                        pID, pContext, pSegment, occ = self._findSource_intersection(self.DAG['complete'].features[f], system_p, context_p)
+                        pID, occ = self._findSource_intersection(system_p)
 
                         if pID is None:
                             m = np.nan
                             e = np.nan
                         else:
                             # _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][format_combo(tuple(context_p.items()))].predict(system_p)
-                            _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext][pSegment].predict(system_p)
+                            _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]].predict(system_p)
                         res[t, f] = m
         return res[self.DAG['complete'].max_lag:, :]
     
@@ -373,39 +369,7 @@ class CausalInferenceEngine():
 
     #     return pID, max_occurrences
     
-    # def _findSource_intersection(self, parents_values):
-    #     """
-    #     Find the source population with the maximum number of occurrences 
-    #     of a given intersection of parent values.
-
-    #     Args:
-    #         parents_values (dict): Dictionary where keys are parent variable names 
-    #                             and values are the desired values for those parents.
-
-    #     Returns:
-    #         tuple: number of occurrences, source dataset
-    #     """
-    #     max_occurrences = 0
-    #     selected_ID = None
-                
-    #     for id in self.Ds:
-    #         d = self.Ds[id]
-    #         mask = np.ones(len(d.d), dtype=bool)
-    #         for parent, value in parents_values.items():
-    #             mask &= np.isclose(d.d[parent], value, atol=self.atol)
-                    
-    #         # Count the number of occurrences where all parents match
-    #         occurrences = np.sum(mask)
-                    
-    #         # Update the best source if this dataset has more occurrences
-    #         if occurrences > max_occurrences:
-    #             max_occurrences = occurrences
-    #             selected_ID = id
-
-    #     return selected_ID, max_occurrences
-    
-    
-    def _findSource_intersection(self, target, parents, context=None):
+    def _findSource_intersection(self, parents_values):
         """
         Find the source population with the maximum number of occurrences 
         of a given intersection of parent values.
@@ -418,44 +382,24 @@ class CausalInferenceEngine():
             tuple: number of occurrences, source dataset
         """
         max_occurrences = 0
-        pID = None
-        pContext = None
-        pSegment = None
-        
-        context = format_combo(tuple(context.items()))
-        
-        def _find_occurrences(d, parents, atol):
+        selected_ID = None
+                
+        for id in self.Ds:
+            d = self.Ds[id]
             mask = np.ones(len(d.d), dtype=bool)
-            for parent, value in parents.items():
-                mask &= np.isclose(d.d[parent], value, atol = atol)
+            for parent, value in parents_values.items():
+                mask &= np.isclose(d.d[parent], value, atol=self.atol)
                     
             # Count the number of occurrences where all parents match
             occurrences = np.sum(mask)
-            return occurrences                
-        
-        for id in self.Ds:
-            for idx, d in self.Ds[id]['specific'][target][context].items():
-                occurrences = _find_occurrences(d, parents, self.atol)
-                
-                # Update the best source if this dataset has more occurrences
-                if occurrences > max_occurrences:
-                    max_occurrences = occurrences
-                    pID = id
-                    pContext = context
-                    pSegment = idx
                     
-        if pID is None:
-            max_samples = 0
-            for id in self.Ds:
-                for idx, d in self.Ds[id]['specific'][target][context].items():
-                    num_samples = d.T
-                    if num_samples > max_samples:
-                        max_samples = num_samples
-                        pID = id
-                        pContext = context
-                        pSegment = idx
-                        
-        return pID, pContext, pSegment, max_occurrences
+            # Update the best source if this dataset has more occurrences
+            if occurrences > max_occurrences:
+                max_occurrences = occurrences
+                selected_ID = id
+
+        return selected_ID, max_occurrences
+    
         
     # TODO: to change self.DBNs[targetP].data -- self.DBNs[targetP] does not have data attribute
     def transport(self, pS_y_do_x_adj, targetP: tuple, treatment: str, outcome: str):
