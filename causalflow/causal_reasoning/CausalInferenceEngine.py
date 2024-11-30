@@ -88,10 +88,13 @@ class CausalInferenceEngine():
         """
         self.obs_id += 1
         id = ('obs', self.obs_id)
-        # self.Ds[id] = data
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type)
-        self.Ds[id] = {"complete": data, "specific": self.DBNs[id].data}
+        if self.obs_id == 0:
+            self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type)
+        else:
+            self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type, self.DBNs[('obs', 0)].dbn, ['R_V', 'R_B'])
+            
+        self.Ds[id] = data
         return id
         
         
@@ -242,7 +245,7 @@ class CausalInferenceEngine():
                         system_p = {}
                         pID = None
 
-                        for s in self.DAG['complete'].g[self.DAG['complete'].features[var]].sources:
+                        for s in self.DAG['complete'].g[var].sources:
                             system_p[s[0]] = res[t - abs(s[1]), self.DAG['complete'].features.index(s[0])]
 
 
@@ -254,7 +257,7 @@ class CausalInferenceEngine():
                             e = np.nan
                         else:
                             # _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][format_combo(tuple(context_p.items()))].predict(system_p)
-                            _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]].predict(system_p)
+                            _, m, e = self.DBNs[pID].dbn[var].predict(system_p)
                         res[t, f] = m
         return res[self.DAG['complete'].max_lag:, :]
     

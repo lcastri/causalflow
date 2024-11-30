@@ -31,7 +31,7 @@ class Density():
     def __init__(self, 
                  y: Process, 
                  parents: Dict[str, Process] = None,
-                 max_components = 50):
+                 max_components = 100):
         """
         Class constructor.
 

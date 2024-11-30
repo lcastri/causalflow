@@ -36,7 +36,7 @@ class Process():
         Returns:
             int: data length
         """
-        return len(self.data) if self.node_type is not NodeType.Context else len(np.unique(self.data))
+        return len(self.data)
     
     @property
     def alignT(self):
@@ -59,8 +59,5 @@ class Process():
         Returns:
             ndarray: aligned data
         """
-        if self.node_type is not NodeType.Context:
-            self.aligndata = np.array(self.data[maxlag - self.lag : self.T - self.lag], dtype=np.float32).reshape(-1, 1)
-            return self.aligndata
-        else:
-            return None
+        self.aligndata = np.array(self.data[maxlag - self.lag : self.T - self.lag], dtype=np.float32).reshape(-1, 1)
+        return self.aligndata

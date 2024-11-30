@@ -18,7 +18,9 @@ class DynamicBayesianNetwork():
                  dag: DAG, 
                  data: Data, 
                  data_type: Dict[str, DataType], 
-                 node_type: Dict[str, NodeType]):
+                 node_type: Dict[str, NodeType],
+                 dbn: Dict[str, Density] = None,
+                 nodes_to_recycle: Dict[str, Density] = None):
         """
         Class constructor.
 
@@ -33,6 +35,10 @@ class DynamicBayesianNetwork():
         
         self.dbn = {node: None for node in dag.g}
         for node in dag.g:
+            if self.node_type[node] is NodeType.Context: continue
+            if nodes_to_recycle is not None and node in nodes_to_recycle: 
+                self.dbn[node] = dbn[node]
+                continue
             Y = Process(data.d[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
                                                     
             # Parent(s) X process
