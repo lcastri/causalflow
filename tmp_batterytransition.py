@@ -12,7 +12,7 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_standardized/cie.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_standardized_all/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
@@ -22,19 +22,23 @@ with open(CIEDIR, 'rb') as f:
 with open(DAGDIR, 'rb') as f:
     CM = DAG.load(pickle.load(f))
     
-treatment_len = 120
-dfs = []
+morning_len = 60
+lunch_len = 60
 for bagname in BAGNAME:
     for wp in [WP.TABLE2]:
-        for tod in [TOD.LUNCH]:
-            if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
-            print(f"Loading : {bagname}-{tod.value}-{wp.value}")
-            filename = os.path.join(INDIR, "my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
-            dfs.append(pd.read_csv(filename))
-            
-concat_df = pd.concat(dfs, ignore_index=True)
-DATA_DICT_TRAIN = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[:len(concat_df) - treatment_len], vars = CM.features + ["pf_elapsed_time"])
-DATA_DICT_TEST = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[len(concat_df) - treatment_len:], vars = CM.features + ["pf_elapsed_time"])
+        if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
+        for tod in TOD:
+            if tod == TOD.MORNING:
+                print(f"Loading : {bagname}-{tod.value}-{wp.value}")
+                filename = os.path.join(INDIR, "my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
+                morning = pd.read_csv(filename)
+            if tod == TOD.LUNCH:
+                print(f"Loading : {bagname}-{tod.value}-{wp.value}")
+                filename = os.path.join(INDIR, "my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
+                lunch = pd.read_csv(filename)
+concat_df = pd.concat([morning, lunch], ignore_index=True)
+DATA_DICT_TRAIN = Data(morning[CM.features + ["pf_elapsed_time"]].values[:len(morning) - morning_len], vars = CM.features + ["pf_elapsed_time"])
+DATA_DICT_TEST = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[len(morning) - morning_len:len(morning) + lunch_len], vars = CM.features + ["pf_elapsed_time"])
 T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], DATA_DICT_TEST.d["pf_elapsed_time"].values[0:]), axis=0)
 DATA_DICT_TRAIN.shrink(CM.features)
 DATA_DICT_TEST.shrink(CM.features)
@@ -59,7 +63,7 @@ fig, axes = plt.subplots(N, 1, figsize=(8, N * 3), sharex=True)
 # Plot each column in a different subplot
 for f in FEATURES:
     i = DATA_DICT_TRAIN.features.index(f)
-    if f in [NODES.RB.value, NODES.BAC.value]: 
+    if f in [NODES.RB.value, NODES.BAC.value]:
         observation = np.floor(np.concatenate((DATA_DICT_TRAIN.d.values[-CM.max_lag:], DATA_DICT_TEST.d.values[0,:].reshape(1,-1), np.nan*np.ones_like(res_f)), axis=0))
         prediction_f = np.floor(np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), res_f), axis=0))
         # prediction_s = np.floor(np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), res_s), axis=0))

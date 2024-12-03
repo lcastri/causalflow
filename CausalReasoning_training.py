@@ -1,5 +1,6 @@
 import os
 import pickle
+import numpy as np
 
 import pandas as pd
 from causalflow.CPrinter import CPLevel
@@ -23,10 +24,10 @@ with open(DAGDIR, 'rb') as f:
 DATA_TYPE = {
     NODES.TOD.value: DataType.Discrete,
     NODES.RV.value: DataType.Continuous,
-    NODES.RB.value: DataType.Continuous,
+    NODES.RB.value: DataType.Discrete,
     NODES.BS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
-    NODES.BAC.value: DataType.Continuous,
+    NODES.BAC.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
 NODE_TYPE = {
@@ -41,8 +42,8 @@ NODE_TYPE = {
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_test',
-          verbosity = CPLevel.DEBUG)
+          model_path = 'CIE_standardized_int_battery',
+          verbosity = CPLevel.INFO)
 
 start_time = time.time()
 
@@ -60,12 +61,14 @@ for bagname in BAGNAME:
                 filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             dfs.append(pd.read_csv(filename))
             
-    concatenated_df = pd.concat(dfs, ignore_index=True)
-    dfs = []
-    idx = len(DATA_DICT)
-    DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
-    del concatenated_df
-    cie.addObsData(DATA_DICT[idx])
+        concatenated_df = pd.concat(dfs, ignore_index=True)
+        concatenated_df['R_B'] = np.floor(concatenated_df['R_B'].values) # FIXME: this is a test, R_B is not discrete
+        concatenated_df['BAC'] = np.floor(concatenated_df['BAC'].values) # FIXME: this is a test, BAC is not discrete
+        dfs = []
+        idx = len(DATA_DICT)
+        DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
+        del concatenated_df
+        cie.addObsData(DATA_DICT[idx])
     
 cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 

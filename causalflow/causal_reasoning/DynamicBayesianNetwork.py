@@ -18,7 +18,8 @@ class DynamicBayesianNetwork():
                  dag: DAG, 
                  data: Data, 
                  data_type: Dict[str, DataType], 
-                 node_type: Dict[str, NodeType]):
+                 node_type: Dict[str, NodeType],
+                 recycle = None):
         """
         Class constructor.
 
@@ -34,41 +35,70 @@ class DynamicBayesianNetwork():
         self.dbn = {node: None for node in dag.g}
         self.data = {node: None for node in dag.g}
         for node in dag.g:
-            if self.node_type[node] == NodeType.Context: continue
-            anchestors = dag.get_node_anchestors(node)
-            context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
-            contexts = self._extract_contexts(data, context_anchestors)
-            self.dbn[node] = {context: None for context in contexts}
-            self.data[node] = {context: None for context in contexts}
-            
-            for context in contexts:
-                # Retrieve data for each node
-                segments = self.get_context_specific_segments(data, context, node, dag.g[node].sourcelist) 
-                self.dbn[node][context] = {idx: None for idx, _ in enumerate(segments)}
-                self.data[node][context] = {idx: None for idx, _ in enumerate(segments)}
+            if recycle is not None and node in recycle:
+                self.dbn[node] = recycle[node]['dbn']
+                self.data[node] = recycle[node]['data']
+            else:
+                if self.node_type[node] == NodeType.Context: continue
+                anchestors = dag.get_node_anchestors(node)
+                context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
+                contexts = self._extract_contexts(data, context_anchestors)
+                self.dbn[node] = {context: None for context in contexts}
+                self.data[node] = {context: None for context in contexts}
                 
-                for idx, segment in enumerate(segments):
-                    # Target Y process
-                    Y = Process(segment[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
-                                                    
-                    # Parent(s) X process
-                    X = {s[0]: Process(segment[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
-                        for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
+                for context in contexts:
+                    # Retrieve data for each node
+                    segments = self.get_context_specific_segments(data, context, node, dag.g[node].sourcelist) 
+                    self.dbn[node][context] = {idx: None for idx, _ in enumerate(segments)}
+                    self.data[node][context] = {idx: None for idx, _ in enumerate(segments)}
                     
-                    # Density params estimation
+                    # Full DBN using all the segments concatenated
+                    full_data = pd.concat([segment for segment in segments])
+                    # Y = Process(full_data[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
+                    # X = {s[0]: Process(full_data[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
+                    #     for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
+                    Y, X = self._get_Y_X(full_data, node, dag)
                     parents_str = f" - parents {', '.join(list(X.keys()))}" if X else ""
                     CP.info(f"\n    ### Target variable: {node}{parents_str}")
-                    CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])} -- ### Segment: {idx + 1}/{len(segments)}")
-
-                    self.dbn[node][context][idx] = Density(Y, X if X else None)
-                    self.data[node][context][idx] = Data(segment)
-                self.dbn[node][context]['combined'] = copy.deepcopy(self.dbn[node][context][0])
-                self.dbn[node][context]['combined'].PriorDensity = self.combine_segment_densities([self.dbn[node][context][idx].PriorDensity for idx in range(len(segments))], [len(segment) for segment in segments])
-                self.dbn[node][context]['combined'].JointDensity = self.combine_segment_densities([self.dbn[node][context][idx].JointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
-                self.dbn[node][context]['combined'].ParentJointDensity = self.combine_segment_densities([self.dbn[node][context][idx].ParentJointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                    if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                    CP.info(f"    ### Full")
+                    self.dbn[node][context]['full'] = Density(Y, X if X else None)
+                    self.data[node][context]['full'] = Data(full_data)
+                    
+                    # Segmented DBN
+                    for idx, segment in enumerate(segments):
+                        # # Target Y process
+                        # Y = Process(segment[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])                       
+                        # # Parent(s) X process
+                        # X = {s[0]: Process(segment[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
+                        #     for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
+                        Y, X = self._get_Y_X(segment, node, dag)
+                        # Density params estimation
+                        CP.info(f"\n    ### Target variable: {node}{parents_str}")
+                        if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                        CP.info(f"    ### Segment: {idx + 1}/{len(segments)}")
+                        self.dbn[node][context][idx] = Density(Y, X if X else None)
+                        self.data[node][context][idx] = Data(segment)
+                        
+                    # Combined DBN
+                    CP.info(f"\n    ### Target variable: {node}{parents_str}")
+                    if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                    CP.info(f"    ### Combined")
+                    self.dbn[node][context]['combined'] = copy.deepcopy(self.dbn[node][context][0])
+                    self.dbn[node][context]['combined'].PriorDensity = self.combine_segment_densities([self.dbn[node][context][idx].PriorDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                    self.dbn[node][context]['combined'].JointDensity = self.combine_segment_densities([self.dbn[node][context][idx].JointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                    self.dbn[node][context]['combined'].ParentJointDensity = self.combine_segment_densities([self.dbn[node][context][idx].ParentJointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
                 
         del dag, data
         gc.collect()
+        
+        
+    def _get_Y_X(self, data, node, dag):
+        Y = Process(data[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
+        X = {s[0]: Process(data[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
+            for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
+        return Y, X
+    
         
     def combine_segment_densities(self, segment_densities, segment_sizes):
         """
@@ -110,65 +140,7 @@ class DynamicBayesianNetwork():
         tmp = list(itertools.product(*[[(k, float(v) if self.data_type[k] is DataType.Continuous else int(v)) for v in values] for k, values in res.items()]))
         return [format_combo(c) for c in tmp]
     
-    
-    # def split_by_context(self, data, context_column, target_context):
-    #     """
-    #     Split the data into separate datasets based on continuous segments of the specified context.
-
-    #     Args:
-    #         data (pd.DataFrame): The input dataset containing a context column.
-    #         context_column (str): The name of the context column.
-    #         target_context (any): The target context value to extract.
-
-    #     Returns:
-    #         List[pd.DataFrame]: A list of DataFrames, each representing a continuous segment of the target context.
-    #     """
-        
-    #     def isDuplicate():
-    #         for existing_segment in segments:
-    #             if len(current_segment_df) == len(existing_segment):  # Check lengths first
-    #                 if (current_segment_df.columns == existing_segment.columns).all():
-    #                     if all((current_segment_df[col].values == existing_segment[col].values).all()
-    #                         for col in current_segment_df.columns):
-    #                         return True
-    #         return False
-        
-    #     segments = []
-    #     current_segment = []
-
-    #     for i in range(len(data)):
-    #         if data[context_column].iloc[i] == target_context:
-    #             current_segment.append(data.iloc[i])
-    #         else:
-    #             if current_segment:
-    #                 current_segment_df = pd.DataFrame(current_segment)
-    #                 if not isDuplicate():
-    #                     segments.append(current_segment_df)
-    #                 current_segment = []
-
-    #     # Add the last segment if it exists
-    #     if current_segment:
-    #         current_segment_df = pd.DataFrame(current_segment)
-    #         if not isDuplicate():
-    #             segments.append(pd.DataFrame(current_segment))
-        
-    #     return segments
-
-    
-    
-    # def get_context_specific_segments(self, data, context, node, parents):
-    #     context_dict = dict(context)
-
-    #     # Filter the dataframe based on the context dictionary
-    #     filtered_data = data.d[list(set([node] + [p for p in parents]))]
-    #     for key, value in context_dict.items():
-    #         segments = self.split_by_context(filtered_data, key, value)
-
-    #     system_parents = list(set([node] + [p for p in parents]))
-    #     system_parents = [p for p in system_parents if self.node_type[p] is not NodeType.Context]
-    #     # Check if the filtered data is non-empty (i.e., if the context combination exists)
-    #     return filtered_data[system_parents]
-    
+       
     def split_by_context(self, data, target_context_conditions):
         """
         Split the data into separate datasets based on continuous segments 

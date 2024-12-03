@@ -88,9 +88,23 @@ class CausalInferenceEngine():
         """
         self.obs_id += 1
         id = ('obs', self.obs_id)
-        # self.Ds[id] = data
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type)
+        
+        recycle = {}
+        for existing_id, d in self.Ds.items():
+            full_d = d["complete"]
+            for node in full_d.features:
+                if node in recycle: continue
+                if np.array_equal(full_d.d[node].values, data.d[node].values):
+                    CP.info(f"Recycling node: {node} from DBN ID {str(existing_id)}")
+                    recycle[node] = {
+                        'dbn': self.DBNs[existing_id].dbn[node],
+                        'data': self.DBNs[existing_id].data[node]
+                    }
+                    continue
+        if not recycle: recycle = None
+    
+        self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type, recycle)
         self.Ds[id] = {"complete": data, "specific": self.DBNs[id].data}
         return id
         
@@ -218,12 +232,18 @@ class CausalInferenceEngine():
         if prior_knowledge is not None and len(values) != len(list(prior_knowledge.values())[0]):
             raise ValueError("prior_knowledge items must have the same length of the treatment values")
         intT = len(values)
-        res = np.full((intT + self.DAG['complete'].max_lag, len(self.DAG['complete'].features)), np.nan)
-        res[:self.DAG['complete'].max_lag, :] = data[-self.DAG['complete'].max_lag:, :]
+        res_full = np.full((intT + self.DAG['complete'].max_lag, len(self.DAG['complete'].features)), np.nan)
+        res_full[:self.DAG['complete'].max_lag, :] = data[-self.DAG['complete'].max_lag:, :]
+        # res_seg = copy.deepcopy(res_full)
+        # res_combined = copy.deepcopy(res_full)
+        res_mode = copy.deepcopy(res_full)
         
         if prior_knowledge is not None:
             for f, f_data in prior_knowledge.items():
-                res[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
+                res_full[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
+                # res_seg[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
+                # res_combined[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
+                res_mode[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
         
         # Build an interventional DAG where the treatment variable has no parents
         dag = self.remove_intVarParents(self.DAG['complete'], treatment)
@@ -234,9 +254,12 @@ class CausalInferenceEngine():
             self.Q[VALUE] = values[t-self.DAG['complete'].max_lag]
             
             for f, lag in calculation_order:
-                if np.isnan(res[t - abs(lag), f]):
+                if np.isnan(res_full[t - abs(lag), f]):
                     if self.DAG['complete'].features[f] == self.Q[TREATMENT]:
-                        res[t, f] = self.Q[VALUE]
+                        res_full[t, f] = self.Q[VALUE]
+                        # res_seg[t, f] = self.Q[VALUE]
+                        # res_combined[t, f] = self.Q[VALUE]
+                        res_mode[t, f] = self.Q[VALUE]
                     else:
                         var = self.DAG['system'].features.index(self.DAG['complete'].features[f])
                         system_p = {}
@@ -244,11 +267,11 @@ class CausalInferenceEngine():
                         pID = None
 
                         for s in self.DAG['system'].g[self.DAG['system'].features[var]].sources:
-                            system_p[s[0]] = res[t - abs(s[1]), self.DAG['complete'].features.index(s[0])]
+                            system_p[s[0]] = res_full[t - abs(s[1]), self.DAG['complete'].features.index(s[0])]
                         anchestors = self.DAG['complete'].get_node_anchestors(self.DAG['complete'].features[f])
                         context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
                         for a in context_anchestors:
-                            context_p[a] = int(res[t, self.DAG['complete'].features.index(a)])
+                            context_p[a] = int(res_full[t, self.DAG['complete'].features.index(a)])
 
                         # pID, occ = self._findSource_intersection(system_p)
                         pID, pContext, pSegment, occ = self._findSource_intersection(self.DAG['complete'].features[f], system_p, context_p)
@@ -257,11 +280,19 @@ class CausalInferenceEngine():
                             m = np.nan
                             e = np.nan
                         else:
-                            # _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][format_combo(tuple(context_p.items()))].predict(system_p)
-                            _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['combined'].predict(system_p)
-                            # _, m, e = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext][pSegment].predict(system_p)
-                        res[t, f] = m
-        return res[self.DAG['complete'].max_lag:, :]
+                            dens_full, m_full, e_full = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['full'].predict(system_p)
+                            # dens_seg, m_seg, e_seg = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext][pSegment].predict(system_p)
+                            # dens_combined, m_combined, e_combined = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['combined'].predict(system_p)
+                            # self.plot_pE(self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['full'].y, system_p, dens_full, e_full, show=True)
+                        # res_full[t, f] = m_full
+                        res_mode[t, f] = m_full
+                        # res_seg[t, f] = m_seg
+                        # res_combined[t, f] = m_combined
+                        res_full[t, f] = e_full
+                        # res_seg[t, f] = e_seg
+                        # res_combined[t, f] = e_combined
+        return res_full[self.DAG['complete'].max_lag:, :], res_mode[self.DAG['complete'].max_lag:, :]
+        # return res_full[self.DAG['complete'].max_lag:, :], res_seg[self.DAG['complete'].max_lag:, :], res_combined[self.DAG['complete'].max_lag:, :]
     
     
     def _DAG2NX(self, dag: DAG) -> nx.DiGraph:
@@ -429,15 +460,38 @@ class CausalInferenceEngine():
             mask = np.ones(len(d.d), dtype=bool)
             for parent, value in parents.items():
                 # mask &= np.isclose(d.d[parent], value, atol = atol)
-                mask &= np.isclose(d.d[parent], value, atol = atol, rtol=0.01)
+                mask &= np.isclose(d.d[parent], value, atol = atol)
+                # mask &= np.isclose(d.d[parent], value, atol = atol, rtol=atol*10)
                     
             # Count the number of occurrences where all parents match
             occurrences = np.sum(mask)
-            return occurrences                
+            return occurrences
+        
+        def compute_adaptive_atol(parent_values, data, scale_factor=0.05):
+            """
+            Compute an adaptive atol based on the variability of the parent values.
+
+            Args:
+                parent_values (dict): Dictionary of parent variable values.
+                data (pd.DataFrame): Data containing the parent variables.
+                scale_factor (float): Factor to scale the variability.
+
+            Returns:
+                float: Adaptive atol.
+            """
+            variances = []
+            for parent in parent_values.keys():
+                parent_data = data[parent].values
+                variances.append(np.std(parent_data))  # Or use np.ptp(parent_data), np.median_absolute_deviation, etc.
+
+            return scale_factor * np.mean(variances)  # Average variability scaled by the factor      
         
         for id in self.Ds:
+            if context not in self.Ds[id]['specific'][target]: continue
             for idx, d in self.Ds[id]['specific'][target][context].items():
-                occurrences = _find_occurrences(d, parents, self.atol)
+                if idx == 'full': continue
+                adaptive_atol = compute_adaptive_atol(parents, d.d)
+                occurrences = _find_occurrences(d, parents, adaptive_atol)
                 
                 # Update the best source if this dataset has more occurrences
                 if occurrences > max_occurrences:
@@ -449,6 +503,7 @@ class CausalInferenceEngine():
         if pID is None:
             max_samples = 0
             for id in self.Ds:
+                if context not in self.Ds[id]['specific'][target]: continue
                 for idx, d in self.Ds[id]['specific'][target][context].items():
                     num_samples = d.T
                     if num_samples > max_samples:
@@ -537,7 +592,7 @@ class CausalInferenceEngine():
             
     def plot_pE(self, y, parent, density, expectation = None, show = False, path = None):
         plt.figure(figsize=(10, 6))
-        plt.plot(y.samples, density, label='Density')
+        plt.plot(y.aligndata, density, label='Density')
         if expectation is not None: plt.axvline(expectation, color='r', linestyle='--', label=f'Expectation = {expectation:.2f}')
         plt.xlabel(f'${y.varname}$')
         pa = []

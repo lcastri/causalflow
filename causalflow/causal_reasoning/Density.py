@@ -5,27 +5,15 @@ from typing import Dict
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Utils import *
 from sklearn.mixture import GaussianMixture
+from sklearn.mixture import BayesianGaussianMixture
+
 import numpy as np
 from scipy.stats import multivariate_normal
 import warnings
+from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
 
-
-def fit_and_evaluate(data, n):
-    """
-    Fit a GMM with a specified number of components and compute AIC and BIC.
-
-    Args:
-        data (ndarray): Data to fit the GMM.
-        n (int): Number of components.
-
-    Returns:
-        Tuple[float, float]: AIC and BIC for the fitted GMM.
-    """
-    gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
-    gmm.fit(data)
-    return gmm.aic(data), gmm.bic(data)
 
 class Density():       
     def __init__(self, 
@@ -86,22 +74,25 @@ class Density():
             # parents
             for p in self.parents.values():
                 p.align(self.MaxLag)
-            
-            
-    def fit_gmm(self, caller, data):
+    
+   
+    def fit_gmm(self, caller, data, standardize=True):
         """
-        Fit a Gaussian Mixture Model (GMM) to the data.
+        Fit a Gaussian Mixture Model (GMM) to the data, optionally standardizing it.
 
         Args:
             data (ndarray): Data to fit the GMM.
-            n_components (int): Number of Gaussian components.
+            standardize (bool): Whether to standardize the data before fitting.
 
         Returns:
             dict: Parameters of the GMM (means, covariances, weights).
         """
-        # Range of components to test
-        components = range(1, self.max_components + 1)
+        if standardize:
+            scaler = StandardScaler()
+            data = scaler.fit_transform(data)
 
+        # Fit GMM as usual
+        components = range(1, self.max_components + 1)
         aic = []
         bic = []
 
@@ -111,24 +102,31 @@ class Density():
             aic.append(gmm.aic(data))
             bic.append(gmm.bic(data))
 
-        # Choose the optimal number of components based on the minimum AIC or BIC
-        optimal_n_components_aic = components[np.argmin(aic)]
-        optimal_n_components_bic = components[np.argmin(bic)]
-        CP.debug(f"    Optimal n.components (AIC): {optimal_n_components_aic} (BIC): {optimal_n_components_bic}")
-        
-        # Choose the optimal number of components (you can choose AIC or BIC-based on preference)
-        optimal_n_components = optimal_n_components_aic  # Or use BIC: optimal_n_components_bic
-        
-        # Fit the GMM with the chosen optimal number of components
+        optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
+        CP.debug(f"Optimal n.components: {optimal_n_components}")
+
         gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
         gmm.fit(data)
-        
-        # Return the parameters as a dictionary
-        return {
-            "means": gmm.means_,
-            "covariances": gmm.covariances_,
-            "weights": gmm.weights_
-        }
+
+        # If standardized, adjust means and covariances back to original scale
+        if standardize:
+            means_original = scaler.inverse_transform(gmm.means_)
+            covariances_original = []
+            for cov in gmm.covariances_:
+                cov_original = scaler.scale_[:, None] * cov * scaler.scale_[None, :]
+                covariances_original.append(cov_original)
+            return {
+                "means": means_original,
+                "covariances": np.array(covariances_original),
+                "weights": gmm.weights_,
+            }
+        else:
+            return {
+                "means": gmm.means_,
+                "covariances": gmm.covariances_,
+                "weights": gmm.weights_,
+            }
+
             
     @staticmethod
     def get_density(x, params):
@@ -221,6 +219,8 @@ class Density():
             mean_parents = mean_joint[dim_y:]
             mean_target = mean_joint[:dim_y]
             cov_pp = cov_joint[dim_y:, dim_y:]  # Covariance of parents
+            cov_pp = cov_pp + 1e-6 * np.eye(cov_pp.shape[0]) # To ensure invertibility
+
             cov_yp = cov_joint[:dim_y, dim_y:]  # Cross-covariance between y and parents
             cov_yy = cov_joint[:dim_y, :dim_y]  # Covariance of y
 
@@ -259,8 +259,7 @@ class Density():
         dens = dens / np.sum(dens)
 
         # Find the most likely value (mode)
-        most_likely = mode(self.y.aligndata, dens)
-        # expected_value = expectation(self.y.aligndata, dens)
-        expected_value = 0
+        most_likely = mode(self.y.aligndata.flatten(), dens)
+        expected_value = expectation(self.y.aligndata.flatten(), dens)
 
         return dens, most_likely, expected_value
