@@ -1,10 +1,7 @@
-from causalflow.version import VERSION
+from .version import VERSION
 
 """
-FPCMCI.
-
-Filtered - PCMCI causal discovery algorithm.
-Extension of the PCMCI causal discovery algorithm augmented with a feature selection method.
+CausalFlow: a Collection of Methods for Causal Discovery from Time-series.
 """
 
 __version__ = VERSION
