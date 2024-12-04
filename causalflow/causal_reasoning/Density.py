@@ -1,17 +1,15 @@
+import numpy as np
+import warnings
 from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
-from typing import Dict
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Utils import *
+from typing import Dict
 from sklearn.mixture import GaussianMixture
-from sklearn.mixture import BayesianGaussianMixture
-
-import numpy as np
-from scipy.stats import multivariate_normal
-import warnings
 from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
+from scipy.stats import multivariate_normal
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
 
 

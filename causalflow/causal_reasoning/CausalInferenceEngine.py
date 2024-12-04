@@ -151,23 +151,25 @@ class CausalInferenceEngine():
             pickle.dump(pkl, resfile)    
     
     @classmethod
-    def load(cls, pkl):
+    def load(cls, pklpath):
         """
         Load a CausalInferenceEngine object from a pickle file.
 
         Args:
-            pkl (pickle): pickle file.
+            pklpath (str): pickle filepath.
 
         Returns:
             CausalInferenceEngine: loaded CausalInferenceEngine object.
         """
-        cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], 0.05, pkl['model_path'], pkl['verbosity'])
-        cie.contexts = pkl['contexts']
-        cie.obs_id = pkl['obs_id']
-        cie.int_id = pkl['int_id']
-        cie.Ds = pkl['Ds']
-        cie.DBNs = pkl['DBNs']
-        return cie
+        with open(pklpath, 'rb') as f:
+            pkl = pickle.load(f)
+            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], 0.05, pkl['model_path'], pkl['verbosity'])
+            cie.contexts = pkl['contexts']
+            cie.obs_id = pkl['obs_id']
+            cie.int_id = pkl['int_id']
+            cie.Ds = pkl['Ds']
+            cie.DBNs = pkl['DBNs']
+            return cie
         
         
     def whatHappens(self, outcome: str, treatment: str, value, targetP: tuple):

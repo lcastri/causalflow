@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def expectation(y, p):
     """
     Compute the expectation E[y*p(y)/sum(p(y))].

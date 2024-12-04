@@ -9,8 +9,8 @@ from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_reasoning.Density import Density
 from causalflow.causal_reasoning.Process import Process
-from tigramite.causal_effects import CausalEffects
 from causalflow.basics.constants import *
+from tigramite.causal_effects import CausalEffects
 from typing import Dict
 
 class DynamicBayesianNetwork():

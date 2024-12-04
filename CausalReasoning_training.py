@@ -1,6 +1,5 @@
 import os
 import pickle
-import numpy as np
 
 import pandas as pd
 from causalflow.CPrinter import CPLevel
@@ -42,7 +41,7 @@ NODE_TYPE = {
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_standardized_int_battery',
+          model_path = 'CIE_100',
           verbosity = CPLevel.INFO)
 
 start_time = time.time()
@@ -62,8 +61,6 @@ for bagname in BAGNAME:
             dfs.append(pd.read_csv(filename))
             
         concatenated_df = pd.concat(dfs, ignore_index=True)
-        concatenated_df['R_B'] = np.floor(concatenated_df['R_B'].values) # FIXME: this is a test, R_B is not discrete
-        concatenated_df['BAC'] = np.floor(concatenated_df['BAC'].values) # FIXME: this is a test, BAC is not discrete
         dfs = []
         idx = len(DATA_DICT)
         DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)

@@ -1,6 +1,5 @@
 import numpy as np
 from causalflow.basics.constants import *
-import numpy as np
 
 class Process():
     def __init__(self, 
