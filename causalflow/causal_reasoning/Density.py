@@ -257,7 +257,6 @@ class Density():
         dens = dens / np.sum(dens)
 
         # Find the most likely value (mode)
-        most_likely = mode(self.y.aligndata.flatten(), dens)
         expected_value = expectation(self.y.aligndata.flatten(), dens)
 
-        return dens, most_likely, expected_value
+        return expected_value

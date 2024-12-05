@@ -54,9 +54,6 @@ class DynamicBayesianNetwork():
                     
                     # Full DBN using all the segments concatenated
                     full_data = pd.concat([segment for segment in segments])
-                    # Y = Process(full_data[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
-                    # X = {s[0]: Process(full_data[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
-                    #     for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
                     Y, X = self._get_Y_X(full_data, node, dag)
                     parents_str = f" - parents {', '.join(list(X.keys()))}" if X else ""
                     CP.info(f"\n    ### Target variable: {node}{parents_str}")
@@ -67,11 +64,6 @@ class DynamicBayesianNetwork():
                     
                     # Segmented DBN
                     for idx, segment in enumerate(segments):
-                        # # Target Y process
-                        # Y = Process(segment[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])                       
-                        # # Parent(s) X process
-                        # X = {s[0]: Process(segment[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
-                        #     for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
                         Y, X = self._get_Y_X(segment, node, dag)
                         # Density params estimation
                         CP.info(f"\n    ### Target variable: {node}{parents_str}")
