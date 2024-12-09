@@ -12,6 +12,10 @@ from causalflow.causal_reasoning.Process import Process
 from causalflow.basics.constants import *
 from tigramite.causal_effects import CausalEffects
 from typing import Dict
+import matplotlib.pyplot as plt
+from scipy.stats import multivariate_normal
+import os
+
 
 class DynamicBayesianNetwork():
     def __init__(self, 
@@ -54,43 +58,96 @@ class DynamicBayesianNetwork():
                     
                     # Full DBN using all the segments concatenated
                     full_data = pd.concat([segment for segment in segments])
-                    # Y = Process(full_data[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
-                    # X = {s[0]: Process(full_data[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
-                    #     for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
                     Y, X = self._get_Y_X(full_data, node, dag)
                     parents_str = f" - parents {', '.join(list(X.keys()))}" if X else ""
                     CP.info(f"\n    ### Target variable: {node}{parents_str}")
                     if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                    CP.info(f"    ### Full")
+                    CP.info(f"    ### Full - {len(full_data)} samples")
                     self.dbn[node][context]['full'] = Density(Y, X if X else None)
                     self.data[node][context]['full'] = Data(full_data)
-                    
-                    # Segmented DBN
-                    for idx, segment in enumerate(segments):
-                        # # Target Y process
-                        # Y = Process(segment[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])                       
-                        # # Parent(s) X process
-                        # X = {s[0]: Process(segment[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
-                        #     for s in dag.g[node].sources if self.node_type[s[0]] is not NodeType.Context}
-                        Y, X = self._get_Y_X(segment, node, dag)
-                        # Density params estimation
-                        CP.info(f"\n    ### Target variable: {node}{parents_str}")
-                        if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                        CP.info(f"    ### Segment: {idx + 1}/{len(segments)}")
-                        self.dbn[node][context][idx] = Density(Y, X if X else None)
-                        self.data[node][context][idx] = Data(segment)
+                    # self.plot_density(node, context)
+                    # # Segmented DBN
+                    # for idx, segment in enumerate(segments):
+                    #     Y, X = self._get_Y_X(segment, node, dag)
+
+                    #     CP.info(f"\n    ### Target variable: {node}{parents_str}")
+                    #     if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                    #     CP.info(f"    ### Segment: {idx + 1}/{len(segments)} - {len(segment)} samples")
+                    #     self.dbn[node][context][idx] = Density(Y, X if X else None)
+                    #     self.data[node][context][idx] = Data(segment)
                         
-                    # Combined DBN
-                    CP.info(f"\n    ### Target variable: {node}{parents_str}")
-                    if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                    CP.info(f"    ### Combined")
-                    self.dbn[node][context]['combined'] = copy.deepcopy(self.dbn[node][context][0])
-                    self.dbn[node][context]['combined'].PriorDensity = self.combine_segment_densities([self.dbn[node][context][idx].PriorDensity for idx in range(len(segments))], [len(segment) for segment in segments])
-                    self.dbn[node][context]['combined'].JointDensity = self.combine_segment_densities([self.dbn[node][context][idx].JointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
-                    self.dbn[node][context]['combined'].ParentJointDensity = self.combine_segment_densities([self.dbn[node][context][idx].ParentJointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                    # # Combined DBN
+                    # CP.info(f"\n    ### Target variable: {node}{parents_str}")
+                    # if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                    # CP.info(f"    ### Combined")
+                    # self.dbn[node][context]['combined'] = copy.deepcopy(self.dbn[node][context][0])
+                    # self.dbn[node][context]['combined'].PriorDensity = self.combine_segment_densities([self.dbn[node][context][idx].PriorDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                    # self.dbn[node][context]['combined'].JointDensity = self.combine_segment_densities([self.dbn[node][context][idx].JointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
+                    # self.dbn[node][context]['combined'].ParentJointDensity = self.combine_segment_densities([self.dbn[node][context][idx].ParentJointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
                 
         del dag, data
         gc.collect()
+        
+        
+    def gmm_density(self, x, means, covariances, weights):
+        """
+        Computes the Gaussian Mixture Model density.
+        
+        Args:
+            x (np.ndarray): Input points where the density is evaluated.
+            means (np.ndarray): Means of the Gaussian components.
+            covariances (np.ndarray): Covariances of the Gaussian components.
+            weights (np.ndarray): Weights of the Gaussian components.
+        
+        Returns:
+            np.ndarray: Evaluated density at each point in x.
+        """
+        density = np.zeros_like(x)
+        for mean, cov, weight in zip(means, covariances, weights):
+            density += weight * multivariate_normal.pdf(x, mean=mean, cov=cov)
+            
+        return density
+        
+        
+    def plot_density(self, node, context):
+        # Extract ground-truth data
+        ground_truth_data = self.data[node][context]['full'].d[node]
+
+        # Extract estimated density (assumes Density object has a method to generate density values)
+        estimated_density = self.dbn[node][context]['full'].PriorDensity
+
+        # Generate X (independent variable range)
+        x_range = np.linspace(ground_truth_data.min(), ground_truth_data.max(), 100)  # Adjust as needed
+
+        # Evaluate densities
+        ground_truth_density = np.histogram(ground_truth_data, bins=30, density=True)  # Histogram approximation
+        estimated_density_values = self.gmm_density(x_range, 
+                                                    estimated_density['means'], 
+                                                    estimated_density['covariances'], 
+                                                    estimated_density['weights'])
+    
+        # Plot ground-truth density
+        plt.plot(ground_truth_density[1][:-1], ground_truth_density[0], label='Ground Truth', linestyle='-', color='orange')
+
+        # Plot estimated density
+        plt.plot(x_range, estimated_density_values, label='Estimated', linestyle='--', color='blue')
+
+        # Add labels, legend, and title
+        plt.ylabel("Density")
+        plt.title(f"Density Comparison for Node: {node} in Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+        plt.legend()
+        plt.grid(True)
+
+        # Define the output folder and filename
+        output_folder = "/home/lcastri/Desktop/Densities"
+        os.makedirs(output_folder, exist_ok=True)  # Ensure the folder exists
+        filename = f"{node}__{','.join([f'{c[0]}={c[1]}' for c in context])}.png"
+        filepath = os.path.join(output_folder, filename)
+
+        # Save the plot as a PNG image
+        plt.savefig(filepath, format='png')
+        plt.close()  # Close the plot to free memory
+
         
         
     def _get_Y_X(self, data, node, dag):

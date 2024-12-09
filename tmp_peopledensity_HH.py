@@ -12,10 +12,9 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_100_nostand/cie.pkl'
-INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv/TOD'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH2/cie.pkl'
+INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
-# BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
 
 cie = CIE.load(CIEDIR)
 with open(DAGDIR, 'rb') as f:
@@ -25,14 +24,22 @@ dfs = []
 PD_means = []
 starting = None
 starting_len = 400
+wp = WP.TABLE2
 for bagname in BAGNAME:
-    for wp in [WP.TABLE2]:
-        for tod in TOD:
-            if tod == TOD.STARTING:
-                starting = pd.read_csv(os.path.join(INDIR, "my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv"))
-            df = pd.read_csv(os.path.join(INDIR, "my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv"))
-            dfs.append(df)
-            PD_means.append(df['PD'].mean() * np.ones(df.shape[0]))
+    files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
+    files_split = [f.split('_') for f in files]
+    wp_files = [f for f in files_split if len(f) == 3 and f[2].split('.')[0] == wp.value]
+    wp_files = sorted(wp_files, key=lambda x: int(x[1].replace('h', '')))
+    wp_files = ['_'.join(wp_f) for wp_f in wp_files]
+    for idx, file in enumerate(wp_files):
+        print(f"Loading : {file}")
+        filename = os.path.join(INDIR, "TOD/HH", f"{bagname}", file)
+        if idx == 0:
+            starting = pd.read_csv(filename)
+        df = pd.read_csv(filename)
+        dfs.append(df)
+        PD_means.append(df['PD'].mean() * np.ones(df.shape[0]))
+
 
 concat_PD = np.concatenate(PD_means, axis=0)       
 concat_df = pd.concat(dfs, ignore_index=True)
@@ -62,14 +69,14 @@ for f in FEATURES:
     i = DATA_DICT_TRAIN.features.index(f)
     observation = np.concatenate((DATA_DICT_TRAIN.d.values[-CM.max_lag//10::10], DATA_DICT_TEST.d.values[0::10,:]), axis=0)
     ground_truth = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag//10::10]), DATA_DICT_TEST.d.values[::10]), axis=0)
-    prediction_f = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag//10::10]), res_f[::10]), axis=0)
+    prediction_f = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag//10::10]), res_s[::10]), axis=0)
     axes[FEATURES.index(f)].plot(observation[:, i], linestyle = '-', color = "black", label = "observation")
     axes[FEATURES.index(f)].plot(ground_truth[:, i], linestyle = '-', color = "tab:orange", label = "ground-truth")
     axes[FEATURES.index(f)].plot(prediction_f[:, i], linestyle = '--', color = "tab:blue", label = "prediction")
     axes[FEATURES.index(f)].set_ylabel(DATA_DICT_TRAIN.features[i])
     axes[FEATURES.index(f)].grid(True)
     title = {}
-    RMSE = np.sqrt(np.mean((res_f[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
+    RMSE = np.sqrt(np.mean((res_s[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
     NRMSE = RMSE/np.std(DATA_DICT_TEST.d.values[:, i]) if np.std(DATA_DICT_TEST.d.values[:, i]) != 0 else 0
     axes[FEATURES.index(f)].set_title(f"NRMSE: {NRMSE:.4f}")
     axes[FEATURES.index(f)].legend(loc='best')
@@ -82,4 +89,3 @@ plt.xticks(ticks=safe_indices, labels=tick_labels, rotation=45)
 
 plt.tight_layout()
 plt.show()
-

@@ -12,13 +12,12 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_standardized_all/cie.pkl'
-INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_100/cie.pkl'
+INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv/TOD'
 BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
 
-with open(CIEDIR, 'rb') as f:
-    cie = CIE.load(pickle.load(f))
+cie = CIE.load(CIEDIR)
 with open(DAGDIR, 'rb') as f:
     CM = DAG.load(pickle.load(f))
     

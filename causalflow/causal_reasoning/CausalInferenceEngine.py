@@ -488,31 +488,57 @@ class CausalInferenceEngine():
 
             return scale_factor * np.mean(variances)  # Average variability scaled by the factor      
         
+        # for id in self.Ds:
+        #     if context not in self.Ds[id]['specific'][target]: continue
+        #     for idx, d in self.Ds[id]['specific'][target][context].items():
+        #         if idx == 'full': continue
+        #         adaptive_atol = compute_adaptive_atol(parents, d.d)
+        #         occurrences = _find_occurrences(d, parents, adaptive_atol)
+                
+        #         # Update the best source if this dataset has more occurrences
+        #         if occurrences > max_occurrences:
+        #             max_occurrences = occurrences
+        #             pID = id
+        #             pContext = context
+        #             pSegment = idx
+                    
+        # if pID is None:
+        #     max_samples = 0
+        #     for id in self.Ds:
+        #         if context not in self.Ds[id]['specific'][target]: continue
+        #         for idx, d in self.Ds[id]['specific'][target][context].items():
+        #             num_samples = d.T
+        #             if num_samples > max_samples:
+        #                 max_samples = num_samples
+        #                 pID = id
+        #                 pContext = context
+        #                 pSegment = idx
+                        
+        # return pID, pContext, pSegment, max_occurrences
         for id in self.Ds:
             if context not in self.Ds[id]['specific'][target]: continue
-            for idx, d in self.Ds[id]['specific'][target][context].items():
-                if idx == 'full': continue
-                adaptive_atol = compute_adaptive_atol(parents, d.d)
-                occurrences = _find_occurrences(d, parents, adaptive_atol)
+            d = self.Ds[id]['specific'][target][context]['full']
+            adaptive_atol = compute_adaptive_atol(parents, d.d)
+            occurrences = _find_occurrences(d, parents, adaptive_atol)
                 
-                # Update the best source if this dataset has more occurrences
-                if occurrences > max_occurrences:
-                    max_occurrences = occurrences
-                    pID = id
-                    pContext = context
-                    pSegment = idx
-                    
+            # Update the best source if this dataset has more occurrences
+            if occurrences > max_occurrences:
+                max_occurrences = occurrences
+                pID = id
+                pContext = context
+                pSegment = 'full'
+                        
         if pID is None:
             max_samples = 0
             for id in self.Ds:
                 if context not in self.Ds[id]['specific'][target]: continue
-                for idx, d in self.Ds[id]['specific'][target][context].items():
-                    num_samples = d.T
-                    if num_samples > max_samples:
-                        max_samples = num_samples
-                        pID = id
-                        pContext = context
-                        pSegment = idx
+                d = self.Ds[id]['specific'][target][context]['full']
+                num_samples = d.T
+                if num_samples > max_samples:
+                    max_samples = num_samples
+                    pID = id
+                    pContext = context
+                    pSegment = 'full'
                         
         return pID, pContext, pSegment, max_occurrences
         
