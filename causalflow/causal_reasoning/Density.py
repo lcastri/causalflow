@@ -12,6 +12,7 @@ from sklearn.exceptions import ConvergenceWarning
 from scipy.stats import multivariate_normal
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
       
+from causalflow.causal_reasoning.EM import EM
 
 
 class Density():       
@@ -74,7 +75,146 @@ class Density():
             for p in self.parents.values():
                 p.align(self.MaxLag)
                 
-   
+                
+    # def initialize_means(self, data, n_components):
+    #     """
+    #     Initialize the means of the GMM components using K-means clustering.
+
+    #     Args:
+    #         data (ndarray): Data to fit the GMM.
+    #         n_components (int): Number of Gaussian components.
+
+    #     Returns:
+    #         ndarray: Initial means of the components.
+    #     """
+    #     kmeans = KMeans(n_clusters=n_components, random_state=42)
+    #     kmeans.fit(data)
+    #     return kmeans.cluster_centers_
+    
+    
+    # def compute_responsibilities(self, data, means, covariances, weights):
+    #     """
+    #     Compute the responsibilities in the E-step.
+
+    #     Args:
+    #         data (ndarray): Data to fit the GMM.
+    #         means (ndarray): Means of the components.
+    #         covariances (list[ndarray]): Covariance matrices of the components.
+    #         weights (ndarray): Mixing weights of the components.
+
+    #     Returns:
+    #         ndarray: Responsibilities (N x K matrix).
+    #     """
+    #     n_samples, n_components = data.shape[0], len(weights)
+    #     responsibilities = np.zeros((n_samples, n_components))
+
+    #     # Compute weighted Gaussian PDFs for each component
+    #     for k in range(n_components):
+    #         pdf = multivariate_normal(mean=means[k], cov=covariances[k]).pdf(data)
+    #         responsibilities[:, k] = weights[k] * pdf
+
+    #     # Normalize to ensure responsibilities sum to 1 for each data point
+    #     responsibilities /= responsibilities.sum(axis=1, keepdims=True)
+    #     return responsibilities
+    
+    
+    # def update_means(self, data, responsibilities, weights):
+    #     """
+    #     Update the means of the GMM components in the M-step.
+
+    #     Args:
+    #         data (ndarray): Data to fit the GMM.
+    #         responsibilities (ndarray): Responsibilities (N x K matrix).
+    #         weights (ndarray): Mixing weights of the components.
+
+    #     Returns:
+    #         ndarray: Updated means of the components.
+    #     """
+    #     n_components = responsibilities.shape[1]
+    #     means = np.zeros((n_components, data.shape[1]))
+
+    #     for k in range(n_components):
+    #         # Weighted average of data points for component k
+    #         means[k] = np.sum(responsibilities[:, k][:, None] * data, axis=0) / np.sum(responsibilities[:, k])
+
+    #     return means
+    
+    # def update_covariances(self, data, responsibilities, means):
+    #     """
+    #     Update the covariances of the GMM components in the M-step.
+
+    #     Args:
+    #         data (ndarray): Data to fit the GMM.
+    #         responsibilities (ndarray): Responsibilities (N x K matrix).
+    #         means (ndarray): Means of the components.
+
+    #     Returns:
+    #         list[ndarray]: Updated covariances of the components.
+    #     """
+    #     n_components = responsibilities.shape[1]
+    #     n_features = data.shape[1]
+    #     covariances = []
+
+    #     for k in range(n_components):
+    #         diff = data - means[k]
+    #         weighted_diff = responsibilities[:, k][:, None] * diff
+    #         cov_k = np.dot(weighted_diff.T, diff) / np.sum(responsibilities[:, k])
+    #         covariances.append(cov_k + 1e-6 * np.eye(n_features))  # Regularization term
+
+    #     return covariances
+    
+    
+    # def has_converged(self, prev_log_likelihood, log_likelihood, tol=1e-6):
+    #     """
+    #     Check if the EM algorithm has converged.
+
+    #     Args:
+    #         prev_log_likelihood (float): Log-likelihood from the previous iteration.
+    #         log_likelihood (float): Current log-likelihood.
+    #         tol (float): Convergence tolerance.
+
+    #     Returns:
+    #         bool: True if converged, False otherwise.
+    #     """
+    #     return np.abs(log_likelihood - prev_log_likelihood) < tol
+
+    
+    # def fit_gmm_custom(self, data, n_components, reg_strength=0.1, max_iter=100, tol=1e-6):
+    #     means = self.initialize_means(data, n_components)
+    #     covariances = [np.cov(data, rowvar=False)] * n_components
+    #     weights = np.full(n_components, 1 / n_components)
+
+    #     prev_log_likelihood = -np.inf
+    #     for _ in range(max_iter):
+    #         # E-step
+    #         responsibilities = self.compute_responsibilities(data, means, covariances, weights)
+
+    #         # M-step
+    #         weights = responsibilities.mean(axis=0)
+    #         means = self.update_means(data, responsibilities, weights)
+    #         covariances = self.update_covariances(data, responsibilities, means)
+
+    #         # Regularize means
+    #         empirical_mean = np.mean(data, axis=0)
+    #         gmm_mean = np.sum(weights[:, None] * means, axis=0)
+    #         means += reg_strength * (empirical_mean - gmm_mean)
+
+    #         # Log-likelihood
+    #         log_likelihood = np.sum(np.log(responsibilities.sum(axis=1)))
+    #         if self.has_converged(prev_log_likelihood, log_likelihood, tol):
+    #             break
+    #         prev_log_likelihood = log_likelihood
+            
+            
+    #     gmm_params = {
+    #         "means": means,
+    #         "covariances": covariances,
+    #         "weights": weights,
+    #         }
+
+    #     return gmm_params
+
+
     def fit_gmm(self, caller, data, standardize=True):
         """
         Fit a Gaussian Mixture Model (GMM) to the data, optionally standardizing it.
@@ -92,39 +232,79 @@ class Density():
 
         # Fit GMM as usual
         components = range(1, self.max_components + 1)
-        aic = []
-        bic = []
+        best_model_params = None
+        best_bic = float('inf')
 
         for n in tqdm(components, desc=f"[INFO]:     - {caller} density"):
-            gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=1, reg_covar=1e-6, init_params='k-means++')
-            gmm.fit(data)
-            aic.append(gmm.aic(data))
-            bic.append(gmm.bic(data))
-
+            em = EM(n_components=n)
+            em_params = em.fit(data)
+            bic = self.compute_bic(data, em_params)
+            if bic < best_bic:
+                best_bic = bic
+                best_model_params = em_params
+                
         # optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
         optimal_n_components = components[np.argmin(bic)]  # Switch to np.argmin(aic) if needed
         CP.debug(f"          Optimal n.components: {optimal_n_components}")
-
-        gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=1, reg_covar=1e-6, init_params='k-means++')
-        gmm.fit(data)
         
-        # Extract parameters
-        gmm_params = {
-            "means": gmm.means_,
-            "covariances": gmm.covariances_,
-            "weights": gmm.weights_,
-        }
-
         # If standardized, adjust means and covariances back to original scale
         if standardize:
-            gmm_params["means"] = scaler.inverse_transform(gmm.means_)
-            gmm_params["covariances"] = [
+            best_model_params["means"] = scaler.inverse_transform(best_model_params['means'])
+            best_model_params["covariances"] = [
                 scaler.scale_[:, None] * cov * scaler.scale_[None, :]
-                for cov in gmm.covariances_
+                for cov in best_model_params['covariances']
             ]
 
-        # Return adjusted parameters
-        return gmm_params
+        # Return parameters
+        return best_model_params
+    
+    
+    def compute_bic(self, data, gmm_params):
+        """
+        Compute the Bayesian Information Criterion (BIC) for a GMM.
+
+        Args:
+            data (ndarray): The dataset (N x D) where N is the number of samples and D is the dimensionality.
+            gmm_params (dict): A dictionary containing the GMM parameters:
+                - means (ndarray): Means of the Gaussian components (K x D).
+                - covariances (list of ndarray): Covariance matrices of the Gaussian components (K x D x D).
+                - weights (ndarray): Weights of the Gaussian components (K).
+
+        Returns:
+            float: The BIC score for the GMM.
+        """
+        means = gmm_params["means"]
+        covariances = gmm_params["covariances"]
+        weights = gmm_params["weights"]
+
+        N, D = data.shape  # Number of samples (N) and dimensionality (D)
+        K = len(weights)   # Number of components
+
+        # Compute log-likelihood of the data under the GMM
+        log_likelihood = 0
+        for i in range(N):
+            prob = 0
+            for k in range(K):
+                mean = means[k]
+                cov = covariances[k]
+                weight = weights[k]
+
+                # Multivariate Gaussian PDF
+                diff = data[i] - mean
+                exp_term = np.exp(-0.5 * diff.T @ np.linalg.inv(cov) @ diff)
+                norm_term = weight / np.sqrt((2 * np.pi) ** D * np.linalg.det(cov))
+                prob += norm_term * exp_term
+
+            log_likelihood += np.log(prob)
+
+        # Compute the number of free parameters in the model
+        num_params = K * D  # Parameters for the means
+        num_params += K * D * (D + 1) // 2  # Parameters for the covariance matrices (symmetric)
+        num_params += K - 1  # Parameters for the weights (K-1 independent weights)
+
+        # Compute BIC
+        bic = -2 * log_likelihood + num_params * np.log(N)
+        return bic
 
             
     @staticmethod
