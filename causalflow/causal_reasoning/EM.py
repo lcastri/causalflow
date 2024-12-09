@@ -31,9 +31,10 @@ class EM:
         Returns:
             ndarray: Initial means of the components.
         """
-        kmeans = KMeans(n_clusters=self.n_components, random_state=42)
+        kmeans = KMeans(n_clusters=self.n_components, random_state=42, n_init=10)
         kmeans.fit(data)
         return kmeans.cluster_centers_
+    
 
     def compute_responsibilities(self, data):
         """
@@ -48,13 +49,28 @@ class EM:
         n_samples, n_components = data.shape[0], self.n_components
         responsibilities = np.zeros((n_samples, n_components))
 
+        # Regularization constant to ensure positive-definite covariance matrices
+        epsilon = 1e-6
+
         # Compute weighted Gaussian PDFs for each component
         for k in range(n_components):
-            pdf = multivariate_normal(mean=self.means[k], cov=self.covariances[k]).pdf(data)
+            cov = self.covariances[k]
+            
+            # Handle scalar covariance (univariate case)
+            if np.ndim(cov) == 1:
+                cov_reg = cov + epsilon  # Regularize scalar covariance
+            else:
+                cov_reg = cov + epsilon * np.eye(cov.shape[0])  # Regularize matrix covariance
+
+            # Multivariate Gaussian PDF
+            pdf = multivariate_normal(mean=self.means[k], cov=cov_reg).pdf(data)
             responsibilities[:, k] = self.weights[k] * pdf
 
         # Normalize to ensure responsibilities sum to 1 for each data point
-        responsibilities /= responsibilities.sum(axis=1, keepdims=True)
+        responsibility_sums = responsibilities.sum(axis=1, keepdims=True)
+        responsibility_sums[responsibility_sums == 0] = 1  # Avoid division by zero, set sum to 1 for invalid rows
+        responsibilities /= responsibility_sums  # Normalize to ensure responsibilities sum to 1
+
         return responsibilities
 
     def update_means(self, data, responsibilities):
@@ -107,6 +123,24 @@ class EM:
             bool: True if converged, False otherwise.
         """
         return np.abs(log_likelihood - prev_log_likelihood) < self.tol
+    
+    def compute_log_likelihood(self, responsibilities):
+        """
+        Compute the log-likelihood of the data given the current responsibilities.
+
+        Args:
+            responsibilities (ndarray): Responsibilities (N x K matrix).
+
+        Returns:
+            float: Log-likelihood of the data.
+        """
+        # Add a small epsilon to avoid log(0)
+        epsilon = 1e-10
+        responsibility_sums = responsibilities.sum(axis=1)  # Sum of responsibilities for each data point
+        responsibility_sums = np.clip(responsibility_sums, epsilon, None)  # Ensure no zero values
+
+        log_likelihood = np.sum(np.log(responsibility_sums))
+        return log_likelihood
 
     def fit(self, data):
         """
@@ -138,7 +172,7 @@ class EM:
             self.means += self.reg_strength * (empirical_mean - gmm_mean)
 
             # Log-likelihood
-            log_likelihood = np.sum(np.log(responsibilities.sum(axis=1)))
+            log_likelihood = self.compute_log_likelihood(responsibilities)
             if self.has_converged(prev_log_likelihood, log_likelihood):
                 break
             prev_log_likelihood = log_likelihood

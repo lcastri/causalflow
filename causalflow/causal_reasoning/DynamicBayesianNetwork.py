@@ -65,7 +65,7 @@ class DynamicBayesianNetwork():
                     CP.info(f"    ### Full - {len(full_data)} samples")
                     self.dbn[node][context]['full'] = Density(Y, X if X else None)
                     self.data[node][context]['full'] = Data(full_data)
-                    # self.plot_density(node, context)
+                    self.plot_density(node, context)
                     # # Segmented DBN
                     # for idx, segment in enumerate(segments):
                     #     Y, X = self._get_Y_X(segment, node, dag)
