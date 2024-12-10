@@ -13,7 +13,7 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH2/cie.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH4/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
@@ -25,7 +25,7 @@ with open(DAGDIR, 'rb') as f:
 treatment_len = 120
 dfs = []
 wp = WP.TABLE2
-tod = 5
+tod = 10
 for bagname in BAGNAME:
     files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
     files_split = [f.split('_') for f in files]
@@ -50,11 +50,6 @@ res_f, res_s = cie.whatIf(NODES.RV.value,
                  DATA_DICT_TRAIN.d.values,
                  prior_knowledge
                  )
-# res_f, res_s, res_c = cie.whatIf(NODES.RV.value, 
-#                  DATA_DICT_TEST.d.values[:, DATA_DICT_TEST.features.index(NODES.RV.value)], 
-#                  DATA_DICT_TRAIN.d.values,
-#                  prior_knowledge
-#                  )
 
 FEATURES = [f for f in CM.features if cie.node_type[f] is not NodeType.Context]
 N = len(FEATURES)
@@ -64,33 +59,28 @@ fig, axes = plt.subplots(N, 1, figsize=(8, N * 3), sharex=True)
 # Plot each column in a different subplot
 for f in FEATURES:
     i = DATA_DICT_TRAIN.features.index(f)
+    observation = np.concatenate((DATA_DICT_TRAIN.d.values[-CM.max_lag:, i].reshape(-1, 1), DATA_DICT_TEST.d.values[0,i].reshape(-1, 1), np.nan*np.ones_like(res_f[:, i]).reshape(-1, 1)), axis=0).reshape(-1)
+    prediction_f = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:, i]), res_f[:, i]), axis=0)
+    ground_truth = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:, i]), DATA_DICT_TEST.d.values[:, i]), axis=0)
+
     if f in [NODES.RB.value, NODES.BAC.value]: 
-        observation = np.floor(np.concatenate((DATA_DICT_TRAIN.d.values[-CM.max_lag:], DATA_DICT_TEST.d.values[0,:].reshape(1,-1), np.nan*np.ones_like(res_f)), axis=0))
-        prediction_f = np.floor(np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), res_f), axis=0))
-        # prediction_s = np.floor(np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), res_s), axis=0))
-        ground_truth = np.floor(np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), DATA_DICT_TEST.d.values), axis=0))
-    else:
-        observation = np.concatenate((DATA_DICT_TRAIN.d.values[-CM.max_lag:], DATA_DICT_TEST.d.values[0,:].reshape(1,-1), np.nan*np.ones_like(res_f)), axis=0)
-        prediction_f = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), res_f), axis=0)
-        # prediction_s = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), res_s), axis=0)
-        ground_truth = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), DATA_DICT_TEST.d.values), axis=0)
-    # prediction_c = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:]), res_c), axis=0)
-    axes[FEATURES.index(f)].plot(observation[:, i], linestyle = '-', color = "black", label = "observation")
-    axes[FEATURES.index(f)].plot(ground_truth[:, i], linestyle = '-', color = "tab:orange", label = "ground-truth")
-    axes[FEATURES.index(f)].plot(prediction_f[:, i], linestyle = '--', color = "tab:blue", label = "prediction")
-    # axes[FEATURES.index(f)].plot(prediction_s[:, i], linestyle = '--', color = "tab:red", label = "prediction-segment")
-    # axes[FEATURES.index(f)].plot(prediction_c[:, i], linestyle = '--', color = "tab:green", label = "prediction-combined")
+        observation = np.floor(observation)
+        prediction_f = np.floor(prediction_f)
+        ground_truth = np.floor(ground_truth)
+    elif f in [NODES.PD.value]:
+        obs_1 = np.mean(DATA_DICT_TRAIN.d.values[-CM.max_lag:, i].reshape(-1, 1)) * np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:, i].reshape(-1, 1))
+        obs_2 = np.mean(DATA_DICT_TEST.d.values[0,i].reshape(-1, 1)) * np.ones_like(DATA_DICT_TEST.d.values[0,i].reshape(-1, 1))
+        observation = np.concatenate((obs_1, obs_2, np.nan*np.ones_like(res_f[:, i]).reshape(-1, 1)), axis=0)
+        prediction_f = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:, i]), np.mean(res_f[:, i]) * np.ones_like(res_f[:, i])), axis=0)
+        ground_truth = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag:, i]), np.mean(DATA_DICT_TEST.d.values[:, i]) * np.ones_like(DATA_DICT_TEST.d.values[:, i])), axis=0)
+         
+    axes[FEATURES.index(f)].plot(observation, linestyle = '-', color = "black", label = "observation")
+    axes[FEATURES.index(f)].plot(ground_truth, linestyle = '-', color = "tab:orange", label = "ground-truth")
+    axes[FEATURES.index(f)].plot(prediction_f, linestyle = '--', color = "tab:blue", label = "prediction")
     axes[FEATURES.index(f)].set_ylabel(DATA_DICT_TRAIN.features[i])
     axes[FEATURES.index(f)].grid(True)
     title = {}
-    # for res, label in zip([res_f, res_s, res_c], ['full', 'segment', 'combined']):
-    #     RMSE = np.sqrt(np.mean((res[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
-    #     NRMSE = RMSE/np.std(DATA_DICT_TEST.d.values[:, i]) if np.std(DATA_DICT_TEST.d.values[:, i]) != 0 else 0
-    #     title[label] = NRMSE
-    # for res, label in zip([res_f, res_s], ['expectation', 'mode']):
-    #     RMSE = np.sqrt(np.mean((res[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
-    #     NRMSE = RMSE/np.std(DATA_DICT_TEST.d.values[:, i]) if np.std(DATA_DICT_TEST.d.values[:, i]) != 0 else 0
-    #     title[label] = NRMSE
+
     RMSE = np.sqrt(np.mean((res_f[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
     NRMSE = RMSE/np.std(DATA_DICT_TEST.d.values[:, i]) if np.std(DATA_DICT_TEST.d.values[:, i]) != 0 else 0
     axes[FEATURES.index(f)].set_title(f"NRMSE: {NRMSE:.4f}")

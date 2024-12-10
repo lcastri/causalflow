@@ -13,7 +13,6 @@ from scipy.stats import multivariate_normal
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
       
 
-
 class Density():       
     def __init__(self, 
                  y: Process, 
@@ -75,7 +74,7 @@ class Density():
                 p.align(self.MaxLag)
                 
    
-    def fit_gmm(self, caller, data, standardize=True):
+    def fit_gmm(self, caller, data, standardize = True):
         """
         Fit a Gaussian Mixture Model (GMM) to the data, optionally standardizing it.
 
@@ -96,16 +95,16 @@ class Density():
         bic = []
 
         for n in tqdm(components, desc=f"[INFO]:     - {caller} density"):
-            gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=1, reg_covar=1e-6, init_params='k-means++')
+            gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
             gmm.fit(data)
             aic.append(gmm.aic(data))
             bic.append(gmm.bic(data))
 
-        # optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
-        optimal_n_components = components[np.argmin(bic)]  # Switch to np.argmin(aic) if needed
+        optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
+        # optimal_n_components = components[np.argmin(bic)]  # Switch to np.argmin(aic) if needed
         CP.debug(f"          Optimal n.components: {optimal_n_components}")
 
-        gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=1, reg_covar=1e-6, init_params='k-means++')
+        gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
         gmm.fit(data)
         
         # Extract parameters
@@ -252,11 +251,14 @@ class Density():
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
             conditional_params = self.compute_conditional(parent_values)
             
-        dens = Density.get_density(self.y.aligndata, conditional_params)
-        dens = dens / np.sum(dens)
+        # dens = Density.get_density(self.y.aligndata, conditional_params)
+        # dens = dens / np.sum(dens)
 
         # Find the most likely value (mode)
-        most_likely = mode(self.y.aligndata.flatten(), dens)
-        expected_value = expectation(self.y.aligndata.flatten(), dens)
+        # most_likely = mode(self.y.aligndata.flatten(), dens)
+        # expected_value = expectation(self.y.aligndata.flatten(), dens)
+        # return dens, most_likely, expected_value
+        most_likely = 0
+        expected_value = expectation_from_params(conditional_params['means'], conditional_params['weights'])
 
-        return dens, most_likely, expected_value
+        return 0, most_likely, expected_value

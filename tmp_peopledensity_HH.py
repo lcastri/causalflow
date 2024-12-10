@@ -12,7 +12,7 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH2/cie.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
 
@@ -24,7 +24,7 @@ dfs = []
 PD_means = []
 starting = None
 starting_len = 400
-wp = WP.TABLE2
+wp = WP.DELIVERY_POINT
 for bagname in BAGNAME:
     files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
     files_split = [f.split('_') for f in files]
@@ -67,22 +67,20 @@ DATA_DICT_TRAIN.d['PD'] = DATA_PD_TRAIN.d['PD']
 DATA_DICT_TEST.d['PD'] = DATA_PD_TEST.d['PD']
 for f in FEATURES:
     i = DATA_DICT_TRAIN.features.index(f)
-    observation = np.concatenate((DATA_DICT_TRAIN.d.values[-CM.max_lag//10::10], DATA_DICT_TEST.d.values[0::10,:]), axis=0)
-    ground_truth = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag//10::10]), DATA_DICT_TEST.d.values[::10]), axis=0)
-    prediction_f = np.concatenate((np.nan*np.ones_like(DATA_DICT_TRAIN.d.values[-CM.max_lag//10::10]), res_s[::10]), axis=0)
-    axes[FEATURES.index(f)].plot(observation[:, i], linestyle = '-', color = "black", label = "observation")
+    ground_truth = DATA_DICT_TEST.d.values[::10]
+    prediction_f = res_f[::10]
     axes[FEATURES.index(f)].plot(ground_truth[:, i], linestyle = '-', color = "tab:orange", label = "ground-truth")
     axes[FEATURES.index(f)].plot(prediction_f[:, i], linestyle = '--', color = "tab:blue", label = "prediction")
     axes[FEATURES.index(f)].set_ylabel(DATA_DICT_TRAIN.features[i])
     axes[FEATURES.index(f)].grid(True)
     title = {}
-    RMSE = np.sqrt(np.mean((res_s[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
+    RMSE = np.sqrt(np.mean((res_f[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
     NRMSE = RMSE/np.std(DATA_DICT_TEST.d.values[:, i]) if np.std(DATA_DICT_TEST.d.values[:, i]) != 0 else 0
     axes[FEATURES.index(f)].set_title(f"NRMSE: {NRMSE:.4f}")
     axes[FEATURES.index(f)].legend(loc='best')
 
 num_ticks = 25
-tick_indices = np.linspace(0, len(observation) - 1, num_ticks, dtype=int)
+tick_indices = np.linspace(0, len(ground_truth) - 1, num_ticks, dtype=int)
 safe_indices = [idx for idx in tick_indices if idx * 10 < len(T)]
 tick_labels = [time.strftime("%H:%M:%S", time.gmtime(8 * 3600 + T[idx * 10])) for idx in safe_indices]
 plt.xticks(ticks=safe_indices, labels=tick_labels, rotation=45)
