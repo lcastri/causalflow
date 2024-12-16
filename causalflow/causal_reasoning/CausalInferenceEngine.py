@@ -244,7 +244,7 @@ class CausalInferenceEngine():
         # Build an interventional DAG where the treatment variable has no parents
         if calculation_order is None:
             dag = self.remove_intVarParents(self.DAG['complete'], treatment)
-            calculation_order = list(nx.topological_sort(self._DAG2NX(dag)))
+            calculation_order = list(nx.topological_sort(self.DAG2NX(dag)))
         for t in range(self.DAG['complete'].max_lag, intT + self.DAG['complete'].max_lag):
             self.Q[TREATMENT] = treatment
             self.Q[VALUE] = values[t-self.DAG['complete'].max_lag]
@@ -394,81 +394,6 @@ class CausalInferenceEngine():
                     pSegment = 'full'
                         
         return pID, pContext, pSegment, max_occurrences
-    
-    # def _findSource_intersection(self, target, parents, context=None):
-    #     """
-    #     Find the source population with the maximum number of occurrences 
-    #     of a given intersection of parent values.
-
-    #     Args:
-    #         parents_values (dict): Dictionary where keys are parent variable names 
-    #                             and values are the desired values for those parents.
-
-    #     Returns:
-    #         tuple: number of occurrences, source dataset
-    #     """
-    #     max_occurrences = 0
-    #     pID = None
-    #     pContext = None
-    #     pSegment = None
-        
-    #     context = format_combo(tuple(context.items()))
-        
-    #     def _find_occurrences(d, parents, atol):
-    #         mask = np.ones(len(d.d), dtype=bool)
-    #         for parent, value in parents.items():
-    #             mask &= np.isclose(d.d[parent], value, atol = atol)
-                    
-    #         # Count the number of occurrences where all parents match
-    #         occurrences = np.sum(mask)
-    #         return occurrences
-        
-    #     def compute_adaptive_atol(parent_values, data, scale_factor=0.05):
-    #         """
-    #         Compute an adaptive atol based on the variability of the parent values.
-
-    #         Args:
-    #             parent_values (dict): Dictionary of parent variable values.
-    #             data (pd.DataFrame): Data containing the parent variables.
-    #             scale_factor (float): Factor to scale the variability.
-
-    #         Returns:
-    #             float: Adaptive atol.
-    #         """
-    #         variances = []
-    #         for parent in parent_values.keys():
-    #             parent_data = data[parent].values
-    #             variances.append(np.std(parent_data))
-
-    #         return scale_factor * np.mean(variances)  # Average variability scaled by the factor      
-        
-    #     for id in self.Ds:
-    #         if context not in self.Ds[id]['specific'][target]: continue
-    #         for idx, d in self.Ds[id]['specific'][target][context].items():
-    #             if idx == 'full': continue
-    #             adaptive_atol = compute_adaptive_atol(parents, d.d)
-    #             occurrences = _find_occurrences(d, parents, adaptive_atol)
-                
-    #             # Update the best source if this dataset has more occurrences
-    #             if occurrences > max_occurrences:
-    #                 max_occurrences = occurrences
-    #                 pID = id
-    #                 pContext = context
-    #                 pSegment = idx
-                    
-    #     if pID is None:
-    #         max_samples = 0
-    #         for id in self.Ds:
-    #             if context not in self.Ds[id]['specific'][target]: continue
-    #             for idx, d in self.Ds[id]['specific'][target][context].items():
-    #                 num_samples = d.T
-    #                 if num_samples > max_samples:
-    #                     max_samples = num_samples
-    #                     pID = id
-    #                     pContext = context
-    #                     pSegment = idx
-                        
-    #     return pID, pContext, pSegment, max_occurrences
         
     # TODO: to change self.DBNs[targetP].data -- self.DBNs[targetP] does not have data attribute
     def transport(self, pS_y_do_x_adj, targetP: tuple, treatment: str, outcome: str):
