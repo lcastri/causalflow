@@ -213,12 +213,12 @@ class CausalInferenceEngine():
             
         return y, p_y_do_X_x, E_p_y_do_X_x
     
-    
     def whatIf(self, 
                treatment: str, 
                values: np.array, 
                data: np.array, 
-               prior_knowledge: Dict[str, np.array] = None):
+               prior_knowledge: Dict[str, np.array] = None,
+               calculation_order = None):
         """
         Predict system behaviours in response to a certain time-series intervention.
 
@@ -242,8 +242,9 @@ class CausalInferenceEngine():
                 res[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
         
         # Build an interventional DAG where the treatment variable has no parents
-        dag = self.remove_intVarParents(self.DAG['complete'], treatment)
-        calculation_order = list(nx.topological_sort(self._DAG2NX(dag)))
+        if calculation_order is None:
+            dag = self.remove_intVarParents(self.DAG['complete'], treatment)
+            calculation_order = list(nx.topological_sort(self._DAG2NX(dag)))
         for t in range(self.DAG['complete'].max_lag, intT + self.DAG['complete'].max_lag):
             self.Q[TREATMENT] = treatment
             self.Q[VALUE] = values[t-self.DAG['complete'].max_lag]
@@ -263,7 +264,7 @@ class CausalInferenceEngine():
         return res[self.DAG['complete'].max_lag:, :]
     
     
-    def _DAG2NX(self, dag: DAG) -> nx.DiGraph:
+    def DAG2NX(self, dag: DAG) -> nx.DiGraph:
         G = nx.DiGraph()
 
         # 1. Nodes definition
