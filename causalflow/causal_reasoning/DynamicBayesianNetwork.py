@@ -58,29 +58,10 @@ class DynamicBayesianNetwork():
                     parents_str = f" - parents {', '.join(list(X.keys()))}" if X else ""
                     CP.info(f"\n    ### Target variable: {node}{parents_str}")
                     if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                    CP.info(f"    ### Full")
+                    CP.info(f"    ### Full - {len(full_data)} samples")
                     self.dbn[node][context]['full'] = Density(Y, X if X else None)
                     self.data[node][context]['full'] = Data(full_data)
-                    
-                    # Segmented DBN
-                    for idx, segment in enumerate(segments):
-                        Y, X = self._get_Y_X(segment, node, dag)
-                        # Density params estimation
-                        CP.info(f"\n    ### Target variable: {node}{parents_str}")
-                        if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                        CP.info(f"    ### Segment: {idx + 1}/{len(segments)}")
-                        self.dbn[node][context][idx] = Density(Y, X if X else None)
-                        self.data[node][context][idx] = Data(segment)
                         
-                    # Combined DBN
-                    CP.info(f"\n    ### Target variable: {node}{parents_str}")
-                    if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                    CP.info(f"    ### Combined")
-                    self.dbn[node][context]['combined'] = copy.deepcopy(self.dbn[node][context][0])
-                    self.dbn[node][context]['combined'].PriorDensity = self.combine_segment_densities([self.dbn[node][context][idx].PriorDensity for idx in range(len(segments))], [len(segment) for segment in segments])
-                    self.dbn[node][context]['combined'].JointDensity = self.combine_segment_densities([self.dbn[node][context][idx].JointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
-                    self.dbn[node][context]['combined'].ParentJointDensity = self.combine_segment_densities([self.dbn[node][context][idx].ParentJointDensity for idx in range(len(segments))], [len(segment) for segment in segments])
-                
         del dag, data
         gc.collect()
         

@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
 from scipy.stats import multivariate_normal
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
-
+      
 
 class Density():       
     def __init__(self, 
@@ -72,9 +72,9 @@ class Density():
             # parents
             for p in self.parents.values():
                 p.align(self.MaxLag)
-    
+                
    
-    def fit_gmm(self, caller, data, standardize=True):
+    def fit_gmm(self, caller, data, standardize = True):
         """
         Fit a Gaussian Mixture Model (GMM) to the data, optionally standardizing it.
 
@@ -84,7 +84,7 @@ class Density():
 
         Returns:
             dict: Parameters of the GMM (means, covariances, weights).
-        """
+        """        
         if standardize:
             scaler = StandardScaler()
             data = scaler.fit_transform(data)
@@ -101,29 +101,28 @@ class Density():
             bic.append(gmm.bic(data))
 
         optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
-        CP.debug(f"Optimal n.components: {optimal_n_components}")
+        CP.debug(f"          Optimal n.components: {optimal_n_components}")
 
         gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
         gmm.fit(data)
+        
+        # Extract parameters
+        gmm_params = {
+            "means": gmm.means_,
+            "covariances": gmm.covariances_,
+            "weights": gmm.weights_,
+        }
 
         # If standardized, adjust means and covariances back to original scale
         if standardize:
-            means_original = scaler.inverse_transform(gmm.means_)
-            covariances_original = []
-            for cov in gmm.covariances_:
-                cov_original = scaler.scale_[:, None] * cov * scaler.scale_[None, :]
-                covariances_original.append(cov_original)
-            return {
-                "means": means_original,
-                "covariances": np.array(covariances_original),
-                "weights": gmm.weights_,
-            }
-        else:
-            return {
-                "means": gmm.means_,
-                "covariances": gmm.covariances_,
-                "weights": gmm.weights_,
-            }
+            gmm_params["means"] = scaler.inverse_transform(gmm.means_)
+            gmm_params["covariances"] = [
+                scaler.scale_[:, None] * cov * scaler.scale_[None, :]
+                for cov in gmm.covariances_
+            ]
+
+        # Return adjusted parameters
+        return gmm_params
 
             
     @staticmethod
@@ -138,11 +137,9 @@ class Density():
         Returns:
             ndarray: The computed density at the point(s) x.
         """
-        # Compute the density using the GMM parameters
         density = np.zeros(x.shape[0])
         for k in range(len(params["weights"])):
             mvn = multivariate_normal(mean=params["means"][k].flatten(), cov=params["covariances"][k].flatten())
-            # mvn = multivariate_normal(mean=params["means"][k], cov=params["covariances"][k])
             density += params["weights"][k] * mvn.pdf(x)
         return density
 
@@ -253,10 +250,6 @@ class Density():
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
             conditional_params = self.compute_conditional(parent_values)
             
-        dens = Density.get_density(self.y.aligndata, conditional_params)
-        dens = dens / np.sum(dens)
-
-        # Find the most likely value (mode)
-        expected_value = expectation(self.y.aligndata.flatten(), dens)
+        expected_value = expectation_from_params(conditional_params['means'], conditional_params['weights'])
 
         return expected_value

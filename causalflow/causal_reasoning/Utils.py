@@ -15,6 +15,26 @@ def expectation(y, p):
         return np.nan
     expectation_Y_given_X = np.sum(y * p)
     return expectation_Y_given_X
+
+
+def expectation_from_params(means, weights):
+    """
+    Compute the expectation (mean) of a Gaussian Mixture Model (GMM).
+    
+    Args:
+        means (ndarray): The means of the Gaussian components (K x D).
+        weights (ndarray): The weights of the Gaussian components (K,).
+        
+    Returns:
+        ndarray: The expected mean (1 x D), which is the weighted sum of the component means.
+    """
+    # Ensure the weights sum to 1
+    assert np.allclose(np.sum(weights), 1), "Weights must sum to 1."
+
+    # Compute the weighted sum of the means
+    expectation = np.sum(weights[:, None] * means, axis=0)
+    
+    return expectation
     
     
 def mode(y, p):
