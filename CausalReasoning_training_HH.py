@@ -10,11 +10,12 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 # BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL75_29102024']
-BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
+# BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
+BAGNAME= ['BL100_21102024']
 
 
 with open(DAGDIR, 'rb') as f:
@@ -26,7 +27,6 @@ DATA_TYPE = {
     NODES.RB.value: DataType.Discrete,
     NODES.BS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
-    NODES.BAC.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
 NODE_TYPE = {
@@ -35,13 +35,12 @@ NODE_TYPE = {
     NODES.RB.value: NodeType.System,
     NODES.BS.value: NodeType.Context,
     NODES.PD.value: NodeType.System,
-    NODES.BAC.value: NodeType.System,
     NODES.WP.value: NodeType.Context,
 }
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_HH',
+          model_path = 'CIE_100_HH_noBAC',
           verbosity = CPLevel.DEBUG)
 
 start_time = time.time()

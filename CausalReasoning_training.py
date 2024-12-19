@@ -10,7 +10,7 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']

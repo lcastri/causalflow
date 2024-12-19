@@ -12,8 +12,8 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH4/cie.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH_noBAC/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
