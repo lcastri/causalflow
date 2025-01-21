@@ -12,11 +12,10 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH_noBAC/cie.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_wBAC/res.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-BAGNAME= ['BL100_21102024']
-# BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
+BAGNAME= ['noncausal_27122024']
 
 cie = CIE.load(CIEDIR)
 with open(DAGDIR, 'rb') as f:
@@ -24,18 +23,16 @@ with open(DAGDIR, 'rb') as f:
     
 treatment_len = 120
 dfs = []
-wp = WP.TABLE2
-tod = 10
+wp = WP.TABLE_12
+tod = TOD.H6.value
 for bagname in BAGNAME:
-    files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
+    files = [f for f in os.listdir(os.path.join(INDIR, "HH/shrunk", f"{bagname}", f"{tod}", "static"))]
     files_split = [f.split('_') for f in files]
-    wp_files = [f for f in files_split if len(f) == 3 and f[1] == f"{tod}h" and f[2].split('.')[0] == wp.value]
-    wp_files = sorted(wp_files, key=lambda x: int(x[1].replace('h', '')))
-    wp_files = ['_'.join(wp_f) for wp_f in wp_files]
-    for file in wp_files:
-        print(f"Loading : {file}")
-        filename = os.path.join(INDIR, "TOD/HH", f"{bagname}", file)
-        dfs.append(pd.read_csv(filename))
+    wp_files = [f for f in files_split if len(f) == 3 and f[1] == f"{tod}" and f[2].split('.')[0] == wp.value][0]
+    wp_file = '_'.join(wp_files)
+    print(f"Loading : {wp_file}")
+    filename = os.path.join(INDIR, "HH/shrunk", f"{bagname}", f"{tod}", "static", wp_file)
+    dfs.append(pd.read_csv(filename))
             
 concat_df = pd.concat(dfs, ignore_index=True)
 DATA_DICT_TRAIN = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[:len(concat_df) - treatment_len], vars = CM.features + ["pf_elapsed_time"])

@@ -1,5 +1,4 @@
 # Imports
-import copy
 import os
 import numpy as np
 import pandas as pd
@@ -9,7 +8,7 @@ from causalflow.basics.constants import DataType
 from causalflow.causal_discovery.baseline.JPCMCIplus import JPCMCIplus
 from tigramite.independence_tests.regressionCI import RegressionCI
 from causalflow.preprocessing.data import Data
-from utils import *
+from utils_2 import *
 
 def detrend(signal, window_size):
     detrended_signal = np.copy(signal)
@@ -23,23 +22,17 @@ def detrend(signal, window_size):
 
 
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-# BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
-# BAGNAME= ['BL20_06112024']
 BAGNAME= ['BL100_21102024']
-# BAGNAME= ['BL100_21102024', 'BL50_22102024', 'BL25_28102024']
-# BAGNAME= ['BL100_21102024', 'BL50_22102024', 'BL25_28102024']
-# BAGNAME= ['BL100_21102024', 'BL25_28102024']
 USE_SUBSAMPLED = True
 
 node_classification = {
     list(NODES).index(NODES.TOD): "space_context",
-    # list(NODES).index(NODES.A): "system",
-    # list(NODES).index(NODES.T): "system",
     list(NODES).index(NODES.RV): "system",
     list(NODES).index(NODES.RB): "system",
-    list(NODES).index(NODES.BS): "space_context",
+    list(NODES).index(NODES.CS): "space_context",
     list(NODES).index(NODES.PD): "system",
-    list(NODES).index(NODES.BAC): "system",
+    list(NODES).index(NODES.ELT): "system",
+    list(NODES).index(NODES.OBS): "space_context",
     list(NODES).index(NODES.WP): "space_context",
 }
 
@@ -61,7 +54,7 @@ for bagname in BAGNAME:
         for tod in TOD:
             print(f"- {tod.value}")
             if USE_SUBSAMPLED:
-                filename = os.path.join(INDIR, "my", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
+                filename = os.path.join(INDIR, "TOD/my_noised", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             else:
                 filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             WPDF = pd.read_csv(filename)
@@ -87,13 +80,12 @@ for bagname in BAGNAME:
 
 DATA_TYPE = {
     NODES.TOD.value: DataType.Continuous,
-    # NODES.A.value: DataType.Discrete,
-    # NODES.T.value: DataType.Discrete,
     NODES.RV.value: DataType.Continuous,
     NODES.RB.value: DataType.Continuous,
-    NODES.BS.value: DataType.Discrete,
+    NODES.CS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
-    NODES.BAC.value: DataType.Continuous,
+    NODES.ELT.value: DataType.Continuous,
+    NODES.OBS.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
 jpcmciplus = JPCMCIplus(data = DATA_DICT,
@@ -104,7 +96,7 @@ jpcmciplus = JPCMCIplus(data = DATA_DICT,
                         data_type = DATA_TYPE,
                         alpha = 0.01,
                         verbosity=CPLevel.INFO,
-                        resfolder=f"results/{'__'.join(BAGNAME)}")
+                        resfolder=f"results/{'__'.join(BAGNAME)}_new")
 
 # Run J-PCMCI+
 CM = jpcmciplus.run()

@@ -10,12 +10,9 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_new/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-# BAGNAME= ['BL100_21102024']
-# BAGNAME= ['BL75_29102024']
-# BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
-BAGNAME= ['BL100_21102024']
+BAGNAME= ['noncausal-03012025']
 
 
 with open(DAGDIR, 'rb') as f:
@@ -24,23 +21,27 @@ with open(DAGDIR, 'rb') as f:
 DATA_TYPE = {
     NODES.TOD.value: DataType.Discrete,
     NODES.RV.value: DataType.Continuous,
-    NODES.RB.value: DataType.Discrete,
-    NODES.BS.value: DataType.Discrete,
+    NODES.RB.value: DataType.Continuous,
+    NODES.CS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
+    NODES.ELT.value: DataType.Continuous,
+    NODES.OBS.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
 NODE_TYPE = {
     NODES.TOD.value: NodeType.Context,
     NODES.RV.value: NodeType.System,
     NODES.RB.value: NodeType.System,
-    NODES.BS.value: NodeType.Context,
+    NODES.CS.value: NodeType.Context,
     NODES.PD.value: NodeType.System,
+    NODES.ELT.value: NodeType.System,
+    NODES.OBS.value: NodeType.Context,
     NODES.WP.value: NodeType.Context,
 }
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_100_HH_noBAC',
+          model_path = 'CIE_100_HH_v4',
           verbosity = CPLevel.DEBUG)
 
 start_time = time.time()
@@ -52,19 +53,17 @@ DATA_DICT = {}
 dfs = []
 
 for bagname in BAGNAME:
-    files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
-    files_split = [f.split('_') for f in files]
     for wp in WP:
         if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
-        
-        wp_files = [f for f in files_split if len(f) == 3 and f[2].split('.')[0] == wp.value]
-        wp_files = sorted(wp_files, key=lambda x: int(x[1].replace('h', '')))
-        wp_files = ['_'.join(wp_f) for wp_f in wp_files]
-        for file in wp_files:
-            print(f"Loading : {file}")
-            filename = os.path.join(INDIR, "TOD/HH", f"{bagname}", f"{file}")
-            dfs.append(pd.read_csv(filename))
+        for tod in TOD:
+            files = [f for f in os.listdir(os.path.join(INDIR, "HH/my_nonoise", f"{bagname}", f"{tod.value}"))]
+            files_split = [f.split('_') for f in files]
             
+            wp_file = [f for f in files_split if len(f) == 3 and f[2].split('.')[0] == wp.value][0]
+            wp_file = '_'.join(wp_file)
+            print(f"Loading : {wp_file}")
+            filename = os.path.join(INDIR, "HH/my_nonoise", f"{bagname}", f"{tod.value}", f"{wp_file}")
+            dfs.append(pd.read_csv(filename))
         concatenated_df = pd.concat(dfs, ignore_index=True)
         dfs = []
         idx = len(DATA_DICT)

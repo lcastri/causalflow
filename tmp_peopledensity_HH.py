@@ -11,10 +11,10 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/RAL/causal discovery/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_wBAC/res.pkl'
 CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-BAGNAME= ['BL100_21102024']
+BAGNAME= ['noncausal_27122024']
 
 cie = CIE.load(CIEDIR)
 with open(DAGDIR, 'rb') as f:
@@ -24,17 +24,16 @@ dfs = []
 PD_means = []
 starting = None
 starting_len = 400
-wp = WP.DELIVERY_POINT
+wp = WP.WA_2_L
 for bagname in BAGNAME:
-    files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
-    files_split = [f.split('_') for f in files]
-    wp_files = [f for f in files_split if len(f) == 3 and f[2].split('.')[0] == wp.value]
-    wp_files = sorted(wp_files, key=lambda x: int(x[1].replace('h', '')))
-    wp_files = ['_'.join(wp_f) for wp_f in wp_files]
-    for idx, file in enumerate(wp_files):
-        print(f"Loading : {file}")
-        filename = os.path.join(INDIR, "TOD/HH", f"{bagname}", file)
-        if idx == 0:
+    for tod in TOD:
+        files = [f for f in os.listdir(os.path.join(INDIR, "HH/shrunk", f"{bagname}", f"{tod.value}", "static"))]
+        files_split = [f.split('_') for f in files]
+        wp_files = [f for f in files_split if len(f) == 3 and f[2].split('.')[0] == wp.value][0]
+        wp_file = '_'.join(wp_files)
+        print(f"Loading : {wp_file}")
+        filename = os.path.join(INDIR, "HH/shrunk", f"{bagname}", f"{tod.value}", "static", wp_file)
+        if tod == TOD.H1:
             starting = pd.read_csv(filename)
         df = pd.read_csv(filename)
         dfs.append(df)
