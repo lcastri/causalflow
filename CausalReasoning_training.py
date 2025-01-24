@@ -13,7 +13,7 @@ import time
 DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_wBAC/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 # BAGNAME= ['BL100_21102024']
-BAGNAME= ['24-01-2025_wp5-7']
+BAGNAME= ['24-01-2025-DARKO']
 
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
 USE_SUBSAMPLED = True
@@ -43,7 +43,7 @@ NODE_TYPE = {
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_wp5-7_v1',
+          model_path = 'CIE_DARKO_v1',
           verbosity = CPLevel.INFO)
 
 start_time = time.time()
@@ -57,16 +57,15 @@ for bagname in BAGNAME:
         for tod in TOD:
             print(f"Loading : {bagname}-{tod.value}-{wp.value}")
             if USE_SUBSAMPLED:
-                if wp is WP.DOOR_ENTRANCE_CANTEEN:
-                    tmp_wp = "door_entrance-canteen"
-                else:
-                    tmp_wp = wp.value.replace("-", "_")
-                filename = os.path.join(INDIR, "TOD/shrunk", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{tmp_wp}.csv")
+                # if wp is WP.DOOR_CANTEEN:
+                #     tmp_wp = "door_entrance-canteen"
+                # else:
+                #     tmp_wp = wp.value.replace("-", "_")
+                filename = os.path.join(INDIR, "HH/shrunk", f"{bagname}", tod.value, 'static', f"{bagname}_{tod.value}_{wp.value}.csv")
                 # filename = os.path.join(INDIR, "TOD/my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{tmp_wp}.csv")
             else:
-                filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{tmp_wp}.csv")
+                filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             dfs.append(pd.read_csv(filename))
-            
         concatenated_df = pd.concat(dfs, ignore_index=True)
         dfs = []
         idx = len(DATA_DICT)
