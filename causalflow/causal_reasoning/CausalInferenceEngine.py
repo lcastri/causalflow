@@ -99,7 +99,8 @@ class CausalInferenceEngine():
                     CP.info(f"Recycling node: {node} from DBN ID {str(existing_id)}")
                     recycle[node] = {
                         'dbn': self.DBNs[existing_id].dbn[node],
-                        'data': self.DBNs[existing_id].data[node]
+                        'data': self.DBNs[existing_id].data[node],
+                        'do': self.DBNs[existing_id].DO[node]
                     }
                     continue
         if not recycle: recycle = None
@@ -234,18 +235,12 @@ class CausalInferenceEngine():
         if prior_knowledge is not None and len(values) != len(list(prior_knowledge.values())[0]):
             raise ValueError("prior_knowledge items must have the same length of the treatment values")
         intT = len(values)
-        res_full = np.full((intT + self.DAG['complete'].max_lag, len(self.DAG['complete'].features)), np.nan)
-        res_full[:self.DAG['complete'].max_lag, :] = data[-self.DAG['complete'].max_lag:, :]
-        # res_seg = copy.deepcopy(res_full)
-        # res_combined = copy.deepcopy(res_full)
-        res_mode = copy.deepcopy(res_full)
+        res = np.full((intT + self.DAG['complete'].max_lag, len(self.DAG['complete'].features)), np.nan)
+        res[:self.DAG['complete'].max_lag, :] = data[-self.DAG['complete'].max_lag:, :]
         
         if prior_knowledge is not None:
             for f, f_data in prior_knowledge.items():
-                res_full[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
-                # res_seg[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
-                # res_combined[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
-                res_mode[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
+                res[self.DAG['complete'].max_lag:, self.DAG['complete'].features.index(f)] = f_data
         
         # Build an interventional DAG where the treatment variable has no parents
         dag = self.remove_intVarParents(self.DAG['complete'], treatment)
@@ -256,12 +251,9 @@ class CausalInferenceEngine():
             self.Q[VALUE] = values[t-self.DAG['complete'].max_lag]
             
             for f, lag in calculation_order:
-                if np.isnan(res_full[t - abs(lag), f]):
+                if np.isnan(res[t - abs(lag), f]):
                     if self.DAG['complete'].features[f] == self.Q[TREATMENT]:
-                        res_full[t, f] = self.Q[VALUE]
-                        # res_seg[t, f] = self.Q[VALUE]
-                        # res_combined[t, f] = self.Q[VALUE]
-                        res_mode[t, f] = self.Q[VALUE]
+                        res[t, f] = self.Q[VALUE]
                     else:
                         var = self.DAG['system'].features.index(self.DAG['complete'].features[f])
                         system_p = {}
@@ -269,32 +261,18 @@ class CausalInferenceEngine():
                         pID = None
 
                         for s in self.DAG['system'].g[self.DAG['system'].features[var]].sources:
-                            system_p[s[0]] = res_full[t - abs(s[1]), self.DAG['complete'].features.index(s[0])]
-                        anchestors = self.DAG['complete'].get_node_anchestors(self.DAG['complete'].features[f])
+                            system_p[s[0]] = res[t - abs(s[1]), self.DAG['complete'].features.index(s[0])]
+                        anchestors = self.DAG['complete'].get_anchestors(self.DAG['complete'].features[f])
                         context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
                         for a in context_anchestors:
-                            context_p[a] = int(res_full[t, self.DAG['complete'].features.index(a)])
+                            context_p[a] = int(res[t, self.DAG['complete'].features.index(a)])
 
                         # pID, occ = self._findSource_intersection(system_p)
                         pID, pContext, pSegment, occ = self._findSource_intersection(self.DAG['complete'].features[f], system_p, context_p)
 
-                        if pID is None:
-                            m = np.nan
-                            e = np.nan
-                        else:
-                            dens_full, m_full, e_full = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['full'].predict(system_p)
-                            # dens_seg, m_seg, e_seg = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext][pSegment].predict(system_p)
-                            # dens_combined, m_combined, e_combined = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['combined'].predict(system_p)
-                            # self.plot_pE(self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['full'].y, system_p, dens_full, e_full, show=True)
-                        # res_full[t, f] = m_full
-                        res_mode[t, f] = m_full
-                        # res_seg[t, f] = m_seg
-                        # res_combined[t, f] = m_combined
-                        res_full[t, f] = e_full
-                        # res_seg[t, f] = e_seg
-                        # res_combined[t, f] = e_combined
-        return res_full[self.DAG['complete'].max_lag:, :], res_mode[self.DAG['complete'].max_lag:, :]
-        # return res_full[self.DAG['complete'].max_lag:, :], res_seg[self.DAG['complete'].max_lag:, :], res_combined[self.DAG['complete'].max_lag:, :]
+                        res[t, f] = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['full'].predict(system_p) if pID is not None else np.nan
+                        
+        return res[self.DAG['complete'].max_lag:, :]
     
     
     def _DAG2NX(self, dag: DAG) -> nx.DiGraph:

@@ -1,15 +1,15 @@
 import numpy as np
 import warnings
-from tqdm import tqdm
+# from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from causalflow.basics.constants import *
-from causalflow.causal_reasoning.Utils import *
+import causalflow.causal_reasoning.Utils as DensityUtils
 from typing import Dict
-from sklearn.mixture import GaussianMixture
-from sklearn.preprocessing import StandardScaler
+# from sklearn.mixture import GaussianMixture
+# from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
-from scipy.stats import multivariate_normal
+# from scipy.stats import multivariate_normal
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
       
 
@@ -23,7 +23,6 @@ class Density():
 
         Args:
             y (Process): target process.
-            batch_size (int): Batch size.
             parents (Dict[str, Process], optional): Target's parents. Defaults to None.
         """
         self.y = y
@@ -39,7 +38,7 @@ class Density():
         # If precomputed densities are provided, set them directly
         self.PriorDensity = None
         self.JointDensity = None
-        self.ParentJointDensity = None
+        # self.ParentJointDensity = None
         
         # Check if any density is None and run _preprocess() if needed
         self._preprocess()
@@ -47,102 +46,91 @@ class Density():
         # Only compute densities if they were not provided
         self.PriorDensity = self.compute_prior()
         self.JointDensity = self.compute_joint()
-        self.ParentJointDensity = self.compute_parent_joint()
+        # self.ParentJointDensity = self.compute_parent_joint()
             
         
-    @property
-    def MaxLag(self):
-        """
-        Return max time lag between target and all its parents.
-
-        Returns:
-            int: max time lag.
-        """
-        if self.parents is not None: 
-            return max(p.lag for p in self.parents.values())
-        return 0
-        
-        
     def _preprocess(self):
-        """Preprocess the data to have all the same length by using the maxlag."""
+        maxLag = DensityUtils.get_max_lag(self.parents)
+        
         # target
-        self.y.align(self.MaxLag)
+        self.y.align(maxLag)
         
         if self.parents is not None:
             # parents
             for p in self.parents.values():
-                p.align(self.MaxLag)
+                p.align(maxLag)
                 
    
-    def fit_gmm(self, caller, data, standardize = True):
-        """
-        Fit a Gaussian Mixture Model (GMM) to the data, optionally standardizing it.
+    # @staticmethod
+    # def fit_gmm(max_components, caller, data, standardize = True):
+    #     """
+    #     Fit a Gaussian Mixture Model (GMM) to the data, optionally standardizing it.
 
-        Args:
-            data (ndarray): Data to fit the GMM.
-            standardize (bool): Whether to standardize the data before fitting.
+    #     Args:
+    #         data (ndarray): Data to fit the GMM.
+    #         standardize (bool): Whether to standardize the data before fitting.
 
-        Returns:
-            dict: Parameters of the GMM (means, covariances, weights).
-        """        
-        if standardize:
-            scaler = StandardScaler()
-            data = scaler.fit_transform(data)
+    #     Returns:
+    #         dict: Parameters of the GMM (means, covariances, weights).
+    #     """        
+    #     if standardize:
+    #         scaler = StandardScaler()
+    #         data = scaler.fit_transform(data)
 
-        # Fit GMM as usual
-        components = range(1, self.max_components + 1)
-        aic = []
-        bic = []
+    #     # Fit GMM as usual
+    #     components = range(1, max_components + 1)
+    #     aic = []
+    #     bic = []
 
-        for n in tqdm(components, desc=f"[INFO]:     - {caller} density"):
-            gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
-            gmm.fit(data)
-            aic.append(gmm.aic(data))
-            bic.append(gmm.bic(data))
+    #     for n in tqdm(components, desc=f"[INFO]:     - {caller} density"):
+    #         gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
+    #         gmm.fit(data)
+    #         aic.append(gmm.aic(data))
+    #         bic.append(gmm.bic(data))
 
-        optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
-        # optimal_n_components = components[np.argmin(bic)]  # Switch to np.argmin(aic) if needed
-        CP.debug(f"          Optimal n.components: {optimal_n_components}")
+    #     optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
+    #     # optimal_n_components = components[np.argmin(bic)]  # Switch to np.argmin(aic) if needed
+    #     CP.debug(f"          Optimal n.components: {optimal_n_components}")
 
-        gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
-        gmm.fit(data)
+    #     gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
+    #     gmm.fit(data)
         
-        # Extract parameters
-        gmm_params = {
-            "means": gmm.means_,
-            "covariances": gmm.covariances_,
-            "weights": gmm.weights_,
-        }
+    #     # Extract parameters
+    #     gmm_params = {
+    #         "means": gmm.means_,
+    #         "covariances": gmm.covariances_,
+    #         "weights": gmm.weights_,
+    #     }
 
-        # If standardized, adjust means and covariances back to original scale
-        if standardize:
-            gmm_params["means"] = scaler.inverse_transform(gmm.means_)
-            gmm_params["covariances"] = [
-                scaler.scale_[:, None] * cov * scaler.scale_[None, :]
-                for cov in gmm.covariances_
-            ]
+    #     # If standardized, adjust means and covariances back to original scale
+    #     if standardize:
+    #         gmm_params["means"] = scaler.inverse_transform(gmm.means_)
+    #         gmm_params["covariances"] = [
+    #             scaler.scale_[:, None] * cov * scaler.scale_[None, :]
+    #             for cov in gmm.covariances_
+    #         ]
 
-        # Return adjusted parameters
-        return gmm_params
+    #     # Return adjusted parameters
+    #     return gmm_params
 
             
-    @staticmethod
-    def get_density(x, params):
-        """
-        Query the density for a given point `x` using the GMM parameters.
+    # @staticmethod
+    # def get_density(x, params):
+    #     """
+    #     Query the density for a given point `x` using the GMM parameters.
 
-        Args:
-            x (ndarray): The point(s) at which to evaluate the density.
-            params (dict): The GMM parameters (means, covariances, weights).
+    #     Args:
+    #         x (ndarray): The point(s) at which to evaluate the density.
+    #         params (dict): The GMM parameters (means, covariances, weights).
 
-        Returns:
-            ndarray: The computed density at the point(s) x.
-        """
-        density = np.zeros(x.shape[0])
-        for k in range(len(params["weights"])):
-            mvn = multivariate_normal(mean=params["means"][k].flatten(), cov=params["covariances"][k].flatten())
-            density += params["weights"][k] * mvn.pdf(x)
-        return density
+    #     Returns:
+    #         ndarray: The computed density at the point(s) x.
+    #     """
+    #     density = np.zeros(x.shape[0])
+    #     for k in range(len(params["weights"])):
+    #         mvn = multivariate_normal(mean=params["means"][k].flatten(), cov=params["covariances"][k].flatten())
+    #         density += params["weights"][k] * mvn.pdf(x)
+    #     return density
 
 
     def compute_prior(self):
@@ -153,7 +141,7 @@ class Density():
             dict: GMM parameters for the prior density.
         """
         CP.info("    - Prior density", noConsole=True)
-        return self.fit_gmm('Prior', self.y.aligndata)
+        return DensityUtils.fit_gmm(self.max_components, 'Prior', self.y.aligndata)
 
 
     def compute_joint(self):
@@ -170,95 +158,92 @@ class Density():
         else:
             data = self.y.aligndata
 
-        return self.fit_gmm('Joint', data)
+        return DensityUtils.fit_gmm(self.max_components, 'Joint', data)
 
 
-    def compute_parent_joint(self):
-        """
-        Compute the joint density of the parents p(parents) using GMM.
+    # def compute_parent_joint(self):
+    #     """
+    #     Compute the joint density of the parents p(parents) using GMM.
 
-        Returns:
-            dict: GMM parameters for the parents' joint density.
-        """
-        CP.info("    - Parent joint density", noConsole=True)
-        if self.parents:
-            data = np.column_stack([p.aligndata for p in self.parents.values()])
-            return self.fit_gmm('Parent Joint', data)
-        return None
+    #     Returns:
+    #         dict: GMM parameters for the parents' joint density.
+    #     """
+    #     CP.info("    - Parent joint density", noConsole=True)
+    #     if self.parents:
+    #         data = np.column_stack([p.aligndata for p in self.parents.values()])
+    #         return DensityUtils.fit_gmm(self.max_components, 'Parent Joint', data)
+    #     return None
 
    
-    def compute_conditional(self, parent_values):
-        """
-        Compute the conditional density p(y | parents) = p(y, parents) / p(parents) online.
+    # def compute_conditional(self, parent_values):
+    #     """
+    #     Compute the conditional density p(y | parents) = p(y, parents) / p(parents) online.
 
-        Args:
-            parent_values (ndarray): Values of the parent variables (e.g., [p1, p2, ...]) for conditioning.
+    #     Args:
+    #         parent_values (ndarray): Values of the parent variables (e.g., [p1, p2, ...]) for conditioning.
 
-        Returns:
-            dict: GMM parameters for the conditional density.
-        """
+    #     Returns:
+    #         dict: GMM parameters for the conditional density.
+    #     """
 
-        # Compute conditional GMM parameters dynamically
-        conditional_params = {
-            "means": [],
-            "covariances": [],
-            "weights": self.JointDensity["weights"]
-        }
+    #     # Compute conditional GMM parameters dynamically
+    #     conditional_params = {
+    #         "means": [],
+    #         "covariances": [],
+    #         "weights": self.JointDensity["weights"]
+    #     }
 
-        for k in range(len(self.JointDensity["weights"])):
-            # Extract joint parameters for component k
-            mean_joint = self.JointDensity["means"][k]
-            cov_joint = self.JointDensity["covariances"][k]
+    #     for k in range(len(self.JointDensity["weights"])):
+    #         # Extract joint parameters for component k
+    #         mean_joint = self.JointDensity["means"][k]
+    #         cov_joint = self.JointDensity["covariances"][k]
 
-            # Split into parent and target components
-            dim_y = 1
-            mean_parents = mean_joint[dim_y:]
-            mean_target = mean_joint[:dim_y]
-            cov_pp = cov_joint[dim_y:, dim_y:]  # Covariance of parents
-            cov_pp = cov_pp + 1e-6 * np.eye(cov_pp.shape[0]) # To ensure invertibility
+    #         # Split into parent and target components
+    #         dim_y = 1
+    #         mean_parents = mean_joint[dim_y:]
+    #         mean_target = mean_joint[:dim_y]
+    #         cov_pp = cov_joint[dim_y:, dim_y:]  # Covariance of parents
+    #         cov_pp = cov_pp + 1e-6 * np.eye(cov_pp.shape[0]) # To ensure invertibility
 
-            cov_yp = cov_joint[:dim_y, dim_y:]  # Cross-covariance between y and parents
-            cov_yy = cov_joint[:dim_y, :dim_y]  # Covariance of y
+    #         cov_yp = cov_joint[:dim_y, dim_y:]  # Cross-covariance between y and parents
+    #         cov_yy = cov_joint[:dim_y, :dim_y]  # Covariance of y
 
-            # Update conditional mean and covariance
-            cond_mean = mean_target + cov_yp @ np.linalg.inv(cov_pp) @ (parent_values.flatten() - mean_parents.flatten())
-            cond_cov = cov_yy - cov_yp @ np.linalg.inv(cov_pp) @ cov_yp.T
+    #         # Update conditional mean and covariance
+    #         cond_mean = mean_target + cov_yp @ np.linalg.inv(cov_pp) @ (parent_values.flatten() - mean_parents.flatten())
+    #         cond_cov = cov_yy - cov_yp @ np.linalg.inv(cov_pp) @ cov_yp.T
 
-            conditional_params["means"].append(cond_mean)
-            conditional_params["covariances"].append(cond_cov)
+    #         conditional_params["means"].append(cond_mean)
+    #         conditional_params["covariances"].append(cond_cov)
 
-        # Stack means and covariances
-        conditional_params["means"] = np.array(conditional_params["means"])
-        conditional_params["covariances"] = np.array(conditional_params["covariances"])
+    #     # Stack means and covariances
+    #     conditional_params["means"] = np.array(conditional_params["means"])
+    #     conditional_params["covariances"] = np.array(conditional_params["covariances"])
 
-        return conditional_params
+    #     return conditional_params
    
     
     def predict(self, given_p: Dict[str, float] = None):
         """
-        Predict the conditional density p(y | parents) and the most likely value of y.
+        Predict the conditional density p(y | parents) and the expected value of y.
 
         Args:
             given_p (Dict[str, float], optional): A dictionary of parent variable values (e.g., {"p1": 1.5, "p2": 2.0}).
 
         Returns:
-            Tuple[np.ndarray, float]: The conditional density and the most likely value of y.
+            float: Expected value of y.
         """
         if self.parents is None:
             conditional_params = self.PriorDensity
         else:
             # Extract parent samples and match with given parent values
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
-            conditional_params = self.compute_conditional(parent_values)
+            conditional_params = DensityUtils.compute_conditional(self.JointDensity, parent_values)
             
         # dens = Density.get_density(self.y.aligndata, conditional_params)
         # dens = dens / np.sum(dens)
 
         # Find the most likely value (mode)
-        # most_likely = mode(self.y.aligndata.flatten(), dens)
-        # expected_value = expectation(self.y.aligndata.flatten(), dens)
-        # return dens, most_likely, expected_value
-        most_likely = 0
-        expected_value = expectation_from_params(conditional_params['means'], conditional_params['weights'])
+        expected_value = DensityUtils.expectation_from_params(conditional_params['means'], conditional_params['weights'])
 
-        return 0, most_likely, expected_value
+        # return dens, expected_value
+        return expected_value

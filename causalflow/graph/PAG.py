@@ -340,7 +340,6 @@ class PAG():
         return triples
         
     
-    # DFS to find all paths
     def find_all_paths(self, start, goal, path=[]) -> list:
         """
         Find all path from start to goal.

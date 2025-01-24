@@ -19,6 +19,7 @@ class Process():
         """
         self.data = data.reshape(-1, 1)
         self.data = np.array([x[0] for x in self.data], dtype=np.float32)
+        self.unique_values = np.unique(self.data)
         self.varname = varname
         self.pvarname = '$' + varname + '$'
         self.lag = lag
@@ -35,7 +36,8 @@ class Process():
         Returns:
             int: data length
         """
-        return len(self.data) if self.node_type is not NodeType.Context else len(np.unique(self.data))
+        return len(self.data)
+        # return len(self.data) if self.node_type is not NodeType.Context else len(np.unique(self.data))
     
     @property
     def alignT(self):
@@ -46,7 +48,7 @@ class Process():
             int: data length after alignment
         """
         return len(self.aligndata)
-    
+       
     
     def align(self, maxlag: int):
         """
@@ -58,8 +60,9 @@ class Process():
         Returns:
             ndarray: aligned data
         """
-        if self.node_type is not NodeType.Context:
-            self.aligndata = np.array(self.data[maxlag - self.lag : self.T - self.lag], dtype=np.float32).reshape(-1, 1)
-            return self.aligndata
-        else:
-            return None
+        self.aligndata = np.array(self.data[maxlag - self.lag : self.T - self.lag], dtype=np.float32).reshape(-1, 1)
+        # if self.node_type is not NodeType.Context:
+        #     self.aligndata = np.array(self.data[maxlag - self.lag : self.T - self.lag], dtype=np.float32).reshape(-1, 1)
+        # else:
+        #     self.aligndata = np.array(self.data, dtype=np.float32).reshape(-1, 1)
+        return self.aligndata

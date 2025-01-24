@@ -32,6 +32,7 @@ node_classification = {
     list(NODES).index(NODES.CS): "space_context",
     list(NODES).index(NODES.PD): "system",
     list(NODES).index(NODES.ELT): "system",
+    # list(NODES).index(NODES.OBS): "system",
     list(NODES).index(NODES.OBS): "space_context",
     list(NODES).index(NODES.WP): "space_context",
 }
@@ -73,7 +74,7 @@ for bagname in BAGNAME:
         #     dd = copy.deepcopy(DATA_DICT[idx])
         #     dd.shrink(['TOD', 'T', 'R_V'])
         #     dd.plot_timeseries()
-        if wp == WP.DOOR_ENTRANCE: DATA_DICT[idx].plot_timeseries()
+        # if wp == WP.DOOR_ENTRANCE: DATA_DICT[idx].plot_timeseries()
             # idx = len(DATA_DICT)
             # DATA_DICT[idx] = Data(WPDF[var_names], vars = var_names)
             # DATA_DICT[idx].plot_timeseries()

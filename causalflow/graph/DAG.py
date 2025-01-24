@@ -6,6 +6,7 @@ Classes:
 """
     
 import copy
+from itertools import combinations
 import pickle
 import numpy as np
 from causalflow.graph.Node import Node
@@ -14,6 +15,7 @@ from matplotlib import pyplot as plt
 import networkx as nx
 from causalflow.graph.netgraph import Graph
 import re
+from pgmpy.models import BayesianNetwork
 
 class DAG():
     """DAG class."""
@@ -42,6 +44,8 @@ class DAG():
                             self.add_source(t, s[0], 0.3, 0, s[1])
                         elif len(s) == 3:
                             self.add_source(t, s[0], 0.3, 0, s[1], s[2])
+                            
+        self.dbn = None
 
 
     @property
@@ -248,7 +252,7 @@ class DAG():
                 del self.g[context_var]
                 
                 
-    def get_node_anchestors(self, t, _anchestors = None):
+    def get_anchestors(self, t, _anchestors = None, include_lag = False):
         """
         Return node ancestors.
 
@@ -260,11 +264,15 @@ class DAG():
         """
         if _anchestors is None: _anchestors = set()
         for s in self.g[t].sources:
-            if s[0] not in _anchestors:
-                _anchestors.add(s[0])
-                _anchestors.update(self.get_node_anchestors(s[0], _anchestors))
-        return list(_anchestors)
-                                                                  
+            if not include_lag:
+                if s[0] not in _anchestors:
+                    _anchestors.add(s[0])
+                    _anchestors.update(self.get_anchestors(s[0], _anchestors))
+            else:
+                if s not in _anchestors:
+                    _anchestors.add(s)
+                    _anchestors.update(self.get_anchestors(s[0], _anchestors, include_lag=True))
+        return list(_anchestors)                                                                  
                 
     def get_link_assumptions(self, autodep_ok = False) -> dict:
         """
@@ -502,6 +510,14 @@ class DAG():
 
         # 5. Draw graph - contemporaneous
         if cont_edges:
+            # node_layout = {'$WP$': np.array([0.05, 0.95]), 
+            #                '$TOD$': np.array([0.45, 0.95  ]), 
+            #                '$OBS$': np.array([0.64375, 0.95   ]), 
+            #                '$C_{S}$': np.array([0.88125, 0.95   ]), 
+            #                '$PD$': np.array([0.45, 0.475 ]), 
+            #                '$R_{V}$': np.array([0.7625, 0.475 ]), 
+            #                '$R_{B}$': np.array([1.   , 0.475]), 
+            #                '$ELT$': np.array([ 0.525, -0.   ])}
             a = Graph(Gcont,
                     node_layout=node_layout,
                     node_size=node_size,
@@ -544,6 +560,7 @@ class DAG():
                     node_alpha=1,
 
                     arrows=lagged_arrows,
+                    # edge_layout='straight',
                     edge_layout='curved',
                     edge_label=label_type != LabelType.NoLabels,
                     edge_labels=lagged_edge_label,
@@ -937,4 +954,213 @@ class DAG():
                 scm[t][(s[0], -abs(s[1]))] = self.g[t].sources[s][TYPE] 
         return scm
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    @staticmethod
+    def get_DBN(link_assumptions, tau_max) -> BayesianNetwork:
+        """
+        Create a DAG represented by a Baysian Network.
+
+        Args:
+            link_assumptions (dict): DAG link assumptions.
+            tau_max (int): max time lag.
+
+        Raises:
+            ValueError: source not well defined.
+
+        Returns:
+            BayesianNetwork: DAG represented by a Baysian Network.
+        """
+        DBN = BayesianNetwork()
+        DBN.add_nodes_from([(t, -l) for t in link_assumptions.keys() for l in range(0, tau_max + 1)])
+
+        # Edges
+        edges = []
+        for t in link_assumptions.keys():
+            for source in link_assumptions[t]:
+                if len(source) == 0: continue
+                elif len(source) == 2: s, l = source
+                elif len(source) == 3: s, l, _ = source
+                else: raise ValueError("Source not well defined")
+                edges.append(((s, l), (t, 0)))
+                # Add edges across time slices from -1 to -tau_max
+                for lag in range(1, tau_max + 1):
+                    if l - lag >= -tau_max:
+                        edges.append(((s, l - lag), (t, -lag)))
+        DBN.add_edges_from(edges)
+        return DBN
+
+    
+    def find_all_paths(dbn: BayesianNetwork, treatment, outcome, path=[]) -> list:
+        """
+        Find all path from start to goal.
+        Args:
+            dbn (BayesianNetwork): Directed Acyclic Graph (DAG) as a Bayesian Network.
+            treatment (str): Treatment variable.
+            outcome (str): Outcome variable.
+            paths (list): All paths between treatment and outcome.
+        Returns:
+            list: paths
+        """
+        path = path + [treatment]
+        if treatment == outcome:
+            return [path]
+        paths = []
+        for node in dbn.successors(treatment):
+            if node not in path:
+                new_paths = DAG.find_all_paths(dbn, node, outcome, path)
+                for new_path in new_paths:
+                    paths.append(new_path)
+        for node in dbn.predecessors(treatment):
+            if node not in path:
+                new_paths = DAG.find_all_paths(dbn, node, outcome, path)
+                for new_path in new_paths:
+                    paths.append(new_path)
+        return paths   
+    
+    def _find_backdoor_paths(dbn: BayesianNetwork, treatment, paths):
+        """
+        Filter backdoor paths from all paths based on backdoor rules.
+
+        Args:
+            dbn (BayesianNetwork): Directed Acyclic Graph (DAG) as a Bayesian Network.
+            treatment (str): Treatment variable.
+            paths (list): All paths between treatment and outcome.
+
+        Returns:
+            list: Backdoor paths.
+        """
+        backdoor_paths = []
+        for path in paths:
+            # A path is a backdoor path if it doesn't start with T -> ... (direct causal link)
+            if path[1] not in dbn.successors(treatment):  # Check first edge
+                backdoor_paths.append(path)
+        return backdoor_paths
+    
+    
+    def get_open_backdoors_paths(self, treatment: str, outcome: str):
+        """
+        Get backdoor paths between treatment and outcome, considering temporal dependencies.
+
+        Args:
+            treatment (str): Treatment variable.
+            outcome (str): Outcome variable.
         
+        Returns:
+            list: List of backdoor paths, where each path is a list of tuples (variable, lag).
+        """        
+        # Convert adjacency matrix to a Bayesian Network using PAG
+        bn = DAG.get_DBN(self.get_Adj(), self.max_lag)  # BayesianNetwork object from pgmpy
+        
+        # Find all paths from treatment to outcome
+        all_paths = DAG.find_all_paths(bn, treatment, outcome, [])
+
+        # Filter backdoor paths
+        backdoor_paths = DAG._find_backdoor_paths(bn, treatment, all_paths)
+        if not backdoor_paths:
+            return []  # No backdoor paths found
+        
+        def is_blocked_path(path, bn: BayesianNetwork):
+            for i in range(1, len(path) - 1):  # We exclude the first and last node in the path (treatment and outcome)
+                node = path[i]
+                    
+                # Get the parents of the current node (we only check parents to detect colliders)
+                parents = bn.get_parents(node)
+
+                # Check if the current node has a parent in the previous node and a parent in the next node (collider condition)
+                if any(parent == path[i-1] for parent in parents) and any(parent == path[i+1] for parent in parents):
+                    # print(f"Collider found: {path[i-1]} -> {node} <- {path[i+1]}")
+                    return True
+                    
+            # If no colliders are found, the path is open
+            return False
+        
+        open_backdoor_paths = [path for path in backdoor_paths if not is_blocked_path(path, bn)]
+        
+        return open_backdoor_paths
+                         
+            # adjustment_set = DAG._find_d_separators(bn, treatment, outcome, open_backdoor_paths)    
+    
+    def find_d_separators(self, treatment: str, outcome: str, paths) -> set:
+        """
+        Find D-Separation set.
+
+        Args:
+            treatment (str): treatment node.
+            outcome (str): outcome node.
+
+        Returns:
+            (bool, set): (True, separation set) if treatment and outcome are d-separated. Otherwise (False, empty set). 
+        """
+        bn = DAG.get_DBN(self.get_Adj(), self.max_lag)
+        bn.remove_edge(treatment, outcome)
+        
+        if paths:
+            nodes = {node for path in paths for node in path if node not in {treatment, outcome}}
+                               
+            for r in range(len(nodes) + 1):
+                for subset in combinations(nodes, r):
+                    subset_set = set(subset)
+                    if not bn.is_dconnected(treatment, outcome, subset_set):
+                        return subset_set
+            
+        return set()
+    
+    
+    def find_all_d_separators(self, treatment: str, outcome: str, paths) -> list:
+        """
+        Find all D-Separation sets.
+
+        Args:
+            treatment (str): treatment node.
+            outcome (str): outcome node.
+
+        Returns:
+            list: all possible adjustment sets.
+        """
+        # Step 1: Get the Bayesian Network
+        bn = DAG.get_DBN(self.get_Adj(), self.max_lag)
+        
+        # Step 2: Remove the direct causal path (including mediators)
+        visited = set()
+
+        def dfs_path(node, target):
+            """Find causal path using DFS from 'node' to 'target'."""
+            if node == target:
+                return [node]
+            visited.add(node)
+            for child in bn.get_children(node):  # Assume 'get_children' fetches child nodes
+                if child not in visited:
+                    path = dfs_path(child, target)
+                    if path:
+                        return [node] + path
+            return None
+
+        # Find causal path from treatment to outcome
+        causal_path = dfs_path(treatment, outcome)
+        if causal_path:
+            # Remove all edges along this direct causal chain
+            for i in range(len(causal_path) - 1):
+                bn.remove_edge(causal_path[i], causal_path[i + 1])
+        
+        # Step 3: Identify potential backdoor nodes
+        if paths:
+            nodes = {node for path in paths for node in path if node not in {treatment, outcome}}
+            all_adjustment_sets = []
+            for r in range(len(nodes) + 1):
+                for subset in combinations(nodes, r):
+                    subset_set = set(subset)
+                    if not bn.is_dconnected(treatment, outcome, subset_set):
+                        all_adjustment_sets.append(subset_set)
+            return [adj for adj in all_adjustment_sets if len(adj) <= 2]
+            #! return all_adjustment_sets
+        else:
+            return []
+
