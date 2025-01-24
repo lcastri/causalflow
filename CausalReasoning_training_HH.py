@@ -10,12 +10,12 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_wBAC/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 # BAGNAME= ['BL100_21102024']
 # BAGNAME= ['BL75_29102024']
 # BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
-BAGNAME= ['BL100_21102024']
+BAGNAME= ['24-01-2025_wp5-7']
 
 
 with open(DAGDIR, 'rb') as f:
@@ -27,6 +27,7 @@ DATA_TYPE = {
     NODES.RB.value: DataType.Discrete,
     NODES.BS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
+    NODES.BAC.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
 NODE_TYPE = {
@@ -35,12 +36,13 @@ NODE_TYPE = {
     NODES.RB.value: NodeType.System,
     NODES.BS.value: NodeType.Context,
     NODES.PD.value: NodeType.System,
+    NODES.BAC.value: NodeType.System,
     NODES.WP.value: NodeType.Context,
 }
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_100_HH_noBAC',
+          model_path = 'CIE_wp5-7_v1',
           verbosity = CPLevel.DEBUG)
 
 start_time = time.time()
@@ -52,7 +54,8 @@ DATA_DICT = {}
 dfs = []
 
 for bagname in BAGNAME:
-    files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
+    files = [f for f in os.listdir(os.path.join(INDIR, "HH/shrunk", f"{bagname}"))]
+    # files = [f for f in os.listdir(os.path.join(INDIR, "TOD/HH", f"{bagname}"))]
     files_split = [f.split('_') for f in files]
     for wp in WP:
         if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
