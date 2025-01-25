@@ -40,45 +40,11 @@ class DynamicBayesianNetwork():
         self.dbn = {node: None for node in dag.g}
         self.DO = {node: None for node in dag.g}
         self.data = {node: None for node in dag.g}
-        for node in dag.g:
-            if recycle is not None and node in recycle:
-                self.dbn[node] = recycle[node]['dbn']
-                self.data[node] = recycle[node]['data']
-            else:
-                if self.node_type[node] == NodeType.Context:
-                    CP.info(f"\n    ### Target context variable: {node}")
-                    Y, _ = self._get_Y_X(data.d, node, dag)
-                    self.dbn[node] = Density(Y, None, max_components=self.max_components)
-                else:
-                    anchestors = dag.get_anchestors(node)
-                    context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
-                    contexts = self._extract_contexts(data, context_anchestors)
-                    self.dbn[node] = {context: None for context in contexts}
-                    self.data[node] = {context: None for context in contexts}
-                    
-                    for context in contexts:
-                        # Retrieve data for each node
-                        segments = self.get_context_specific_segments(data, context, node, dag.g[node].sourcelist) 
-                        if not segments: 
-                            CP.info(f"\n    ### Target variable: {node}")
-                            if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                            CP.info(f"    ### No context-specific segments found")
-                            continue
-                        self.dbn[node][context] = {idx: None for idx, _ in enumerate(segments)}
-                        self.data[node][context] = {idx: None for idx, _ in enumerate(segments)}
-                        
-                        # Full DBN using all the segments concatenated
-                        full_data = pd.concat([segment for segment in segments])
-                        Y, X = self._get_Y_X(full_data, node, dag)
-                        parents_str = f" - parents {', '.join(list(X.keys()))}" if X else ""
-                        CP.info(f"\n    ### Target variable: {node}{parents_str}")
-                        if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
-                        CP.info(f"    ### Full - {len(full_data)} samples")
-                        self.dbn[node][context]['full'] = Density(Y, X if X else None, max_components=self.max_components)
-                        self.data[node][context]['full'] = Data(full_data)
-
-        self.compute_do_density(dag, data, recycle)
-        del dag, data
+        
+        self.compute_density(dag, data, recycle)
+        # self.compute_do_density(dag, data, recycle)
+        
+        del dag, data, recycle
         gc.collect()
         
         
@@ -150,15 +116,14 @@ class DynamicBayesianNetwork():
         return Y, X
     
     
-    def _get_Y_X_ADJ(self, data, outcome, treatment, adj = None):
+    def _get_Y_X_ADJ(self, data, outcome, treatment, cond = None, adj = None):
         Y = Process(data[outcome].to_numpy(), outcome, 0, self.data_type[outcome], self.node_type[outcome])
         X = Process(data[treatment[0]].to_numpy(), treatment[0], abs(treatment[1]), self.data_type[treatment[0]], self.node_type[treatment[0]])
-        if adj is None: 
-            ADJ = None
-        else:
-            ADJ = {s: Process(data[s[0]].to_numpy(), s[0], abs(s[1]), self.data_type[s[0]], self.node_type[s[0]])
-                for s in adj}
-        return Y, X, ADJ
+        COND = {s: Process(data[s[0]].to_numpy(), s[0], abs(s[1]), self.data_type[s[0]], self.node_type[s[0]])
+               for s in cond} if cond is not None else None
+        ADJ = {s: Process(data[s[0]].to_numpy(), s[0], abs(s[1]), self.data_type[s[0]], self.node_type[s[0]])
+               for s in adj} if adj is not None else None
+        return Y, X, COND, ADJ
     
         
     def combine_segment_densities(self, segment_densities, segment_sizes):
@@ -278,7 +243,45 @@ class DynamicBayesianNetwork():
         return [segment[system_parents] for segment in segments]
                     
        
-  
+    def compute_density(self, dag: DAG, data: Data, recycle = None):
+        for node in dag.g:
+            if recycle is not None and node in recycle:
+                self.dbn[node] = recycle[node]['dbn']
+                self.data[node] = recycle[node]['data']
+            else:
+                if self.node_type[node] == NodeType.Context:
+                    CP.info(f"\n    ### Target context variable: {node}")
+                    Y, _ = self._get_Y_X(data.d, node, dag)
+                    self.dbn[node] = Density(Y, None, max_components=self.max_components)
+                else:
+                    anchestors = dag.get_anchestors(node)
+                    context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
+                    contexts = self._extract_contexts(data, context_anchestors)
+                    self.dbn[node] = {context: None for context in contexts}
+                    self.data[node] = {context: None for context in contexts}
+                    
+                    for context in contexts:
+                        # Retrieve data for each node
+                        segments = self.get_context_specific_segments(data, context, node, dag.g[node].sourcelist) 
+                        if not segments: 
+                            CP.info(f"\n    ### Target variable: {node}")
+                            if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                            CP.info(f"    ### No context-specific segments found")
+                            continue
+                        self.dbn[node][context] = {idx: None for idx, _ in enumerate(segments)}
+                        self.data[node][context] = {idx: None for idx, _ in enumerate(segments)}
+                        
+                        # Full DBN using all the segments concatenated
+                        full_data = pd.concat([segment for segment in segments])
+                        Y, X = self._get_Y_X(full_data, node, dag)
+                        parents_str = f" - parents {', '.join(list(X.keys()))}" if X else ""
+                        CP.info(f"\n    ### Target variable: {node}{parents_str}")
+                        if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
+                        CP.info(f"    ### Full - {len(full_data)} samples")
+                        self.dbn[node][context]['full'] = Density(Y, X if X else None, max_components=self.max_components)
+                        self.data[node][context]['full'] = Data(full_data)
+                        
+                        
     def compute_do_density(self, dag: DAG, data: Data, recycle = None):
         """
         Compute the p(outcome|do(treatment)) density for all treatment-outcome combinations.
@@ -311,8 +314,8 @@ class DynamicBayesianNetwork():
                     
                     # Treatment not affecting outcome
                     if (treatment[0], abs(treatment[1])) not in dag.get_anchestors(outcome[0], include_lag=True):
-                        CP.debug(f"- {treatment} not an anchestor of {outcome}")
-                        CP.debug(f"- p({outcome}|do({treatment})) = p({outcome})")
+                        CP.info(f"- {treatment} not an anchestor of {outcome}")
+                        CP.info(f"- p({outcome}|do({treatment})) = p({outcome})")
                         Y, X, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
                         self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, adjustments = None, 
                                                                                 doType = DOType.pY, 
@@ -324,8 +327,8 @@ class DynamicBayesianNetwork():
                     
                     # Treatment affects outcome (no open Backdoor Paths)
                     if not open_backdoor_paths: 
-                        CP.debug(f"- No adjustment needed for {treatment} -> {outcome}")
-                        CP.debug(f"- p({outcome}|do({treatment})) = p({outcome}|{treatment})")
+                        CP.info(f"- No adjustment needed for {treatment} -> {outcome}")
+                        CP.info(f"- p({outcome}|do({treatment})) = p({outcome}|{treatment})")
                         Y, X, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
                         self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, adjustments = None, 
                                                                                 doType = DOType.pY_given_X, 
@@ -338,17 +341,19 @@ class DynamicBayesianNetwork():
                         pY_X = None
                         
                         adjustment_sets = dag.find_all_d_separators(treatment, outcome, open_backdoor_paths)    
-                        CP.debug(f"- Adjustment needed for {treatment} -> {outcome}")
-                        CP.debug(f"- Backdoor paths: {open_backdoor_paths}")
+                        CP.info(f"- Adjustment needed for {treatment} -> {outcome}")
+                        CP.info(f"- Backdoor paths: {open_backdoor_paths}")
+                        
                         
                         self.DO[outcome[0]][treatment]['backdoor_paths'] = open_backdoor_paths
                         for i, adj_set in enumerate(adjustment_sets):
+                            
                             adj_set_key = frozenset(adj_set)
-                            CP.debug(f"\n#### Adjustment set: {adj_set}")
-                            CP.debug(f"- p({outcome}|do({treatment})) = sum[p({outcome}|{treatment},{','.join([str(s) for s in adj_set])})*p({','.join([str(s) for s in adj_set])})]")
+                            CP.info(f"    #### Adjustment set: {adj_set}")
+                            CP.info(f"    - p({outcome}|do({treatment})) = sum[p({outcome}|{treatment},{','.join([str(s) for s in adj_set])})*p({','.join([str(s) for s in adj_set])})]")
                             
                             
-                            Y, X, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment, adj_set)
+                            Y, X, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment, adj = adj_set)
                             self.DO[outcome[0]][treatment][adj_set_key] = DODensity(Y, X, adjustments = ADJ, 
                                                                                     doType = DOType.pY_given_X_Adj, 
                                                                                     max_components=self.max_components,
@@ -357,3 +362,168 @@ class DynamicBayesianNetwork():
                                 pY = self.DO[outcome[0]][treatment][adj_set_key].pY
                                 pY_X = self.DO[outcome[0]][treatment][adj_set_key].pY_X
                     gc.collect()
+                    
+                    
+    def compute_single_do_density(self, dag: DAG, data: Data, outcome: str, treatment: tuple, conditions: list = None):
+        """
+        Compute the p(outcome|do(treatment)) density for all treatment-outcome combinations.
+        Adjust for variables that block backdoor paths.
+        
+        Args:
+            dag (DAG): Directed acyclic graph representing the causal relationships.
+        """
+        CP.info("\n## DO Densities Computation")
+        outcome = (outcome, 0)
+        if conditions is not None: 
+            conditions = [conditions] if not isinstance(conditions, list) else conditions
+            conditions_str = ','.join([str(c) for c in conditions])
+                              
+        all_nodes = [(t, -l) for t in dag.get_Adj().keys() for l in range(0, dag.max_lag + 1)]
+        self.DO = {outcome[0]: {treatment: {} for treatment in all_nodes if treatment != outcome} for outcome in all_nodes if outcome[1] == 0}
+            
+        #! No self-loops
+        if treatment == outcome:
+            CP.info(f"- {treatment} is the same as {outcome}")
+            return
+                    
+        #! No treatment before outcome
+        if treatment[1] > outcome[1]: 
+            CP.info(f"- {treatment} is after {outcome}")
+            return
+                    
+        CP.info(f"\n### p({outcome}|do({treatment}))")
+                    
+        # Treatment not affecting outcome
+        if (treatment[0], abs(treatment[1])) not in dag.get_anchestors(outcome[0], include_lag=True):
+            CP.info(f"- {treatment} not an anchestor of {outcome}")
+            CP.info(f"- p({outcome}|do({treatment})) = p({outcome})")
+            Y, X, COND, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
+            self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, 
+                                                                    adjustments = None,
+                                                                    conditions = None, # FIXME: this should be different 
+                                                                    doType = DOType.pY, 
+                                                                    max_components=self.max_components)
+            return
+                                
+        open_backdoor_paths = dag.get_open_backdoors_paths(treatment, outcome, conditions)
+        self.DO[outcome[0]][treatment]['backdoor_paths'] = open_backdoor_paths
+                    
+        #! Treatment affects outcome (no open Backdoor Paths)
+        if not open_backdoor_paths:
+            if conditions is not None:
+                CP.info(f"- No adjustment needed for {treatment} -> {outcome} conditioning on {conditions_str}")
+                CP.info(f"- p({outcome}|do({treatment},{conditions_str})) = p({outcome}|{treatment},{conditions_str})")
+            else:
+                CP.info(f"- No adjustment needed for {treatment} -> {outcome}")
+                CP.info(f"- p({outcome}|do({treatment})) = p({outcome}|{treatment})")
+                
+            Y, X, COND, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
+            self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, 
+                                                                    adjustments = None, 
+                                                                    conditions = None, # FIXME: this should be different
+                                                                    doType = DOType.pY_given_X, 
+                                                                    max_components=self.max_components)
+            return
+                    
+        #! Treatment affects outcome (Open Backdoor Paths)
+        else:
+            pY = None
+            pY_X = None
+            
+            adjustment_sets = dag.find_all_d_separators(treatment, outcome, open_backdoor_paths, conditions)    
+            if conditions is not None:
+                CP.info(f"- Adjustment needed for {treatment} -> {outcome} conditioning on {conditions_str}")
+            else:
+                CP.info(f"- Adjustment needed for {treatment} -> {outcome}")
+            CP.info(f"- Backdoor paths: {open_backdoor_paths}")
+            if conditions is not None: CP.info(f"- Conditioning set: {conditions}")
+            
+            self.DO[outcome[0]][treatment]['backdoor_paths'] = open_backdoor_paths
+            for i, adj_set in enumerate(adjustment_sets):
+                
+                adj_set_key = frozenset(adj_set)
+                CP.info(f"    #### Adjustment set: {adj_set}")
+                if conditions is not None:
+                    CP.info(f"    - p({outcome}|do({treatment}),{conditions_str}) = sum[p({outcome}|{treatment},{conditions_str},{','.join([str(s) for s in adj_set])})*p({','.join([str(s) for s in adj_set])})]")
+                else:
+                    CP.info(f"    - p({outcome}|do({treatment})) = sum[p({outcome}|{treatment},{','.join([str(s) for s in adj_set])})*p({','.join([str(s) for s in adj_set])})]")
+                
+                
+                Y, X, COND, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment, cond = conditions, adj = adj_set)
+                self.DO[outcome[0]][treatment][adj_set_key] = DODensity(Y, X, 
+                                                                        adjustments = ADJ,
+                                                                        conditions = COND, 
+                                                                        doType = DOType.pY_given_X_Adj if conditions is None else DOType.pY_given_X_Cond_Adj, 
+                                                                        max_components=self.max_components,
+                                                                        pY=pY, pY_X=pY_X)
+                if i == 0:
+                    pY = self.DO[outcome[0]][treatment][adj_set_key].pY
+                    pY_X = self.DO[outcome[0]][treatment][adj_set_key].pY_X
+
+
+
+    # def compute_do_density(self, dag: DAG, data: Data, recycle=None):
+    #     """
+    #     Compute the p(outcome | do(treatment)) density for all treatment-outcome combinations, 
+    #     optionally conditioning on context variables.
+
+    #     Args:
+    #         dag (DAG): Directed acyclic graph representing the causal relationships.
+    #         data (Data): Observational data.
+    #         recycle (dict, optional): Reuse previously computed densities.
+    #     """
+    #     CP.info("\n## DO Densities Computation")
+
+    #     all_nodes = [(t, -l) for t in dag.get_Adj().keys() for l in range(0, dag.max_lag + 1)]
+    #     self.DO = {outcome[0]: {treatment: {} for treatment in all_nodes if treatment != outcome} for outcome in all_nodes if outcome[1] == 0}
+
+    #     for outcome in all_nodes:
+    #         if self.node_type[outcome[0]] == NodeType.Context: continue
+    #         if outcome[1] != 0: 
+    #             continue
+            
+    #         # Handle context-based segmentation
+    #         anchestors = dag.get_anchestors(outcome[0])
+    #         context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
+    #         contexts = self._extract_contexts(data, context_anchestors)
+
+    #         for context in contexts:
+    #             # Filter data by the current context
+    #             segments = self.get_context_specific_segments(data, context, outcome[0], dag.g[outcome[0]].sourcelist)
+    #             if not segments:
+    #                 CP.info(f"\n    ### No data for context: {context}")
+    #                 continue
+
+    #             # Full data for context
+    #             full_data = pd.concat([segment for segment in segments])
+
+    #             for treatment in all_nodes:
+    #                 # Standard checks
+    #                 if treatment == outcome: continue
+    #                 if treatment[1] > outcome[1]: continue
+
+    #                 CP.info(f"\n\t### p({outcome} | do({treatment}))")
+    #                 CP.info(f"\t### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")      
+                                  
+    #                 # Standard Do-Density logic as before, using full_data for this context
+    #                 if (treatment[0], abs(treatment[1])) not in dag.get_anchestors(outcome[0], include_lag=True):
+    #                     Y, X, ADJ = self._get_Y_X_ADJ(full_data, outcome[0], treatment)
+    #                     self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, adjustments=None, 
+    #                                                                             doType=DOType.pY, 
+    #                                                                             max_components=self.max_components)
+    #                     continue
+                                    
+    #                 open_backdoor_paths = dag.get_open_backdoors_paths(treatment, outcome)
+    #                 if not open_backdoor_paths:
+    #                     Y, X, ADJ = self._get_Y_X_ADJ(full_data, outcome[0], treatment)
+    #                     self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, adjustments=None, 
+    #                                                                             doType=DOType.pY_given_X, 
+    #                                                                             max_components=self.max_components)
+    #                 else:
+    #                     adjustment_sets = dag.find_all_d_separators(treatment, outcome, open_backdoor_paths)
+    #                     for adj_set in adjustment_sets:
+    #                         adj_set_key = frozenset(adj_set)
+    #                         Y, X, ADJ = self._get_Y_X_ADJ(full_data, outcome[0], treatment, adj_set)
+    #                         self.DO[outcome[0]][treatment][adj_set_key] = DODensity(Y, X, adjustments=ADJ, 
+    #                                                                                 doType=DOType.pY_given_X_Adj, 
+    #                                                                                 max_components=self.max_components)

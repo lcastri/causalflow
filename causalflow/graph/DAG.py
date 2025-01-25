@@ -1045,48 +1045,116 @@ class DAG():
         return backdoor_paths
     
     
-    def get_open_backdoors_paths(self, treatment: str, outcome: str):
+    # def get_open_backdoors_paths(self, treatment: str, outcome: str):
+    #     """
+    #     Get backdoor paths between treatment and outcome, considering temporal dependencies.
+
+    #     Args:
+    #         treatment (str): Treatment variable.
+    #         outcome (str): Outcome variable.
+        
+    #     Returns:
+    #         list: List of backdoor paths, where each path is a list of tuples (variable, lag).
+    #     """        
+    #     # Convert adjacency matrix to a Bayesian Network using PAG
+    #     bn = DAG.get_DBN(self.get_Adj(), self.max_lag)  # BayesianNetwork object from pgmpy
+        
+    #     # Find all paths from treatment to outcome
+    #     all_paths = DAG.find_all_paths(bn, treatment, outcome, [])
+
+    #     # Filter backdoor paths
+    #     backdoor_paths = DAG._find_backdoor_paths(bn, treatment, all_paths)
+    #     if not backdoor_paths:
+    #         return []  # No backdoor paths found
+        
+    #     def is_blocked_path(path, bn: BayesianNetwork):
+    #         for i in range(1, len(path) - 1):  # We exclude the first and last node in the path (treatment and outcome)
+    #             node = path[i]
+                    
+    #             # Get the parents of the current node (we only check parents to detect colliders)
+    #             parents = bn.get_parents(node)
+
+    #             # Check if the current node has a parent in the previous node and a parent in the next node (collider condition)
+    #             if any(parent == path[i-1] for parent in parents) and any(parent == path[i+1] for parent in parents):
+    #                 # print(f"Collider found: {path[i-1]} -> {node} <- {path[i+1]}")
+    #                 return True
+                    
+    #         # If no colliders are found, the path is open
+    #         return False
+        
+    #     open_backdoor_paths = [path for path in backdoor_paths if not is_blocked_path(path, bn)]
+        
+    #     return open_backdoor_paths
+    
+    def get_open_backdoors_paths(self, treatment: str, outcome: str, conditioned: list = None):
         """
-        Get backdoor paths between treatment and outcome, considering temporal dependencies.
+        Get backdoor paths between treatment and outcome, considering temporal dependencies and conditioning variables.
 
         Args:
             treatment (str): Treatment variable.
             outcome (str): Outcome variable.
+            conditioned (list): Variables to condition on. These variables block paths if encountered (default: None).
         
         Returns:
             list: List of backdoor paths, where each path is a list of tuples (variable, lag).
-        """        
+        """
+        # Initialize conditioned list if not provided
+        # conditioned = [conditioned] if not isinstance(conditioned, list) else conditioned
+        
         # Convert adjacency matrix to a Bayesian Network using PAG
         bn = DAG.get_DBN(self.get_Adj(), self.max_lag)  # BayesianNetwork object from pgmpy
         
         # Find all paths from treatment to outcome
         all_paths = DAG.find_all_paths(bn, treatment, outcome, [])
-
+        
         # Filter backdoor paths
         backdoor_paths = DAG._find_backdoor_paths(bn, treatment, all_paths)
         if not backdoor_paths:
             return []  # No backdoor paths found
         
-        def is_blocked_path(path, bn: BayesianNetwork):
-            for i in range(1, len(path) - 1):  # We exclude the first and last node in the path (treatment and outcome)
+        # Function to determine if a path is blocked
+        def is_blocked_path(path, bn: BayesianNetwork, conditioned):
+            for i in range(1, len(path) - 1):  # Exclude treatment and outcome nodes
                 node = path[i]
-                    
-                # Get the parents of the current node (we only check parents to detect colliders)
+                
+                # Collider check
                 parents = bn.get_parents(node)
+                is_collider = (
+                    len(parents) >= 2 and
+                    any(parent == path[i - 1] for parent in parents) and
+                    any(parent == path[i + 1] for parent in parents)
+                )
+                
+                def get_descendants(bn, node):
+                    descendants = set()
 
-                # Check if the current node has a parent in the previous node and a parent in the next node (collider condition)
-                if any(parent == path[i-1] for parent in parents) and any(parent == path[i+1] for parent in parents):
-                    # print(f"Collider found: {path[i-1]} -> {node} <- {path[i+1]}")
-                    return True
+                    def add_descendants(n):
+                        for child in bn.get_children(n):
+                            if child not in descendants:
+                                descendants.add(child)
+                                add_descendants(child)
                     
-            # If no colliders are found, the path is open
+                    add_descendants(node)
+                    return descendants
+                
+                if is_collider:
+                    # Colliders block the path unless they or their descendants are conditioned on
+                    if node not in conditioned and not any(descendant in conditioned for descendant in get_descendants(bn, node)):
+                        return True  # Path blocked due to an unconditioned collider
+                else:
+                    # Non-colliders block the path if they are conditioned on
+                    if node in conditioned:
+                        return True  # Path blocked due to a non-collider being conditioned on
+            
+            # If no blockers are encountered, the path is open
             return False
-        
-        open_backdoor_paths = [path for path in backdoor_paths if not is_blocked_path(path, bn)]
+
+        # Identify and return open backdoor paths
+        open_backdoor_paths = [path for path in backdoor_paths if not is_blocked_path(path, bn, conditioned)]
         
         return open_backdoor_paths
+
                          
-            # adjustment_set = DAG._find_d_separators(bn, treatment, outcome, open_backdoor_paths)    
     
     def find_d_separators(self, treatment: str, outcome: str, paths) -> set:
         """
@@ -1114,13 +1182,63 @@ class DAG():
         return set()
     
     
-    def find_all_d_separators(self, treatment: str, outcome: str, paths) -> list:
+    # def find_all_d_separators(self, treatment: str, outcome: str, paths) -> list:
+    #     """
+    #     Find all D-Separation sets.
+
+    #     Args:
+    #         treatment (str): treatment node.
+    #         outcome (str): outcome node.
+
+    #     Returns:
+    #         list: all possible adjustment sets.
+    #     """
+    #     # Step 1: Get the Bayesian Network
+    #     bn = DAG.get_DBN(self.get_Adj(), self.max_lag)
+        
+    #     # Step 2: Remove the direct causal path (including mediators)
+    #     visited = set()
+
+    #     def dfs_path(node, target):
+    #         """Find causal path using DFS from 'node' to 'target'."""
+    #         if node == target:
+    #             return [node]
+    #         visited.add(node)
+    #         for child in bn.get_children(node):  # Assume 'get_children' fetches child nodes
+    #             if child not in visited:
+    #                 path = dfs_path(child, target)
+    #                 if path:
+    #                     return [node] + path
+    #         return None
+
+    #     # Find causal path from treatment to outcome
+    #     causal_path = dfs_path(treatment, outcome)
+    #     if causal_path:
+    #         # Remove all edges along this direct causal chain
+    #         for i in range(len(causal_path) - 1):
+    #             bn.remove_edge(causal_path[i], causal_path[i + 1])
+        
+    #     # Step 3: Identify potential backdoor nodes
+    #     if paths:
+    #         nodes = {node for path in paths for node in path if node not in {treatment, outcome}}
+    #         all_adjustment_sets = []
+    #         for r in range(len(nodes) + 1):
+    #             for subset in combinations(nodes, r):
+    #                 subset_set = set(subset)
+    #                 if not bn.is_dconnected(treatment, outcome, subset_set):
+    #                     all_adjustment_sets.append(subset_set)
+    #         return [adj for adj in all_adjustment_sets if len(adj) <= 2]
+    #         #! return all_adjustment_sets
+    #     else:
+    #         return []
+    def find_all_d_separators(self, treatment: str, outcome: str, paths, conditioned = None) -> list:
         """
         Find all D-Separation sets.
 
         Args:
             treatment (str): treatment node.
             outcome (str): outcome node.
+            conditioned (list, None): variables to condition on. These variables block paths if encountered.
 
         Returns:
             list: all possible adjustment sets.
@@ -1154,10 +1272,11 @@ class DAG():
         if paths:
             nodes = {node for path in paths for node in path if node not in {treatment, outcome}}
             all_adjustment_sets = []
-            for r in range(len(nodes) + 1):
+            cond_set = set(conditioned) if conditioned is not None else set()
+            for r in range(len(cond_set), len(nodes) + 1):
                 for subset in combinations(nodes, r):
-                    subset_set = set(subset)
-                    if not bn.is_dconnected(treatment, outcome, subset_set):
+                    subset_set = set(subset) 
+                    if not bn.is_dconnected(treatment, outcome, subset_set | cond_set):
                         all_adjustment_sets.append(subset_set)
             return [adj for adj in all_adjustment_sets if len(adj) <= 2]
             #! return all_adjustment_sets

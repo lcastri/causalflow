@@ -19,7 +19,7 @@ class CausalInferenceEngine():
                  dag: DAG, 
                  data_type: Dict[str, DataType], 
                  node_type: Dict[str, NodeType],
-                 atol = 0.05,
+                 max_components = 50,
                  model_path: str = '', 
                  verbosity = CPLevel.INFO):
         """
@@ -45,7 +45,7 @@ class CausalInferenceEngine():
         self.Q = {}
         self.data_type = data_type
         self.node_type = node_type
-        self.atol = atol
+        self.max_components = max_components
         self.DAG = {'complete': dag, 'system': self.remove_context(dag)}
         self.model_path = model_path
         
@@ -105,28 +105,10 @@ class CausalInferenceEngine():
                     continue
         if not recycle: recycle = None
     
-        self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type, recycle)
+        self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type, recycle, max_components = self.max_components)
         self.Ds[id] = {"complete": data, "specific": self.DBNs[id].data}
         return id
-        
-        
-    def addIntData(self, target: str, data: Data):
-        """
-        Add new interventional dataset.
-
-        Args:
-            target (str): Intervention treatment variable.
-            data (Data): Interventional data.
-        """
-        dag = CausalInferenceEngine.remove_intVarParents(self.DAG, target)
-            
-        id = ('int', str(target), self.nextInt)
-        self.DAGs[id] = dag
-        self.Ds[id] = data
-        CP.info(f"\n## Building DBN for DAG ID {str(id)}")
-        self.DBNs[id] = DynamicBayesianNetwork(dag, data, self.data_type, self.node_type)
-        return id
-    
+           
     
     def save(self, respath):
         """
@@ -141,7 +123,7 @@ class CausalInferenceEngine():
         pkl['DBNs'] = self.DBNs
         pkl['data_type'] = self.data_type 
         pkl['node_type'] = self.node_type 
-        pkl['atol'] = self.atol 
+        pkl['max_components'] = self.max_components
         pkl['model_path'] = self.model_path
         pkl['verbosity'] = CP.verbosity
         pkl['contexts'] = self.contexts
@@ -164,56 +146,14 @@ class CausalInferenceEngine():
         """
         with open(pklpath, 'rb') as f:
             pkl = pickle.load(f)
-            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], 0.05, pkl['model_path'], pkl['verbosity'])
+            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['max_components'], pkl['model_path'], pkl['verbosity'])
             cie.contexts = pkl['contexts']
             cie.obs_id = pkl['obs_id']
             cie.int_id = pkl['int_id']
             cie.Ds = pkl['Ds']
             cie.DBNs = pkl['DBNs']
             return cie
-        
-        
-    def whatHappens(self, outcome: str, treatment: str, value, targetP: tuple):
-        """
-        Calculate p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))].
-
-        Args:
-            outcome (str): outcome variable.
-            treatment (str): treatment variable.
-            value (float): treatment value.
-            targetP (tuple): target population ID (e.g., ("obs", 3)).
-
-        Returns:
-            tuple: (outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))]).
-        """
-        self.Q[OUTCOME] = outcome
-        self.Q[TREATMENT] = treatment
-        self.Q[VALUE] = value
-        
-        CP.info("\n## Query")
-        
-        # searches the population with greatest number of occurrences treatment == treatment's value
-        otherDs = copy.deepcopy(self.Ds) # A: all populations
-        otherDs.pop(targetP, None) # A: all populations - target population
-        intDs = {key: value for key, value in self.Ds.items() if key[0] == 'int' and key[1] == self.Q[TREATMENT]}  # B: all interventional populations with treatment variable == treatment
-        for key in intDs.keys(): # A: A - B
-            otherDs.pop(key, None)
-            
-        intOcc, intSource = self._findSourceQ(intDs)
-        otherOcc, otherSource = self._findSourceQ(otherDs)
-        
-        sourceP = intSource if intOcc != 0 else otherSource
-        
-        # Source population's p(output|do(treatment), adjustment)
-        pS_y_do_x_adj = self.DBNs[sourceP][outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
-        
-        p_y_do_x = self.transport(pS_y_do_x_adj, targetP, self.Q[TREATMENT], self.Q[OUTCOME])
-        
-        y, p_y_do_X_x, E_p_y_do_X_x = self.evalDoDensity(p_y_do_x, sourceP)
-        CP.info(f"## What happens to {self.Q[OUTCOME]} if {self.Q[TREATMENT]} = {str(self.Q[VALUE])} in population {str(targetP)} ? {self.Q[OUTCOME]} = {E_p_y_do_X_x}")
-            
-        return y, p_y_do_X_x, E_p_y_do_X_x
-    
+           
     
     def whatIf(self, 
                treatment: str, 
@@ -331,91 +271,6 @@ class CausalInferenceEngine():
                 
         return occurrences, sourceP
     
-      
-    # def _findSource(self, Ds, target, value):
-    #     """
-    #     finds source population with maximum number of occurrences treatment = value
-
-    #     Args:
-    #         Ds (dict): dataset dictionary {id (str): d (Data)}
-
-    #     Returns:
-    #         tuple: number of occurrences, source dataset
-    #     """
-    #     occurrences = 0
-    #     for id, d in Ds.items():
-    #         indexes = np.where(np.isclose(d.d[target], value, atol = self.resolutions[target]))[0]
-    #         if len(indexes) > occurrences: 
-    #             occurrences = len(indexes)
-    #             sourceP = id
-                
-    #     return occurrences, sourceP
-    
-    
-    # def _findSource_intersection(self, parents_values, context):
-    #     """
-    #     Find the source population with the maximum number of occurrences 
-    #     of a given intersection of parent values.
-
-    #     Args:
-    #         parents_values (dict): Dictionary where keys are parent variable names 
-    #                                and values are the desired values for those parents.
-
-    #     Returns:
-    #         tuple: number of occurrences, source dataset
-    #     """
-    #     max_occurrences = 0
-    #     pID = None
-    #     Ds = self.load_obsDs(context)
-                    
-    #     for id in Ds:
-    #         for context, d in Ds[id].items():
-    #             # Create a mask for each parent that matches the desired value with tolerance
-    #             mask = np.ones(len(d.d), dtype=bool)
-    #             for parent, value in parents_values.items():
-    #                 mask &= np.isclose(d.d[parent], value, atol=self.resolutions[parent])
-                
-    #             # Count the number of occurrences where all parents match
-    #             occurrences = np.sum(mask)
-                
-    #             # Update the best source if this dataset has more occurrences
-    #             if occurrences > max_occurrences:
-    #                 max_occurrences = occurrences
-    #                 pID = id
-
-    #     return pID, max_occurrences
-    
-    # def _findSource_intersection(self, parents_values):
-    #     """
-    #     Find the source population with the maximum number of occurrences 
-    #     of a given intersection of parent values.
-
-    #     Args:
-    #         parents_values (dict): Dictionary where keys are parent variable names 
-    #                             and values are the desired values for those parents.
-
-    #     Returns:
-    #         tuple: number of occurrences, source dataset
-    #     """
-    #     max_occurrences = 0
-    #     selected_ID = None
-                
-    #     for id in self.Ds:
-    #         d = self.Ds[id]
-    #         mask = np.ones(len(d.d), dtype=bool)
-    #         for parent, value in parents_values.items():
-    #             mask &= np.isclose(d.d[parent], value, atol=self.atol)
-                    
-    #         # Count the number of occurrences where all parents match
-    #         occurrences = np.sum(mask)
-                    
-    #         # Update the best source if this dataset has more occurrences
-    #         if occurrences > max_occurrences:
-    #             max_occurrences = occurrences
-    #             selected_ID = id
-
-    #     return selected_ID, max_occurrences
-    
     
     def _findSource_intersection(self, target, parents, context=None):
         """
@@ -465,32 +320,6 @@ class CausalInferenceEngine():
                 variances.append(np.std(parent_data))  # Or use np.ptp(parent_data), np.median_absolute_deviation, etc.
 
             return scale_factor * np.mean(variances)  # Average variability scaled by the factor      
-        
-        # for id in self.Ds:
-        #     if context not in self.Ds[id]['specific'][target]: continue
-        #     for idx, d in self.Ds[id]['specific'][target][context].items():
-        #         if idx == 'full': continue
-        #         adaptive_atol = compute_adaptive_atol(parents, d.d)
-        #         occurrences = _find_occurrences(d, parents, adaptive_atol)
-                
-        #         # Update the best source if this dataset has more occurrences
-        #         if occurrences > max_occurrences:
-        #             max_occurrences = occurrences
-        #             pID = id
-        #             pContext = context
-        #             pSegment = idx
-                    
-        # if pID is None:
-        #     max_samples = 0
-        #     for id in self.Ds:
-        #         if context not in self.Ds[id]['specific'][target]: continue
-        #         for idx, d in self.Ds[id]['specific'][target][context].items():
-        #             num_samples = d.T
-        #             if num_samples > max_samples:
-        #                 max_samples = num_samples
-        #                 pID = id
-        #                 pContext = context
-        #                 pSegment = idx
                         
         # return pID, pContext, pSegment, max_occurrences
         for id in self.Ds:
@@ -520,81 +349,6 @@ class CausalInferenceEngine():
                         
         return pID, pContext, pSegment, max_occurrences
         
-    # TODO: to change self.DBNs[targetP].data -- self.DBNs[targetP] does not have data attribute
-    def transport(self, pS_y_do_x_adj, targetP: tuple, treatment: str, outcome: str):
-        """
-        Computes the target population's p_y_do(x) from the source population by using the transportability formula [1].
-        
-        [1] Bareinboim, Elias, and Judea Pearl. "Causal inference and the data-fusion problem." 
-            Proceedings of the National Academy of Sciences 113.27 (2016): 7345-7352.
-
-        Args:
-            pS_y_do_x_adj (tuple): p(output|do(treatment), adjustment) of the source population
-            targetP (tuple): target population ID
-            treatment (str): treatment variable
-            outcome (str): outcome variable
-
-        Returns:
-            nd.array: Target population's p_y_do(x)
-        """
-        adjset = self.DBNs[targetP].get_adjset(treatment, outcome) # TODO: to test
-        
-        # # Source population's p(output|do(treatment), adjustment)
-        # pS_y_do_x_adj = self.DBNs[sourceP][outcome].DO[treatment][P_Y_GIVEN_DOX_ADJ]
-        
-        # Compute the adjustment density for the target population
-        pT_adj = np.ones((self.nsample, 1)).squeeze()
-            
-        for node in adjset: pT_adj = pT_adj * self.DBNs[targetP][self.DBNs[targetP].data.features[node[0]]].CondDensity
-        pT_adj = normalise(pT_adj)
-        
-        # Compute the p(outcome|do(treatment)) density
-        if len(pS_y_do_x_adj.shape) > 2: 
-            # Sum over the adjustment set
-            p_y_do_x = normalise(np.sum(pS_y_do_x_adj * pT_adj, axis = tuple(range(2, len(pS_y_do_x_adj.shape)))))
-        else:
-            p_y_do_x = pS_y_do_x_adj
-        
-        return p_y_do_x
-    
-    
-    def evalDoDensity(self, p_y_do_x, sourceP: tuple):
-        """
-        Evaluates the p(outcome|do(treatment = t))
-
-        Args:
-            p_y_do_x: p(outcome|do(treatment)) density
-            sourceP (tuple): source population ID
-
-        Returns:
-            tuple: outcome samples, p(outcome|do(treatment = t)), E[p(outcome|do(treatment = t))], Mode(outcome*p(outcome|do(treatment = t))
-        """
-        indices_X = np.where(np.isclose(self.DBNs[sourceP][self.Q[OUTCOME]].parents[self.Q[TREATMENT]].samples, 
-                                        self.Q[VALUE], 
-                                        atol = self.resolutions[TREATMENT]))[0]
-        indices_X = np.array(sorted(indices_X))               
-        
-        # I am taking all the outcome's densities associated to the treatment == value
-        # Normalise the density to ensure it sums to 1
-        p_y_do_X_x = normalise(np.sum(p_y_do_x[:, indices_X], axis = 1))
-        E_p_y_do_X_x = expectation(self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x)
-        M_p_y_do_X_x = mode(self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x)
-        # self.plot_pE(self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, show = True)
-        return self.DBNs[sourceP][self.Q[OUTCOME]].y.samples, p_y_do_X_x, E_p_y_do_X_x, M_p_y_do_X_x
-    
-    
-    def plot_pEQ(self, ysamples, density, expectation = None, show = False, path = None):
-        plt.figure(figsize=(10, 6))
-        plt.plot(ysamples, density, label='Density')
-        if expectation is not None: plt.axvline(expectation, color='r', linestyle='--', label=f'Expectation = {expectation:.2f}')
-        plt.xlabel(f'${self.Q[OUTCOME]}$')
-        plt.ylabel(f'p(${self.Q[OUTCOME]}$|do(${self.Q[TREATMENT]}$ = {str(self.Q[VALUE])}))')
-        plt.legend()
-        if show: 
-            plt.show()
-        else:
-            plt.savefig(os.path.join(path, f'p({self.Q[OUTCOME]}|do({self.Q[TREATMENT]} = {str(self.Q[VALUE])})).png'))
-            
             
     def plot_pE(self, y, parent, density, expectation = None, show = False, path = None):
         plt.figure(figsize=(10, 6))

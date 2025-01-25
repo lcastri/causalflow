@@ -69,8 +69,11 @@ for bagname in BAGNAME:
         idx = len(DATA_DICT)
         DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
         del concatenated_df
-        cie.addObsData(DATA_DICT[idx])
-    
+        obs_id = cie.addObsData(DATA_DICT[idx])
+        cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
+                                                   cie.Ds[obs_id]["complete"], 
+                                                   'ELT', ('R_V', -1), conditions = ('C_S', -1))
+ 
 cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 
 end_time = time.time()
