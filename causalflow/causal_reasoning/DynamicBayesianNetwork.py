@@ -313,11 +313,6 @@ class DynamicBayesianNetwork():
                     if (treatment[0], abs(treatment[1])) not in dag.get_anchestors(outcome[0], include_lag=True):
                         CP.debug(f"- {treatment} not an anchestor of {outcome}")
                         CP.debug(f"- p({outcome}|do({treatment})) = p({outcome})")
-                        self.DO[outcome[0]][treatment]['backdoor_paths'] = []
-                        # self.DO[outcome[0]][treatment][frozenset()] = {'pAdj': None,
-                        #                                                'pY_doX_Adj': None,
-                        #                                                'pY|doX': 'pY'}
-                        # self.DO[outcome[0]][treatment]['pY_doX'] = self.dbn[outcome[0]].PriorDensity
                         Y, X, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
                         self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, adjustments = None, 
                                                                                 doType = DOType.pY, 
@@ -331,10 +326,6 @@ class DynamicBayesianNetwork():
                     if not open_backdoor_paths: 
                         CP.debug(f"- No adjustment needed for {treatment} -> {outcome}")
                         CP.debug(f"- p({outcome}|do({treatment})) = p({outcome}|{treatment})")
-                        # self.DO[outcome[0]][treatment][frozenset()] = {'pAdj': None,
-                        #                                                'pY_doX_Adj': None,
-                        #                                                'pY|doX': 'pY|X'}
-                        # self.DO[outcome[0]][treatment]['pY_doX'] = self.dbn[outcome[0]].CondDensity
                         Y, X, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
                         self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, adjustments = None, 
                                                                                 doType = DOType.pY_given_X, 
@@ -365,32 +356,4 @@ class DynamicBayesianNetwork():
                             if i == 0:
                                 pY = self.DO[outcome[0]][treatment][adj_set_key].pY
                                 pY_X = self.DO[outcome[0]][treatment][adj_set_key].pY_X
-                            # self.DO[outcome[0]][treatment][adj_set_key] = {'pAdj': None,
-                            #                                                'pY_doX_Adj': None,
-                            #                                                'pY|doX': 'sum(pY_doX_Adj*pAdj)'}
-                            
-                            # # pAdj: Joint Adjustment
-                            # _, _, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment, adj_set)
-                            # max_adj_lag = max(p.lag for p in ADJ.values())
-                            # for p in ADJ.values():
-                            #     p.align(max_adj_lag)                        
-                            # adj_data = np.column_stack([p.aligndata for p in ADJ.values()])
-                            # pAdj = Density.fit_gmm(self.max_components, 'p(Adj)', adj_data)
-                            
-                            # # pY_doX_Adj: p(outcome, do(treatment), adjustment_set)
-                            # Y, X, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment, adj_set)
-                            # ALL = {}
-                            # ALL[outcome] = Y
-                            # ALL[treatment] = X
-                            # for pname, adj in ADJ.items():
-                            #     ALL[pname] = adj
-                            # max_adj_lag = max(p.lag for p in ALL.values())
-                            # for p in ALL.values():
-                            #     p.align(max_adj_lag)                        
-                            # all_data = np.column_stack([p.aligndata for p in ALL.values()])
-                            # pY_doX_Adj = Density.fit_gmm(self.max_components, 'p(Y,X,Adj)', all_data)
-                            # self.DO[outcome[0]][treatment][adj_set_key]['pAdj'] = pAdj
-                            # self.DO[outcome[0]][treatment][adj_set_key]['pY_doX_Adj'] = pY_doX_Adj
-                            
-                    # del Y, X, ADJ
                     gc.collect()
