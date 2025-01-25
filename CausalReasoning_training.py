@@ -10,14 +10,11 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_wBAC/res.pkl'
-INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-# BAGNAME= ['BL100_21102024']
+DAGDIR = '/home/lcastri/git/darko-peopleflow/HRISim_docker/HRISim/prediction/hrisim_prediction_manager/DAGs/DARKO_v1/res.pkl'
+INDIR = '/home/lcastri/git/darko-peopleflow/utilities_ws/src/bag_postprocess/csv'
 BAGNAME= ['24-01-2025-DARKO']
 
-# BAGNAME= ['BL100_21102024', 'BL75_29102024', 'BL50_22102024', 'BL25_28102024']
 USE_SUBSAMPLED = True
-
 
 with open(DAGDIR, 'rb') as f:
     CM = DAG.load(pickle.load(f))
@@ -57,12 +54,7 @@ for bagname in BAGNAME:
         for tod in TOD:
             print(f"Loading : {bagname}-{tod.value}-{wp.value}")
             if USE_SUBSAMPLED:
-                # if wp is WP.DOOR_CANTEEN:
-                #     tmp_wp = "door_entrance-canteen"
-                # else:
-                #     tmp_wp = wp.value.replace("-", "_")
-                filename = os.path.join(INDIR, "HH/shrunk", f"{bagname}", tod.value, 'static', f"{bagname}_{tod.value}_{wp.value}.csv")
-                # filename = os.path.join(INDIR, "TOD/my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{tmp_wp}.csv")
+                filename = os.path.join(INDIR, "shrunk", f"{bagname}", tod.value, 'static', f"{bagname}_{tod.value}_{wp.value}.csv")
             else:
                 filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             dfs.append(pd.read_csv(filename))

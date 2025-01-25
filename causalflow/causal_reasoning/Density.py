@@ -251,14 +251,9 @@ class Density():
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
             conditional_params = self.compute_conditional(parent_values)
             
+        expected_value = expectation_from_params(conditional_params['means'], conditional_params['weights'])
         # dens = Density.get_density(self.y.aligndata, conditional_params)
         # dens = dens / np.sum(dens)
 
-        # Find the most likely value (mode)
-        # most_likely = mode(self.y.aligndata.flatten(), dens)
-        # expected_value = expectation(self.y.aligndata.flatten(), dens)
-        # return dens, most_likely, expected_value
-        most_likely = 0
-        expected_value = expectation_from_params(conditional_params['means'], conditional_params['weights'])
-
-        return 0, most_likely, expected_value
+        # return dens, expected_value
+        return expected_value

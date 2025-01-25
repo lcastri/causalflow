@@ -51,7 +51,7 @@ T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], 
 DATA_DICT_TRAIN.shrink(CM.features)
 DATA_DICT_TEST.shrink(CM.features)
 prior_knowledge = {f: DATA_DICT_TEST.d[f].values[:] for f in ['TOD', 'B_S', 'WP']}
-res_f, res_s = cie.whatIf(NODES.RV.value, 
+res = cie.whatIf(NODES.RV.value, 
                  DATA_DICT_TEST.d.values[:, DATA_DICT_TEST.features.index(NODES.RV.value)], 
                  DATA_DICT_TRAIN.d.values,
                  prior_knowledge
@@ -68,13 +68,13 @@ DATA_DICT_TEST.d['PD'] = DATA_PD_TEST.d['PD']
 for f in FEATURES:
     i = DATA_DICT_TRAIN.features.index(f)
     ground_truth = DATA_DICT_TEST.d.values[::10]
-    prediction_f = res_f[::10]
+    prediction_f = res[::10]
     axes[FEATURES.index(f)].plot(ground_truth[:, i], linestyle = '-', color = "tab:orange", label = "ground-truth")
     axes[FEATURES.index(f)].plot(prediction_f[:, i], linestyle = '--', color = "tab:blue", label = "prediction")
     axes[FEATURES.index(f)].set_ylabel(DATA_DICT_TRAIN.features[i])
     axes[FEATURES.index(f)].grid(True)
     title = {}
-    RMSE = np.sqrt(np.mean((res_f[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
+    RMSE = np.sqrt(np.mean((res[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
     NRMSE = RMSE/np.std(DATA_DICT_TEST.d.values[:, i]) if np.std(DATA_DICT_TEST.d.values[:, i]) != 0 else 0
     axes[FEATURES.index(f)].set_title(f"NRMSE: {NRMSE:.4f}")
     axes[FEATURES.index(f)].legend(loc='best')
