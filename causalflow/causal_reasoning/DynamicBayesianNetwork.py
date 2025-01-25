@@ -392,5 +392,5 @@ class DynamicBayesianNetwork():
                             # self.DO[outcome[0]][treatment][adj_set_key]['pAdj'] = pAdj
                             # self.DO[outcome[0]][treatment][adj_set_key]['pY_doX_Adj'] = pY_doX_Adj
                             
-                    del Y, X, ADJ
+                    # del Y, X, ADJ
                     gc.collect()
