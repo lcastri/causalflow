@@ -1,5 +1,6 @@
 import os
 import pickle
+import numpy as np
 
 import pandas as pd
 from causalflow.CPrinter import CPLevel
@@ -41,7 +42,7 @@ NODE_TYPE = {
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_100_HH_v4',
+          model_path = 'CIE_100_HH_v4_round1',
           verbosity = CPLevel.DEBUG)
 
 start_time = time.time()
@@ -68,11 +69,26 @@ for bagname in BAGNAME:
         dfs = []
         idx = len(DATA_DICT)
         DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
+        DATA_DICT[idx].d[NODES.TOD.value] = DATA_DICT[idx].d[NODES.TOD.value].astype(int)
+        DATA_DICT[idx].d[NODES.RV.value] = np.round(DATA_DICT[idx].d[NODES.RV.value], 1)
+        DATA_DICT[idx].d[NODES.RB.value] = np.round(DATA_DICT[idx].d[NODES.RB.value], 1)
+        DATA_DICT[idx].d[NODES.CS.value] = DATA_DICT[idx].d[NODES.CS.value].astype(int)
+        DATA_DICT[idx].d[NODES.PD.value] = np.round(DATA_DICT[idx].d[NODES.PD.value], 1)
+        DATA_DICT[idx].d[NODES.ELT.value] = np.round(DATA_DICT[idx].d[NODES.ELT.value], 1)
+        DATA_DICT[idx].d[NODES.OBS.value] = DATA_DICT[idx].d[NODES.OBS.value].astype(int)
+        DATA_DICT[idx].d[NODES.WP.value] = DATA_DICT[idx].d[NODES.WP.value].astype(int)
         del concatenated_df
         obs_id = cie.addObsData(DATA_DICT[idx])
         cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
                                                    cie.Ds[obs_id]["complete"], 
-                                                   'ELT', ('R_V', -1), conditions = ('C_S', -1))
+                                                   'ELT', ('R_V', -1), 
+                                                   conditions = [('C_S', -1), ('ELT', -1)],
+                                                   max_adj_size = 1)
+        cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
+                                                   cie.Ds[obs_id]["complete"], 
+                                                   'PD', ('TOD', 0), 
+                                                   conditions = [('PD', -1)],
+                                                   max_adj_size = 1)
  
 cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 

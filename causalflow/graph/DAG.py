@@ -1231,7 +1231,7 @@ class DAG():
     #         #! return all_adjustment_sets
     #     else:
     #         return []
-    def find_all_d_separators(self, treatment: str, outcome: str, paths, conditioned = None) -> list:
+    def find_all_d_separators(self, treatment: str, outcome: str, paths, conditioned = None, max_adj_size = 2) -> list:
         """
         Find all D-Separation sets.
 
@@ -1248,37 +1248,37 @@ class DAG():
         
         # Step 2: Remove the direct causal path (including mediators)
         visited = set()
-
-        def dfs_path(node, target):
-            """Find causal path using DFS from 'node' to 'target'."""
+        all_causal_paths = []
+        
+        def dfs_path(node, target, path):
+            """Find all causal paths using DFS from 'node' to 'target'."""
             if node == target:
-                return [node]
+                all_causal_paths.append(path)
+                return
             visited.add(node)
-            for child in bn.get_children(node):  # Assume 'get_children' fetches child nodes
+            for child in bn.get_children(node):
                 if child not in visited:
-                    path = dfs_path(child, target)
-                    if path:
-                        return [node] + path
-            return None
+                    dfs_path(child, target, path + [child])
+        
+        dfs_path(treatment, outcome, [treatment])  # Start DFS from treatment to outcome
 
         # Find causal path from treatment to outcome
-        causal_path = dfs_path(treatment, outcome)
-        if causal_path:
+        if all_causal_paths:
             # Remove all edges along this direct causal chain
-            for i in range(len(causal_path) - 1):
-                bn.remove_edge(causal_path[i], causal_path[i + 1])
+            for causal_path in all_causal_paths:
+                bn.remove_edge(causal_path[0], causal_path[1])
         
         # Step 3: Identify potential backdoor nodes
         if paths:
-            nodes = {node for path in paths for node in path if node not in {treatment, outcome}}
-            all_adjustment_sets = []
             cond_set = set(conditioned) if conditioned is not None else set()
-            for r in range(len(cond_set), len(nodes) + 1):
+            nodes = {node for path in paths for node in path if node not in {treatment, outcome} | cond_set}
+            all_adjustment_sets = []
+            for r in range(0, len(nodes) + 1):
                 for subset in combinations(nodes, r):
                     subset_set = set(subset) 
                     if not bn.is_dconnected(treatment, outcome, subset_set | cond_set):
                         all_adjustment_sets.append(subset_set)
-            return [adj for adj in all_adjustment_sets if len(adj) <= 2]
+            return [adj for adj in all_adjustment_sets if len(adj) <= max_adj_size]
             #! return all_adjustment_sets
         else:
             return []

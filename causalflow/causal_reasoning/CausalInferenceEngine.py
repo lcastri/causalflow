@@ -146,7 +146,8 @@ class CausalInferenceEngine():
         """
         with open(pklpath, 'rb') as f:
             pkl = pickle.load(f)
-            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['max_components'], pkl['model_path'], pkl['verbosity'])
+            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], 50, pkl['model_path'], pkl['verbosity'])
+            # cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['max_components'], pkl['model_path'], pkl['verbosity'])
             cie.contexts = pkl['contexts']
             cie.obs_id = pkl['obs_id']
             cie.int_id = pkl['int_id']
@@ -215,6 +216,72 @@ class CausalInferenceEngine():
         return res[self.DAG['complete'].max_lag:, :]
     
     
+    # def whatIfDo(self, outcome: str, 
+    #                    treatment: str, lag: int, treatment_values: np.array, 
+    #                    conditions: Dict[tuple, np.array] = None,
+    #                    adjustment: list = None):
+        
+    #     # Check if treatment and conditions values have the same length
+    #     if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
+    #         raise ValueError("conditions items must have the same length of the treatment values")
+        
+    #     intT = len(treatment_values)
+    #     maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
+        
+    #     # Initialize result
+    #     res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
+    #            (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
+    #     for c in conditions.keys():
+    #         res[c] = np.full((intT + maxLag, 1), np.nan)
+            
+    #     # Fill result with prior knowledge
+    #     res[(treatment, lag)][:intT] = treatment_values
+    #     for c in conditions.keys():
+    #         res[c][:intT] = conditions[c]
+        
+    #     # Predict outcome
+    #     for t in range(maxLag, intT + maxLag):            
+    #         # pID, pContext, pSegment, occ = self._findDoSource(outcome, system_p, context_p)
+    #         sID = ('obs', 0) 
+    #         res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][frozenset(adjustment)].predict(res[(treatment, lag)][t-abs(lag)], 
+    #                                                                                                            {c: res[c][t-abs(c[1])] for c in conditions.keys()})
+    #         res[(outcome, 0)][t] = np.round(res[(outcome, 0)][t], 1)
+    #         if conditions is not None and any(c[0] == outcome for c in conditions.keys()):
+    #             res[(outcome, [c[1] for c in conditions if c[0] == outcome][0])][t] = res[(outcome, 0)][t]
+    #     return res[(outcome, 0)][maxLag:intT+maxLag]
+    def whatIfDo(self, outcome: str, 
+                       treatment: str, lag: int, treatment_values: np.array, 
+                       conditions: Dict[tuple, np.array] = None,
+                       adjustment: list = None):
+        
+        # Check if treatment and conditions values have the same length
+        if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
+            raise ValueError("conditions items must have the same length of the treatment values")
+        
+        intT = len(treatment_values)
+        maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
+        
+        # Initialize result
+        res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
+               (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
+        for c in conditions.keys():
+            res[c] = np.full((intT + maxLag, 1), np.nan)
+            
+        # Fill result with prior knowledge
+        res[(treatment, lag)][:intT] = treatment_values
+        for c in conditions.keys():
+            res[c][:intT] = conditions[c]
+        
+        # Predict outcome
+        for t in range(maxLag, intT + maxLag):            
+            # pID, pContext, pSegment, occ = self._findDoSource(outcome, system_p, context_p)
+            sID = ('obs', 0) 
+            res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][frozenset(adjustment)].predict(res[(treatment, lag)][t-abs(lag)], 
+                                                                                                               {c: res[c][t-abs(c[1])] for c in conditions.keys()})
+            res[(outcome, 0)][t] = np.round(res[(outcome, 0)][t], 1)
+        return res[(outcome, 0)][maxLag:intT+maxLag]
+    
+    
     def _DAG2NX(self, dag: DAG) -> nx.DiGraph:
         G = nx.DiGraph()
 
@@ -249,27 +316,84 @@ class CausalInferenceEngine():
         G.add_edges_from(edges)
                 
         return G
+      
     
-        
-    def _findSourceQ(self, Ds):
+    def _findDoSource(self, target, parents, context=None):
         """
-        finds source population with maximum number of occurrences treatment = value
+        Find the source population with the maximum number of occurrences 
+        of a given intersection of parent values.
 
         Args:
-            Ds (dict): dataset dictionary {id (str): d (Data)}
+            parents_values (dict): Dictionary where keys are parent variable names 
+                                and values are the desired values for those parents.
 
         Returns:
             tuple: number of occurrences, source dataset
         """
-        occurrences = 0
-        sourceP = None
-        for id, d in Ds.items():
-            indexes = np.where(np.isclose(d.d[self.Q[TREATMENT]], self.Q[VALUE], atol = self.resolutions[TREATMENT]))[0]
-            if len(indexes) > occurrences: 
-                occurrences = len(indexes)
-                sourceP = id
+        max_occurrences = 0
+        pID = None
+        pContext = None
+        pSegment = None
+        
+        context = format_combo(tuple(context.items()))
+        
+        def _find_occurrences(d, parents, atol):
+            mask = np.ones(len(d.d), dtype=bool)
+            for parent, value in parents.items():
+                # mask &= np.isclose(d.d[parent], value, atol = atol)
+                mask &= np.isclose(d.d[parent], value, atol = atol)
+                # mask &= np.isclose(d.d[parent], value, atol = atol, rtol=atol*10)
+                    
+            # Count the number of occurrences where all parents match
+            occurrences = np.sum(mask)
+            return occurrences
+        
+        def compute_adaptive_atol(parent_values, data, scale_factor=0.05):
+            """
+            Compute an adaptive atol based on the variability of the parent values.
+
+            Args:
+                parent_values (dict): Dictionary of parent variable values.
+                data (pd.DataFrame): Data containing the parent variables.
+                scale_factor (float): Factor to scale the variability.
+
+            Returns:
+                float: Adaptive atol.
+            """
+            variances = []
+            for parent in parent_values.keys():
+                parent_data = data[parent].values
+                variances.append(np.std(parent_data))  # Or use np.ptp(parent_data), np.median_absolute_deviation, etc.
+
+            return scale_factor * np.mean(variances)  # Average variability scaled by the factor      
+                        
+        # return pID, pContext, pSegment, max_occurrences
+        for id in self.Ds:
+            if context not in self.Ds[id]['specific'][target]: continue
+            d = self.Ds[id]['specific'][target][context]['full']
+            adaptive_atol = compute_adaptive_atol(parents, d.d)
+            occurrences = _find_occurrences(d, parents, adaptive_atol)
                 
-        return occurrences, sourceP
+            # Update the best source if this dataset has more occurrences
+            if occurrences > max_occurrences:
+                max_occurrences = occurrences
+                pID = id
+                pContext = context
+                pSegment = 'full'
+                        
+        if pID is None:
+            max_samples = 0
+            for id in self.Ds:
+                if context not in self.Ds[id]['specific'][target]: continue
+                d = self.Ds[id]['specific'][target][context]['full']
+                num_samples = d.T
+                if num_samples > max_samples:
+                    max_samples = num_samples
+                    pID = id
+                    pContext = context
+                    pSegment = 'full'
+                        
+        return pID, pContext, pSegment, max_occurrences
     
     
     def _findSource_intersection(self, target, parents, context=None):

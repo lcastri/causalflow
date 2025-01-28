@@ -41,7 +41,10 @@ def expectation_from_params(means, weights):
     assert np.allclose(np.sum(weights), 1), "Weights must sum to 1."
 
     # Compute the weighted sum of the means
-    expectation = np.sum(weights[:, None] * means, axis=0)
+    if weights.ndim == 1:
+        weights = weights[:, None]
+    expectation = np.sum(weights * means, axis=0)
+
     
     return expectation
     

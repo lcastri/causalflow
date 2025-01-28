@@ -12,7 +12,7 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_wBAC/res.pkl'
-CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH/cie.pkl'
+CIEDIR = '/home/lcastri/git/causalflow/CIE_100_HH_v3/cie.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['noncausal_27122024']
 

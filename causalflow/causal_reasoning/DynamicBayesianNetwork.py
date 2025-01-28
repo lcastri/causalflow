@@ -108,7 +108,6 @@ class DynamicBayesianNetwork():
         plt.close()  # Close the plot to free memory
 
         
-        
     def _get_Y_X(self, data, node, dag):
         Y = Process(data[node].to_numpy(), node, 0, self.data_type[node], self.node_type[node])
         X = {s[0]: Process(data[s[0]].to_numpy(), s[0], s[1], self.data_type[s[0]], self.node_type[s[0]])
@@ -364,7 +363,7 @@ class DynamicBayesianNetwork():
                     gc.collect()
                     
                     
-    def compute_single_do_density(self, dag: DAG, data: Data, outcome: str, treatment: tuple, conditions: list = None):
+    def compute_single_do_density(self, dag: DAG, data: Data, outcome: str, treatment: tuple, conditions: list = None, max_adj_size = 2):
         """
         Compute the p(outcome|do(treatment)) density for all treatment-outcome combinations.
         Adjust for variables that block backdoor paths.
@@ -412,17 +411,27 @@ class DynamicBayesianNetwork():
         if not open_backdoor_paths:
             if conditions is not None:
                 CP.info(f"- No adjustment needed for {treatment} -> {outcome} conditioning on {conditions_str}")
-                CP.info(f"- p({outcome}|do({treatment},{conditions_str})) = p({outcome}|{treatment},{conditions_str})")
+                CP.info(f"- p({outcome}|do({treatment}),{conditions_str}) = p({outcome}|{treatment},{conditions_str})")
+                Y, X, COND, _ = self._get_Y_X_ADJ(data.d, outcome[0], treatment, cond=conditions)
+                pJoint = None
+                # if all([self.node_type[c[0]] is NodeType.Context for c in conditions]):
+                #     pJoint = self.dbn[outcome[0]][]
+                self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, 
+                                                                        adjustments = None, 
+                                                                        conditions = COND,
+                                                                        doType = DOType.pY_given_X_Cond, 
+                                                                        max_components=self.max_components,
+                                                                        pJoint=pJoint)
             else:
                 CP.info(f"- No adjustment needed for {treatment} -> {outcome}")
                 CP.info(f"- p({outcome}|do({treatment})) = p({outcome}|{treatment})")
+                Y, X, _, _ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
+                self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, 
+                                                                        adjustments = None, 
+                                                                        conditions = None,
+                                                                        doType = DOType.pY_given_X, 
+                                                                        max_components=self.max_components)
                 
-            Y, X, COND, ADJ = self._get_Y_X_ADJ(data.d, outcome[0], treatment)
-            self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, 
-                                                                    adjustments = None, 
-                                                                    conditions = None, # FIXME: this should be different
-                                                                    doType = DOType.pY_given_X, 
-                                                                    max_components=self.max_components)
             return
                     
         #! Treatment affects outcome (Open Backdoor Paths)
@@ -430,7 +439,8 @@ class DynamicBayesianNetwork():
             pY = None
             pY_X = None
             
-            adjustment_sets = dag.find_all_d_separators(treatment, outcome, open_backdoor_paths, conditions)    
+            adjustment_sets = dag.find_all_d_separators(treatment, outcome, open_backdoor_paths, conditions, max_adj_size = max_adj_size)
+            adjustment_sets = [{('OBS', -1)}]
             if conditions is not None:
                 CP.info(f"- Adjustment needed for {treatment} -> {outcome} conditioning on {conditions_str}")
             else:
