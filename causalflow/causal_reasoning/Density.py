@@ -28,7 +28,7 @@ class Density():
         self.y = y
         self.parents = parents
         self.max_components = max_components
-        self.DO = {}
+        # self.DO = {}
 
         if self.parents is not None:
             self.DO = {treatment: {ADJ: None, 

@@ -216,6 +216,39 @@ class CausalInferenceEngine():
         return res[self.DAG['complete'].max_lag:, :]
     
     
+    def whatIfDo(self, outcome: str, 
+                       treatment: str, lag: int, treatment_values: np.array, 
+                       conditions: Dict[tuple, np.array] = None,
+                       adjustment: list = None):
+        
+        # Check if treatment and conditions values have the same length
+        if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
+            raise ValueError("conditions items must have the same length of the treatment values")
+        
+        intT = len(treatment_values)
+        maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
+        
+        # Initialize result
+        res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
+               (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
+        for c in conditions.keys():
+            res[c] = np.full((intT + maxLag, 1), np.nan)
+            
+        # Fill result with prior knowledge
+        res[(treatment, lag)][:intT] = treatment_values
+        for c in conditions.keys():
+            res[c][:intT] = conditions[c]
+        
+        # Predict outcome
+        for t in range(maxLag, intT + maxLag):            
+            # pID, pContext, pSegment, occ = self._findDoSource(outcome, system_p, context_p)
+            sID = ('obs', 0) 
+            res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][frozenset(adjustment) if adjustment is not None else frozenset()].predict(res[(treatment, lag)][t-abs(lag)], 
+                                                                                                               {c: res[c][t-abs(c[1])] for c in conditions.keys()})
+            # res[(outcome, 0)][t] = np.ceil(res[(outcome, 0)][t])
+            if conditions is not None and any(c[0] == outcome for c in conditions.keys()):
+                res[(outcome, [c[1] for c in conditions if c[0] == outcome][0])][t] = res[(outcome, 0)][t]
+        return res[(outcome, 0)][maxLag:intT+maxLag]
     # def whatIfDo(self, outcome: str, 
     #                    treatment: str, lag: int, treatment_values: np.array, 
     #                    conditions: Dict[tuple, np.array] = None,
@@ -246,40 +279,7 @@ class CausalInferenceEngine():
     #         res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][frozenset(adjustment)].predict(res[(treatment, lag)][t-abs(lag)], 
     #                                                                                                            {c: res[c][t-abs(c[1])] for c in conditions.keys()})
     #         res[(outcome, 0)][t] = np.round(res[(outcome, 0)][t], 1)
-    #         if conditions is not None and any(c[0] == outcome for c in conditions.keys()):
-    #             res[(outcome, [c[1] for c in conditions if c[0] == outcome][0])][t] = res[(outcome, 0)][t]
     #     return res[(outcome, 0)][maxLag:intT+maxLag]
-    def whatIfDo(self, outcome: str, 
-                       treatment: str, lag: int, treatment_values: np.array, 
-                       conditions: Dict[tuple, np.array] = None,
-                       adjustment: list = None):
-        
-        # Check if treatment and conditions values have the same length
-        if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
-            raise ValueError("conditions items must have the same length of the treatment values")
-        
-        intT = len(treatment_values)
-        maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
-        
-        # Initialize result
-        res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
-               (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
-        for c in conditions.keys():
-            res[c] = np.full((intT + maxLag, 1), np.nan)
-            
-        # Fill result with prior knowledge
-        res[(treatment, lag)][:intT] = treatment_values
-        for c in conditions.keys():
-            res[c][:intT] = conditions[c]
-        
-        # Predict outcome
-        for t in range(maxLag, intT + maxLag):            
-            # pID, pContext, pSegment, occ = self._findDoSource(outcome, system_p, context_p)
-            sID = ('obs', 0) 
-            res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][frozenset(adjustment)].predict(res[(treatment, lag)][t-abs(lag)], 
-                                                                                                               {c: res[c][t-abs(c[1])] for c in conditions.keys()})
-            res[(outcome, 0)][t] = np.round(res[(outcome, 0)][t], 1)
-        return res[(outcome, 0)][maxLag:intT+maxLag]
     
     
     def _DAG2NX(self, dag: DAG) -> nx.DiGraph:

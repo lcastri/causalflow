@@ -75,10 +75,13 @@ class DODensity():
         ALL = {}
         ALL[self.outcome.pvarname] = self.outcome
         ALL[self.treatment.pvarname] = self.treatment
-        for pname, cond in self.conditions.items():
-            ALL[pname] = cond
-        for pname, adj in self.adjustments.items():
-            ALL[pname] = adj
+        
+        if self.conditions is not None:
+            for pname, cond in self.conditions.items():
+                ALL[pname] = cond
+        if self.adjustments is not None:
+            for pname, adj in self.adjustments.items():
+                ALL[pname] = adj
         maxLag = DensityUtils.get_max_lag(ALL)
         
         # Outcome
@@ -88,12 +91,14 @@ class DODensity():
         self.treatment.align(maxLag)
         
         # Conditions
-        for p in self.conditions.values():
-            p.align(maxLag)
+        if self.conditions is not None:
+            for p in self.conditions.values():
+                p.align(maxLag)
             
         # Adjustments
-        for p in self.adjustments.values():
-            p.align(maxLag)
+        if self.adjustments is not None:
+            for p in self.adjustments.values():
+                p.align(maxLag)
             
             
     def compute_pY(self):
@@ -157,10 +162,10 @@ class DODensity():
         if Adj:
             for pname, adj in self.adjustments.items():
                 ALL[pname] = adj
-        CP.info(f"    - Joint density p({'Y' if Y else ''},{'X' if X else ''},{'Cond' if Cond else ''},{'Adj' if Adj else ''})", noConsole=True)
+        CP.info(f"    - Joint density p({'Y' if Y else ''}{',' if X or Cond or Adj else ''}{'X' if X else ''}{',' if Cond or Adj else ''}{'Cond' if Cond else ''}{',' if Adj else ''}{'Adj' if Adj else ''})", noConsole=True)
         all_data = np.column_stack([p.aligndata for p in ALL.values()])
         return DensityUtils.fit_gmm(self.max_components, 
-                                    f"p({'Y' if Y else ''},{'X' if X else ''},{'Cond' if Cond else ''},{'Adj' if Adj else ''})", 
+                                    f"p({'Y' if Y else ''}{',' if X or Cond or Adj else ''}{'X' if X else ''}{',' if Cond or Adj else ''}{'Cond' if Cond else ''}{',' if Adj else ''}{'Adj' if Adj else ''})", 
                                     all_data)
 
 
@@ -210,6 +215,15 @@ class DODensity():
         elif self.doType is DOType.pY_given_X:
             parent_values = np.array(x).reshape(-1, 1)
             conditional_params = DensityUtils.compute_conditional(self.pY_X, parent_values)
+            
+        elif self.doType is DOType.pY_given_X_Cond:
+            weighted_means = []
+            weighted_weights = []
+            
+            parent_values = np.concatenate(([x], [conditions[pname] for pname in self.conditions]))
+                    
+            # Compute p(Y | X=x, Conditions=conditions) dynamically
+            conditional_params = DensityUtils.compute_conditional(self.pJoint, parent_values)
             
         elif self.doType in [DOType.pY_given_X_Adj, DOType.pY_given_X_Cond_Adj]:
             weighted_means = []

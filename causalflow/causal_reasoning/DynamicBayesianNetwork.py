@@ -37,9 +37,12 @@ class DynamicBayesianNetwork():
         self.data_type = data_type
         self.node_type = node_type
         self.max_components = max_components
+        
         self.dbn = {node: None for node in dag.g}
-        self.DO = {node: None for node in dag.g}
         self.data = {node: None for node in dag.g}
+
+        all_nodes = [(t, -l) for t in dag.get_Adj().keys() for l in range(0, dag.max_lag + 1)]
+        self.DO = {outcome[0]: {treatment: {} for treatment in all_nodes if treatment != outcome} for outcome in all_nodes if outcome[1] == 0}
         
         self.compute_density(dag, data, recycle)
         # self.compute_do_density(dag, data, recycle)
@@ -267,8 +270,8 @@ class DynamicBayesianNetwork():
                             if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
                             CP.info(f"    ### No context-specific segments found")
                             continue
-                        self.dbn[node][context] = {idx: None for idx, _ in enumerate(segments)}
-                        self.data[node][context] = {idx: None for idx, _ in enumerate(segments)}
+                        self.dbn[node][context] = None
+                        self.data[node][context] = None
                         
                         # Full DBN using all the segments concatenated
                         full_data = pd.concat([segment for segment in segments])
@@ -277,8 +280,8 @@ class DynamicBayesianNetwork():
                         CP.info(f"\n    ### Target variable: {node}{parents_str}")
                         if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
                         CP.info(f"    ### Full - {len(full_data)} samples")
-                        self.dbn[node][context]['full'] = Density(Y, X if X else None, max_components=self.max_components)
-                        self.data[node][context]['full'] = Data(full_data)
+                        self.dbn[node][context] = Density(Y, X if X else None, max_components=self.max_components)
+                        self.data[node][context] = Data(full_data)
                         
                         
     def compute_do_density(self, dag: DAG, data: Data, recycle = None):
@@ -377,9 +380,6 @@ class DynamicBayesianNetwork():
             conditions = [conditions] if not isinstance(conditions, list) else conditions
             conditions_str = ','.join([str(c) for c in conditions])
                               
-        all_nodes = [(t, -l) for t in dag.get_Adj().keys() for l in range(0, dag.max_lag + 1)]
-        self.DO = {outcome[0]: {treatment: {} for treatment in all_nodes if treatment != outcome} for outcome in all_nodes if outcome[1] == 0}
-            
         #! No self-loops
         if treatment == outcome:
             CP.info(f"- {treatment} is the same as {outcome}")
@@ -413,15 +413,18 @@ class DynamicBayesianNetwork():
                 CP.info(f"- No adjustment needed for {treatment} -> {outcome} conditioning on {conditions_str}")
                 CP.info(f"- p({outcome}|do({treatment}),{conditions_str}) = p({outcome}|{treatment},{conditions_str})")
                 Y, X, COND, _ = self._get_Y_X_ADJ(data.d, outcome[0], treatment, cond=conditions)
-                pJoint = None
+                # pJoint = None
+                
+                # Extract context from X and COND
+                context = [t[0] for t in COND if self.node_type[t[0]] is NodeType.Context] 
+                if self.node_type[treatment[0]] is NodeType.Context: context += [treatment[0]]
                 # if all([self.node_type[c[0]] is NodeType.Context for c in conditions]):
                 #     pJoint = self.dbn[outcome[0]][]
                 self.DO[outcome[0]][treatment][frozenset()] = DODensity(Y, X, 
                                                                         adjustments = None, 
                                                                         conditions = COND,
                                                                         doType = DOType.pY_given_X_Cond, 
-                                                                        max_components=self.max_components,
-                                                                        pJoint=pJoint)
+                                                                        max_components=self.max_components)
             else:
                 CP.info(f"- No adjustment needed for {treatment} -> {outcome}")
                 CP.info(f"- p({outcome}|do({treatment})) = p({outcome}|{treatment})")
@@ -440,7 +443,7 @@ class DynamicBayesianNetwork():
             pY_X = None
             
             adjustment_sets = dag.find_all_d_separators(treatment, outcome, open_backdoor_paths, conditions, max_adj_size = max_adj_size)
-            adjustment_sets = [{('OBS', -1)}]
+            adjustment_sets = [{('OBS', -1)}] # FIXME: remove me this is a hack
             if conditions is not None:
                 CP.info(f"- Adjustment needed for {treatment} -> {outcome} conditioning on {conditions_str}")
             else:

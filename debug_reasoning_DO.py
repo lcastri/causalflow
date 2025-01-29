@@ -78,19 +78,24 @@ treatment_len = 120
 t = 100
 
 # Causal Inference
-# res = cie.whatIfDo(outcome = NODES.ELT.value, 
-#                    treatment = NODES.RV.value, lag = -1, treatment_values = np.round(0.5*np.ones(shape = (treatment_len, 1)), 1),
-#                    conditions = {(NODES.CS.value, -1): np.zeros(shape = (treatment_len, 1)).astype(int),
-#                                  (NODES.ELT.value, -1): DATA_DICT[0].d['ELT'][t:t+treatment_len].to_numpy().astype(int).reshape(-1, 1)},
-#                    adjustment = [(NODES.OBS.value, -1)])
-res = cie.whatIfDo(outcome = NODES.ELT.value, 
+resELT = cie.whatIfDo(outcome = NODES.ELT.value, 
                    treatment = NODES.RV.value, lag = -1, treatment_values = 0.5*np.ones(shape = (treatment_len, 1)),
                    conditions = {(NODES.CS.value, -1): np.zeros(shape = (treatment_len, 1)).astype(int),
-                                 (NODES.ELT.value, -1): DATA_DICT[0].d['ELT'][t-1:t-1+treatment_len].to_numpy().reshape(-1, 1)},
+                                 (NODES.ELT.value, -1): DATA_DICT[0].d['ELT'][t:t+treatment_len].to_numpy().reshape(-1, 1)},
                    adjustment = [(NODES.OBS.value, -1)])
+resPD = cie.whatIfDo(outcome = NODES.PD.value, 
+                    treatment = NODES.TOD.value, lag = 0, treatment_values = 0*np.ones(shape = (treatment_len, 1)),
+                    conditions = {(NODES.PD.value, -1): DATA_DICT[0].d['PD'][t:t+treatment_len].to_numpy().reshape(-1, 1)},
+                    adjustment = None)
+# res = cie.whatIfDo(outcome = NODES.ELT.value, 
+#                    treatment = NODES.RV.value, lag = -1, treatment_values = 0.5*np.ones(shape = (treatment_len, 1)),
+#                    conditions = {(NODES.CS.value, -1): np.zeros(shape = (treatment_len, 1)).astype(int),
+#                                  (NODES.ELT.value, -1): np.round(DATA_DICT[0].d['ELT'][t-1:t-1+treatment_len].to_numpy().reshape(-1, 1), 1)},
+#                    adjustment = [(NODES.OBS.value, -1)])
 # res = np.round(res)
-# ground_truth = DATA_DICT[0].d['ELT'][t+1:t+1+treatment_len].to_numpy().astype(int).reshape(-1, 1)
-ground_truth = np.round(DATA_DICT[0].d['ELT'][t:t+treatment_len].to_numpy().reshape(-1, 1), 1)
+gtELT = DATA_DICT[0].d['ELT'][t+1:t+1+treatment_len].to_numpy().reshape(-1, 1)
+gtPD = np.mean(DATA_DICT[0].d['PD'][t+1:t+1+treatment_len].to_numpy().reshape(-1, 1))*np.ones(shape = (treatment_len, 1))
+# ground_truth = np.round(DATA_DICT[0].d['ELT'][t:t+treatment_len].to_numpy().reshape(-1, 1), 1)
 
 # # Bayesian Inference
 # bn = get_DBN(cie.DAG["complete"].get_Adj(), cie.DAG["complete"].max_lag)
@@ -139,11 +144,20 @@ ground_truth = np.round(DATA_DICT[0].d['ELT'][t:t+treatment_len].to_numpy().resh
 # bayesian_result = np.array(bayesian_result).reshape(-1, 1)
 
 
-plt.plot(ground_truth, label='ELT - Ground Truth', color='red')
-plt.plot(res, label=r"E[ELT] - $p(\mathrm{ELT}_{t} | \mathrm{Do}(R_{V_{t-1}}), \mathrm{C_{S_{t-1}}}, \mathrm{ELT}_{t-1})$", color='blue', linestyle='--')
+plt.plot(gtELT, label='ELT - Ground Truth', color='red')
+plt.plot(resELT, label=r"E[ELT] - $p(\mathrm{ELT}_{t} | \mathrm{Do}(R_{V_{t-1}}), \mathrm{C_{S_{t-1}}}, \mathrm{ELT}_{t-1})$", color='blue', linestyle='--')
 # plt.plot(bayesian_result, label=r"E[ELT] - $p(\mathrm{ELT}_{t} | \mathrm{R_{V_{t-1}}}, \mathrm{C_{S_{t-1}}}, \mathrm{ELT}_{t-1})$", color='green', linestyle='--')
 plt.xlabel('Time')
 plt.ylabel('Values')
-plt.title('Comparison of Result against Ground Truth')
+plt.title('Comparison of GT - DO - Bayes')
+plt.legend()
+plt.show()
+
+plt.plot(gtPD, label='PD - Ground Truth', color='red')
+plt.plot(resPD, label=r"E[PD] - $p(\mathrm{PD}_{t} | \mathrm{Do}(TOD_{t}), \mathrm{PD_{t-1}})$", color='blue', linestyle='--')
+# plt.plot(bayesian_result, label=r"E[PD] - $p(\mathrm{PD}_{t} | \mathrm{Do}(TOD_{t}), \mathrm{PD_{t-1}})$", color='green', linestyle='--')
+plt.xlabel('Time')
+plt.ylabel('Values')
+plt.title('Comparison of GT - DO - Bayes')
 plt.legend()
 plt.show()
