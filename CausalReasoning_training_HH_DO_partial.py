@@ -12,7 +12,7 @@ import time
 
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['noncausal-03012025']
-cie = CIE.load('CIE_100_HH_v4_round1/cie.pkl')
+cie = CIE.load('CIE_100_HH_v4/cie.pkl')
 
 start_time = time.time()
 
@@ -22,16 +22,24 @@ dfs = []
 
 for obs_id in cie.DBNs.keys():
         print(f"Computing density for obs_id: {obs_id}")
-        cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
+        # cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
+        #                                            cie.Ds[obs_id]["complete"], 
+        #                                            'ELT', ('R_V', -1), 
+        #                                            conditions = [('C_S', -1), ('ELT', -1)],
+        #                                            max_adj_size = 1)
+        cie.DBNs[obs_id].compute_single_bayes_density(cie.DAG['complete'], 
                                                    cie.Ds[obs_id]["complete"], 
                                                    'ELT', ('R_V', -1), 
-                                                   conditions = [('C_S', -1), ('ELT', -1)],
-                                                   max_adj_size = 1)
+                                                   conditions = [('C_S', -1), ('ELT', -1)])
         # cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
         #                                            cie.Ds[obs_id]["complete"], 
         #                                            'PD', ('TOD', 0), 
         #                                            conditions = [('PD', -1)],
         #                                            max_adj_size = 1)
+        cie.DBNs[obs_id].compute_single_bayes_density(cie.DAG['complete'], 
+                                                   cie.Ds[obs_id]["complete"], 
+                                                   'PD', ('TOD', 0), 
+                                                   conditions = [('PD', -1)])
         cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 
 end_time = time.time()

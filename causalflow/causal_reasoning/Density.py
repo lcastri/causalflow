@@ -17,7 +17,8 @@ class Density():
     def __init__(self, 
                  y: Process, 
                  parents: Dict[str, Process] = None,
-                 max_components = 50):
+                 max_components = 50,
+                 pY = None, pJoint = None):
         """
         Class constructor.
 
@@ -28,24 +29,17 @@ class Density():
         self.y = y
         self.parents = parents
         self.max_components = max_components
-        # self.DO = {}
 
-        if self.parents is not None:
-            self.DO = {treatment: {ADJ: None, 
-                                P_Y_GIVEN_DOX_ADJ: None, 
-                                P_Y_GIVEN_DOX: None} for treatment in self.parents.keys()}
-        
         # If precomputed densities are provided, set them directly
-        self.PriorDensity = None
-        self.JointDensity = None
-        # self.ParentJointDensity = None
+        self.pY = None
+        self.pJoint = None
         
         # Check if any density is None and run _preprocess() if needed
         self._preprocess()
             
         # Only compute densities if they were not provided
-        self.PriorDensity = self.compute_prior()
-        self.JointDensity = self.compute_joint()
+        self.pY = self.compute_pY() if pY is None else pY
+        self.pJoint = self.compute_joint() if pJoint is None else pJoint
             
         
     def _preprocess(self):
@@ -60,7 +54,7 @@ class Density():
                 p.align(maxLag)
 
 
-    def compute_prior(self):
+    def compute_pY(self):
         """
         Compute the prior density p(y) using GMM.
 
@@ -84,7 +78,7 @@ class Density():
             data = np.column_stack([p.aligndata for p in processes])
             return DensityUtils.fit_gmm(self.max_components, 'Joint', data)
         else:
-            return self.PriorDensity
+            return self.pY
 
 
    
@@ -99,11 +93,12 @@ class Density():
             float: Expected value of y.
         """
         if self.parents is None:
-            conditional_params = self.PriorDensity
+            conditional_params = self.pY
         else:
             # Extract parent samples and match with given parent values
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
-            conditional_params = DensityUtils.compute_conditional(self.JointDensity, parent_values)
+            pJoint = self.pJoint if hasattr(self, 'pJoint') else self.JointDensity
+            conditional_params = DensityUtils.compute_conditional(pJoint, parent_values)
             
         # dens = Density.get_density(self.y.aligndata, conditional_params)
         # dens = dens / np.sum(dens)
