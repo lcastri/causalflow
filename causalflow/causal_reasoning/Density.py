@@ -1,15 +1,11 @@
 import numpy as np
 import warnings
-# from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from causalflow.basics.constants import *
 import causalflow.causal_reasoning.Utils as DensityUtils
 from typing import Dict
-# from sklearn.mixture import GaussianMixture
-# from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
-# from scipy.stats import multivariate_normal
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
       
 
@@ -39,11 +35,15 @@ class Density():
             
         # Only compute densities if they were not provided
         self.pY = self.compute_pY() if pY is None else pY
-        self.pJoint = self.compute_joint() if pJoint is None else pJoint
+        self.pJoint = self.compute_pY_X() if pJoint is None else pJoint
             
         
     def _preprocess(self):
-        maxLag = DensityUtils.get_max_lag(self.parents)
+        ALL = {}
+        ALL.update({self.y.varname: self.y})
+        if self.parents is not None:
+            ALL.update(self.parents)
+        maxLag = DensityUtils.get_max_lag(ALL)
         
         # target
         self.y.align(maxLag)
@@ -61,22 +61,25 @@ class Density():
         Returns:
             dict: GMM parameters for the prior density.
         """
-        CP.info("    - Prior density", noConsole=True)
-        return DensityUtils.fit_gmm(self.max_components, 'Prior', self.y.aligndata)
+        logstr = f"p({self.y.varname}_t)"
+        CP.info(f"    - {logstr}]", noConsole=True)
+        return DensityUtils.fit_gmm(self.max_components, logstr, self.y.aligndata)
 
 
-    def compute_joint(self):
+    def compute_pY_X(self):
         """
         Compute the joint density p(y, parents) using GMM.
 
         Returns:
             dict: GMM parameters for the joint density.
         """
-        CP.info("    - Joint density", noConsole=True)
+        parent_str = ','.join([f'{p.varname}_t{-abs(p.lag) if p.lag != 0 else ""}' for p in self.parents.values()]) if self.parents is not None else ''
+        logstr = f"p({self.y.varname}_t{',' if self.parents is not None else ''}{parent_str})"
+        CP.info(f"    - {logstr}", noConsole=True)
         if self.parents:
             processes = [self.y] + list(self.parents.values())
             data = np.column_stack([p.aligndata for p in processes])
-            return DensityUtils.fit_gmm(self.max_components, 'Joint', data)
+            return DensityUtils.fit_gmm(self.max_components, logstr, data)
         else:
             return self.pY
 
@@ -97,14 +100,9 @@ class Density():
         else:
             # Extract parent samples and match with given parent values
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
-            pJoint = self.pJoint if hasattr(self, 'pJoint') else self.JointDensity
-            conditional_params = DensityUtils.compute_conditional(pJoint, parent_values)
-            
-        # dens = Density.get_density(self.y.aligndata, conditional_params)
-        # dens = dens / np.sum(dens)
+            conditional_params = DensityUtils.compute_conditional(self.pJoint, parent_values)
 
         # Find the most likely value (mode)
         expected_value = DensityUtils.expectation_from_params(conditional_params['means'], conditional_params['weights'])
 
-        # return dens, expected_value
         return expected_value

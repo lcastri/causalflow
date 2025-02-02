@@ -961,7 +961,10 @@ class DAG():
     
     
     
-    
+    @staticmethod
+    def get_node(node):
+        name, lag = node
+        return f"{name}_t{'_'+str(abs(lag)) if abs(lag) > 0 else ''}"
     
     @staticmethod
     def get_DBN(link_assumptions, tau_max) -> BayesianNetwork:
@@ -979,7 +982,7 @@ class DAG():
             BayesianNetwork: DAG represented by a Baysian Network.
         """
         DBN = BayesianNetwork()
-        DBN.add_nodes_from([(t, -l) for t in link_assumptions.keys() for l in range(0, tau_max + 1)])
+        DBN.add_nodes_from([DAG.get_node((t, -l)) for t in link_assumptions.keys() for l in range(0, tau_max + 1)])
 
         # Edges
         edges = []
@@ -989,11 +992,11 @@ class DAG():
                 elif len(source) == 2: s, l = source
                 elif len(source) == 3: s, l, _ = source
                 else: raise ValueError("Source not well defined")
-                edges.append(((s, l), (t, 0)))
+                edges.append((DAG.get_node((s, l)), DAG.get_node((t, 0))))
                 # Add edges across time slices from -1 to -tau_max
                 for lag in range(1, tau_max + 1):
                     if l - lag >= -tau_max:
-                        edges.append(((s, l - lag), (t, -lag)))
+                        edges.append((DAG.get_node((s, l - lag)), DAG.get_node((t, -lag))))
         DBN.add_edges_from(edges)
         return DBN
 

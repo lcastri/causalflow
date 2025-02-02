@@ -116,7 +116,7 @@ def fit_gmm(max_components, caller, data, standardize = True):
     aic = []
     bic = []
 
-    for n in tqdm(components, desc=f"[INFO]:     - {caller} density"):
+    for n in tqdm(components, desc=f"[INFO]:     - {caller}"):
         gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
         gmm.fit(data)
         aic.append(gmm.aic(data))
@@ -158,8 +158,14 @@ def get_density(params, x):
         
     Returns:
         ndarray: The computed density at the point(s) x.
-    """
-    density = np.zeros(x.shape[0])
+    """   
+    total_weight = np.sum(params["weights"])  # Total weight sum (should be 1 in a proper GMM)
+    
+    # If the weights do not sum to 1, normalize them
+    if total_weight != 1:
+        params["weights"] = np.array(params["weights"]) / total_weight
+    
+    density = 0
     for k in range(len(params["weights"])):
         mvn = multivariate_normal(mean=params["means"][k].flatten(), cov=params["covariances"][k].flatten())
         density += params["weights"][k] * mvn.pdf(x)

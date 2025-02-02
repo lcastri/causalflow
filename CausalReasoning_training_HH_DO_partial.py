@@ -12,7 +12,7 @@ import time
 
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['noncausal-03012025']
-cie = CIE.load('CIE_100_HH_v4/cie.pkl')
+cie = CIE.load('CIE_100_HH_v5/cie.pkl')
 
 start_time = time.time()
 

@@ -1,3 +1,4 @@
+import itertools
 import os
 import pickle
 from typing import Dict
@@ -7,8 +8,8 @@ from causalflow.CPrinter import CP
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Density import Density
 from causalflow.causal_reasoning.DODensity import DODensity
-from causalflow.causal_reasoning.Utils import *
-from causalflow.causal_reasoning.DynamicBayesianNetwork import DynamicBayesianNetwork
+import causalflow.causal_reasoning.Utils as DensityUtils
+from causalflow.causal_reasoning.DynamicBayesianNetwork_2 import DynamicBayesianNetwork
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.CPrinter import CPLevel, CP
@@ -45,20 +46,55 @@ class CausalInferenceEngine():
         for k, v in node_type.items(): CP.info(f"##    {k} : {v.name}")
         CP.info("##")
         
-        self.Q = {}
         self.data_type = data_type
         self.node_type = node_type
         self.max_components = max_components
         self.DAG = {'complete': dag, 'system': self.remove_context(dag)}
         self.model_path = model_path
         
-        self.contexts = []
         self.obs_id = -1
-        self.int_id = -1
         
-        self.Ds = {}
         self.DBNs = {}
         
+    def save(self, respath):
+        """
+        Save a CausalInferenceEngine object from a pickle file.
+
+        Args:
+            respath (str): pickle save path.
+        """
+        pkl = dict()
+        pkl['DAG'] = self.DAG
+        pkl['DBNs'] = self.DBNs
+        pkl['data_type'] = self.data_type 
+        pkl['node_type'] = self.node_type 
+        pkl['max_components'] = self.max_components
+        pkl['model_path'] = self.model_path
+        pkl['verbosity'] = CP.verbosity
+        pkl['obs_id'] = self.obs_id
+
+        with open(respath, 'wb') as resfile:
+            pickle.dump(pkl, resfile)    
+    
+    @classmethod
+    def load(cls, pklpath):
+        """
+        Load a CausalInferenceEngine object from a pickle file.
+
+        Args:
+            pklpath (str): pickle filepath.
+
+        Returns:
+            CausalInferenceEngine: loaded CausalInferenceEngine object.
+        """
+        with open(pklpath, 'rb') as f:
+            pkl = pickle.load(f)
+            # cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], 50, pkl['model_path'], pkl['verbosity'])
+            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['max_components'], pkl['model_path'], pkl['verbosity'])
+            cie.obs_id = pkl['obs_id']
+            cie.DBNs = pkl['DBNs']
+            return cie
+           
         
     def remove_context(self, dag: DAG):
         tmp = copy.deepcopy(dag)
@@ -94,71 +130,171 @@ class CausalInferenceEngine():
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
         
         recycle = {}
-        for existing_id, d in self.Ds.items():
-            full_d = d["complete"]
-            for node in full_d.features:
+        for existing_id, dbn in self.DBNs.items():
+            for node in dbn.data.features:
                 if node in recycle: continue
-                if np.array_equal(full_d.d[node].values, data.d[node].values):
+                if np.array_equal(dbn.data.d[node].values, data.d[node].values):
                     CP.info(f"Recycling node: {node} from DBN ID {str(existing_id)}")
-                    recycle[node] = {
-                        'dbn': self.DBNs[existing_id].dbn[node],
-                        'data': self.DBNs[existing_id].data[node],
-                        'do': self.DBNs[existing_id].DO[node]
-                    }
+                    recycle[node] = self.DBNs[existing_id].dbn[node],
                     continue
-        if not recycle: recycle = None
     
-        self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type, recycle, max_components = self.max_components)
-        self.Ds[id] = {"complete": data, "specific": self.DBNs[id].data}
+        self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], 
+                                               data, 
+                                               self.data_type, self.node_type, 
+                                               recycle if recycle else None, 
+                                               max_components = self.max_components)
         return id
-           
     
-    def save(self, respath):
-        """
-        Save a CausalInferenceEngine object from a pickle file.
-
-        Args:
-            respath (str): pickle save path.
-        """
-        pkl = dict()
-        pkl['DAG'] = self.DAG
-        pkl['Ds'] = self.Ds
-        pkl['DBNs'] = self.DBNs
-        pkl['data_type'] = self.data_type 
-        pkl['node_type'] = self.node_type 
-        pkl['max_components'] = self.max_components
-        pkl['model_path'] = self.model_path
-        pkl['verbosity'] = CP.verbosity
-        pkl['contexts'] = self.contexts
-        pkl['obs_id'] = self.obs_id
-        pkl['int_id'] = self.int_id
-
-        with open(respath, 'wb') as resfile:
-            pickle.dump(pkl, resfile)    
     
-    @classmethod
-    def load(cls, pklpath):
-        """
-        Load a CausalInferenceEngine object from a pickle file.
-
-        Args:
-            pklpath (str): pickle filepath.
-
-        Returns:
-            CausalInferenceEngine: loaded CausalInferenceEngine object.
-        """
-        with open(pklpath, 'rb') as f:
-            pkl = pickle.load(f)
-            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], 50, pkl['model_path'], pkl['verbosity'])
-            # cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['max_components'], pkl['model_path'], pkl['verbosity'])
-            cie.contexts = pkl['contexts']
-            cie.obs_id = pkl['obs_id']
-            cie.int_id = pkl['int_id']
-            cie.Ds = pkl['Ds']
-            cie.DBNs = pkl['DBNs']
-            return cie
-           
     
+    def Query(self, outcome: str, treatment: Dict[tuple, np.array], evidence : Dict[tuple, np.array] = None, wp: int = 0):
+        import pyAgrum as gum
+        bn_pgmpy = DAG.get_DBN(self.DBNs[('obs', wp)].dag.get_Adj(), self.DBNs[('obs', wp)].dag.max_lag)
+
+        nodes = [(f, -abs(l)) for f in self.DAG['complete'].features for l in range(self.DAG['complete'].max_lag + 1)]
+        outcome = (outcome, 0)
+        
+        treatment_f = list(treatment.keys())[0][0]
+        treatment_values = treatment[list(treatment.keys())[0]]
+        treatment_lag = list(treatment.keys())[0][1]
+         
+        # Get all possible values for non-evidence variables
+        value_ranges = {var: self.DBNs[('obs', wp)].data.d[var[0]].unique() for var in nodes}
+        
+        # Step 1: Create Bayesian Network
+        bn = gum.BayesNet('MyBN')
+
+        # Add Nodes
+        for n in nodes:
+            bn.add(gum.LabelizedVariable(str(n), str(n), len(value_ranges[n])))
+
+        # Step 2: Add Edges based on the Graph
+        for edge in list(bn_pgmpy.edges):
+            bn.addArc(str(edge[0]), str(edge[1]))
+        
+
+        # Step 3: Compute P(ELT' | RV, CS, ELT)
+        ie = gum.LazyPropagation(bn)
+        all_evidence = {}
+        all_evidence.update({str((treatment_f, treatment_lag)): treatment_values[0]})
+        for e in evidence:
+            all_evidence.update({str(e): evidence[e][0]})
+        ie.setEvidence(all_evidence)  # Example: setting observed values
+        ie.makeInference()
+
+        # Query P(ELT' | RV, CS, ELT)
+        print(ie.posterior("ELT'"))
+
+    
+    
+    # def Query(self, outcome: str, treatment: Dict[tuple, np.array], evidence : Dict[tuple, np.array] = None, wp: int = 0):
+    #     bn = DAG.get_DBN(self.DBNs[('obs', wp)].dag.get_Adj(), self.DBNs[('obs', wp)].dag.max_lag)
+
+    #     nodes = [(f, -abs(l)) for f in self.DAG['complete'].features if f != 'WP' for l in range(self.DAG['complete'].max_lag + 1)]
+    #     outcome = (outcome, 0)
+    #     dconnected_nodes = [n for n in nodes if bn.is_dconnected(n, outcome, list(treatment.keys()) + list(evidence.keys()))]
+        
+    #     treatment_f = list(treatment.keys())[0][0]
+    #     treatment_values = treatment[list(treatment.keys())[0]]
+    #     treatment_lag = list(treatment.keys())[0][1]
+    #     evidence_fs = list(evidence.keys())
+    #     nonevidence_fs = [n for n in nodes if n != (treatment_f, treatment_lag) and n not in evidence_fs and n != outcome]
+        
+    #     intT = len(treatment_values)
+    #     maxLag = max(abs(treatment_lag), max([abs(c[1]) for c in evidence.keys()]))        
+    #     res = {(treatment_f, treatment_lag): np.full((intT + maxLag, 1), np.nan),
+    #            outcome: np.full((intT + maxLag, 1), np.nan)}
+    #     for c in evidence.keys(): res[c] = np.full((intT + maxLag, 1), np.nan)
+            
+    #     res[(treatment_f, treatment_lag)][maxLag-abs(treatment_lag): len(res[c])-abs(treatment_lag)] = treatment_values
+    #     for c in evidence.keys():
+    #         res[c][maxLag-abs(c[1]): len(res[c])-abs(c[1])] = evidence[c]   
+                 
+    #     # Get all possible values for non-evidence variables
+    #     value_ranges = {var: self.DBNs[('obs', wp)].data.d[var[0]].unique() for var in nonevidence_fs}
+        
+    #     def _get_density(node, p):
+    #         f, lag = node
+    #         if node in nonevidence_fs:
+    #             # Marginalize the GMM parameters over all values
+    #             return np.sum([DensityUtils.get_density(p, tmp_value.reshape(-1, 1)) for tmp_value in value_ranges[node]])
+    #         # f observed => P(f=f)
+    #         elif node in evidence_fs or node == (treatment_f, treatment_lag):
+    #             value = res[(f, -abs(lag))][t-abs(lag)]
+    #             # value = [evidence[e] for e in evidence if e[0] == f][0][t-abs(lag)]
+    #             return DensityUtils.get_density(p, np.array(value).reshape(-1, 1))
+    #         # f outcome
+    #         elif node == outcome:
+    #             return p
+        
+    #     for t in range(maxLag, intT + maxLag):
+            
+    #         if self.DBNs[('obs', wp)].DBN[outcome].parents is None:
+    #             cond_params = self.DBNs[('obs', wp)].DBN[outcome].pY
+    #         else:
+    #             # p(outcome, treatment, evidence)
+    #             cond_params = {'means': [], 'covariances': [], 'weights': []}
+    #             accumulate_weight = 1.0
+
+    #             # Chain rule for computing p(outcome, treatment, evidence)
+    #             for node in nodes:
+    #                 f, lag = node
+    #                 if self.DBNs[('obs', wp)].DBN[node].parents is not None:
+    #                     parents = [(name, -abs(process.lag)) for name, process in self.DBNs[('obs', wp)].DBN[node].parents.items() if name != 'WP']
+    #                     p = self.DBNs[('obs', wp)].DBN[node].pJoint
+    #                     parent_values = {}
+    #                     for parent in parents:
+    #                         parent_name, parent_lag = parent
+    #                         if parent in evidence_fs or parent == (treatment_f, treatment_lag):
+    #                             parent_values[parent] = res[parent][t-abs(parent_lag)]
+    #                         else:
+    #                             parent_values[parent] = value_ranges[parent]
+                                
+    #                     parent_values_combos = list(itertools.product(*parent_values.values()))
+    #                     dens_accum = 0
+    #                     for parent_values_combo in parent_values_combos:
+    #                         pconditional = DensityUtils.compute_conditional(p, np.array(parent_values_combo).reshape(-1, 1))
+    #                         dens = _get_density(node, pconditional)
+    #                         if isinstance(dens, dict): 
+    #                             cond_params = dens
+    #                         elif isinstance(dens, float): 
+    #                             dens_accum += dens
+    #                     if isinstance(dens, dict): 
+    #                         cond_params = dens_accum
+    #                     elif isinstance(dens, float): 
+    #                         accumulate_weight *= dens_accum
+
+    #                 else:
+    #                     # Use prior P(f) if no parents
+    #                     p = self.DBNs[('obs', wp)].DBN[node].pY
+    #                     dens = _get_density(node, p)
+    #                     if isinstance(dens, dict): 
+    #                         cond_params = dens
+    #                     elif isinstance(dens, float): 
+    #                         accumulate_weight *= dens
+                            
+    #         # Accumulate weighted means and weights
+    #         weighted_means = []
+    #         weighted_weights = []
+    #         for k in range(len(cond_params["weights"])):
+    #             weighted_means.append(cond_params["means"][k])
+    #             weighted_weights.append(cond_params["weights"][k] * accumulate_weight)
+
+    #         # Construct conditional_params from the accumulated means and weights
+    #         total_weight = sum(weighted_weights)
+    #         if total_weight == 0:
+    #             raise ValueError("Total weight is zero. Check adjustment sets or inputs.")
+
+    #         cond_params = {
+    #             "means": np.array(weighted_means),
+    #             "weights": np.array(weighted_weights) / total_weight,
+    #         }
+            
+    #         expected_value = DensityUtils.expectation_from_params(cond_params['means'], cond_params['weights'])
+    #         res[(outcome, 0)][t] = expected_value
+    #     return res[(outcome, 0)][maxLag:intT+maxLag]
+
+       
     def whatIf(self, 
                treatment: str, 
                values: np.array, 
@@ -486,7 +622,7 @@ class CausalInferenceEngine():
         pContext = None
         pSegment = None
         
-        context = format_combo(tuple(context.items()))
+        context = DensityUtils.format_combo(tuple(context.items()))
         
         def _find_occurrences(d, parents, atol):
             mask = np.ones(len(d.d), dtype=bool)
@@ -564,7 +700,7 @@ class CausalInferenceEngine():
         pContext = None
         pSegment = None
         
-        context = format_combo(tuple(context.items()))
+        context = DensityUtils.format_combo(tuple(context.items()))
         
         def _find_occurrences(d, parents, atol):
             mask = np.ones(len(d.d), dtype=bool)
