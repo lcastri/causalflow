@@ -1,15 +1,11 @@
 import numpy as np
 import warnings
-# from tqdm import tqdm
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from causalflow.basics.constants import *
 import causalflow.causal_reasoning.Utils as DensityUtils
 from typing import Dict
-# from sklearn.mixture import GaussianMixture
-# from sklearn.preprocessing import StandardScaler
 from sklearn.exceptions import ConvergenceWarning
-# from scipy.stats import multivariate_normal
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
       
 
@@ -39,7 +35,7 @@ class Density():
             
         # Only compute densities if they were not provided
         self.pY = self.compute_pY() if pY is None else pY
-        self.pJoint = self.compute_joint() if pJoint is None else pJoint
+        self.pJoint = self.compute_pYX() if pJoint is None else pJoint
             
         
     def _preprocess(self):
@@ -65,7 +61,7 @@ class Density():
         return DensityUtils.fit_gmm(self.max_components, 'Prior', self.y.aligndata)
 
 
-    def compute_joint(self):
+    def compute_pYX(self):
         """
         Compute the joint density p(y, parents) using GMM.
 
@@ -99,12 +95,8 @@ class Density():
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
             pJoint = self.pJoint if hasattr(self, 'pJoint') else self.JointDensity
             conditional_params = DensityUtils.compute_conditional(pJoint, parent_values)
-            
-        # dens = Density.get_density(self.y.aligndata, conditional_params)
-        # dens = dens / np.sum(dens)
 
         # Find the most likely value (mode)
         expected_value = DensityUtils.expectation_from_params(conditional_params['means'], conditional_params['weights'])
 
-        # return dens, expected_value
         return expected_value
