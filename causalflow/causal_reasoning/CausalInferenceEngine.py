@@ -7,14 +7,14 @@ from causalflow.CPrinter import CP
 from causalflow.basics.constants import *
 from causalflow.causal_reasoning.Density import Density
 from causalflow.causal_reasoning.DODensity import DODensity
-from causalflow.causal_reasoning.Utils import *
+from causalflow.causal_reasoning.DensityUtils import *
 from causalflow.causal_reasoning.DynamicBayesianNetwork import DynamicBayesianNetwork
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.CPrinter import CPLevel, CP
 import copy
 import networkx as nx
-import causalflow.causal_reasoning.Utils as DensityUtils
+import causalflow.causal_reasoning.DensityUtils as DensityUtils
 
 
 class CausalInferenceEngine():
@@ -52,11 +52,8 @@ class CausalInferenceEngine():
         self.DAG = {'complete': dag, 'system': self.remove_context(dag)}
         self.model_path = model_path
         
-        self.contexts = []
         self.obs_id = -1
-        self.int_id = -1
         
-        self.Ds = {}
         self.DBNs = {}
         
         
@@ -94,22 +91,16 @@ class CausalInferenceEngine():
         CP.info(f"\n## Building DBN for DAG ID {str(id)}")
         
         recycle = {}
-        for existing_id, d in self.Ds.items():
-            full_d = d["complete"]
-            for node in full_d.features:
+        for existing_id, dbn in self.DBNs.items():
+            for node in dbn.data.features:
                 if node in recycle: continue
-                if np.array_equal(full_d.d[node].values, data.d[node].values):
+                if np.array_equal(dbn.data.d[node].values, data.d[node].values):
                     CP.info(f"Recycling node: {node} from DBN ID {str(existing_id)}")
-                    recycle[node] = {
-                        'dbn': self.DBNs[existing_id].dbn[node],
-                        'data': self.DBNs[existing_id].data[node],
-                        'do': self.DBNs[existing_id].DO[node]
-                    }
+                    recycle[node] = self.DBNs[existing_id].dbn[node]
                     continue
         if not recycle: recycle = None
     
         self.DBNs[id] = DynamicBayesianNetwork(self.DAG['complete'], data, self.data_type, self.node_type, recycle, max_components = self.max_components)
-        self.Ds[id] = {"complete": data, "specific": self.DBNs[id].data}
         return id
            
     
@@ -122,16 +113,13 @@ class CausalInferenceEngine():
         """
         pkl = dict()
         pkl['DAG'] = self.DAG
-        pkl['Ds'] = self.Ds
         pkl['DBNs'] = self.DBNs
         pkl['data_type'] = self.data_type 
         pkl['node_type'] = self.node_type 
         pkl['max_components'] = self.max_components
         pkl['model_path'] = self.model_path
         pkl['verbosity'] = CP.verbosity
-        pkl['contexts'] = self.contexts
         pkl['obs_id'] = self.obs_id
-        pkl['int_id'] = self.int_id
 
         with open(respath, 'wb') as resfile:
             pickle.dump(pkl, resfile)    
@@ -149,12 +137,8 @@ class CausalInferenceEngine():
         """
         with open(pklpath, 'rb') as f:
             pkl = pickle.load(f)
-            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], 50, pkl['model_path'], pkl['verbosity'])
-            # cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['max_components'], pkl['model_path'], pkl['verbosity'])
-            cie.contexts = pkl['contexts']
+            cie = cls(pkl['DAG']['complete'], pkl['data_type'], pkl['node_type'], pkl['max_components'], pkl['model_path'], pkl['verbosity'])
             cie.obs_id = pkl['obs_id']
-            cie.int_id = pkl['int_id']
-            cie.Ds = pkl['Ds']
             cie.DBNs = pkl['DBNs']
             return cie
            
@@ -217,221 +201,7 @@ class CausalInferenceEngine():
                         res[t, f] = self.DBNs[pID].dbn[self.DAG['system'].features[var]][pContext]['full'].predict(system_p) if pID is not None else np.nan
                         
         return res[self.DAG['complete'].max_lag:, :]
-    
-    
-    def whatIfDo(self, outcome: str, 
-                       treatment: str, lag: int, treatment_values: np.array, 
-                       conditions: Dict[tuple, np.array] = None,
-                       adjustment: list = None):
-        
-        # Check if treatment and conditions values have the same length
-        if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
-            raise ValueError("conditions items must have the same length of the treatment values")
-        
-        intT = len(treatment_values)
-        maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
-        
-        # Initialize result
-        res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
-               (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
-        for c in conditions.keys():
-            res[c] = np.full((intT + maxLag, 1), np.nan)
-            
-        # Fill result with prior knowledge
-        res[(treatment, lag)][maxLag-abs(lag): len(res[c])-abs(lag)] = treatment_values
-        for c in conditions.keys():
-            res[c][maxLag-abs(c[1]): len(res[c])-abs(c[1])] = conditions[c]
-        
-        # Predict outcome
-        for t in range(maxLag, intT + maxLag):            
-            sID = ('obs', 0) 
-            adj_set = frozenset(adjustment) if adjustment is not None else frozenset()
-            # if True:
-            if isinstance(self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set], DODensity):
-                res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set].predict(res[(treatment, lag)][t-abs(lag)], 
-                                                                                                    {c: res[c][t-abs(c[1])] for c in conditions.keys()})               
-            else:
-                system_p = {}
-                context_p = {}
-
-                for s in self.DAG['system'].g[outcome].sources:
-                    system_p[s[0]] = res[(s[0], -abs(s[1]))][t -abs(s[1])]
-                anchestors = self.DAG['complete'].get_anchestors(outcome)
-                context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
-                for a in context_anchestors:
-                    context_p[a] = int(res[(a, 0)][t])
-                pID, pContext, pSegment, occ = self._findSource_intersection(outcome, system_p, context_p)
-                res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set][pContext]['full'].predict(system_p)
-            # res[(outcome, 0)][t] = np.ceil(res[(outcome, 0)][t])
-            if conditions is not None and any(c[0] == outcome for c in conditions.keys()):
-                res[(outcome, [c[1] for c in conditions if c[0] == outcome][0])][t] = res[(outcome, 0)][t]
-        return res[(outcome, 0)][maxLag:intT+maxLag]
-    
-    def whatIfDo_bayes(self, outcome: str, 
-                       treatment: str, lag: int, treatment_values: np.array, 
-                       conditions: Dict[tuple, np.array] = None):
-        
-        # Check if treatment and conditions values have the same length
-        if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
-            raise ValueError("conditions items must have the same length of the treatment values")
-        
-        intT = len(treatment_values)
-        maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
-        
-        # Initialize result
-        res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
-               (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
-        for c in conditions.keys():
-            res[c] = np.full((intT + maxLag, 1), np.nan)
-            
-        # Fill result with prior knowledge
-        res[(treatment, lag)][maxLag-abs(lag): len(res[c])-abs(lag)] = treatment_values
-        for c in conditions.keys():
-            res[c][maxLag-abs(c[1]): len(res[c])-abs(c[1])] = conditions[c]
-        
-        # Predict outcome
-        for t in range(maxLag, intT + maxLag):            
-            sID = ('obs', 0) 
-            # if True:
-            # res[(outcome, 0)][t] = self.DBNs[sID].Bayes[outcome][(treatment, lag)].predict(res[(treatment, lag)][t-abs(lag)], 
-            #                                                                             {c: res[c][t-abs(c[1])] for c in conditions.keys()})  
-            if isinstance(self.DBNs[sID].DO[outcome][(treatment, lag)], DODensity):
-                res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)].predict(res[(treatment, lag)][t-abs(lag)], 
-                                                                                                    {c: res[c][t-abs(c[1])] for c in conditions.keys()})               
-            else:
-                system_p = {}
-                context_p = {}
-
-                for s in self.DAG['system'].g[outcome].sources:
-                    system_p[s[0]] = res[(s[0], -abs(s[1]))][t -abs(s[1])]
-                anchestors = self.DAG['complete'].get_anchestors(outcome)
-                context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
-                for a in context_anchestors:
-                    context_p[a] = int(res[(a, 0)][t])
-                pID, pContext, pSegment, occ = self._findSource_intersection(outcome, system_p, context_p)
-                res[(outcome, 0)][t] = self.DBNs[sID].Bayes[outcome][(treatment, lag)][pContext]['full'].predict(system_p)             
-
-            
-            # res[(outcome, 0)][t] = np.ceil(res[(outcome, 0)][t])
-            if conditions is not None and any(c[0] == outcome for c in conditions.keys()):
-                res[(outcome, [c[1] for c in conditions if c[0] == outcome][0])][t] = res[(outcome, 0)][t]
-        return res[(outcome, 0)][maxLag:intT+maxLag]
-    
-    
-    def whatIfDo_context(self, outcome: str, 
-                       treatment: str, lag: int, treatment_values: np.array, 
-                       conditions: Dict[tuple, np.array] = None,
-                       adjustment: list = None):
-        
-        # Check if treatment and conditions values have the same length
-        if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
-            raise ValueError("conditions items must have the same length of the treatment values")
-        
-        intT = len(treatment_values)
-        maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
-        
-        # Initialize result
-        res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
-               (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
-        for c in conditions.keys():
-            res[c] = np.full((intT + maxLag, 1), np.nan)
-            
-        # Fill result with prior knowledge
-        res[(treatment, lag)][maxLag-abs(lag): len(res[c])-abs(lag)] = treatment_values
-        for c in conditions.keys():
-            res[c][maxLag-abs(c[1]): len(res[c])-abs(c[1])] = conditions[c]
-        
-        # Predict outcome
-        for t in range(maxLag, intT + maxLag):            
-            sID = ('obs', 0) 
-            adj_set = frozenset(adjustment) if adjustment is not None else frozenset()
-            if True:
-            # if isinstance(self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set], DODensity):
-            #     res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set].predict(res[(treatment, lag)][t-abs(lag)], 
-            #                                                                                         {c: res[c][t-abs(c[1])] for c in conditions.keys()})
-                
-                pJoint_OBS0 = self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set][(('C_S', 0), ('OBS', 0), ('WP', 1))].pJoint
-                pJoint_OBS1 = self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set][(('C_S', 0), ('OBS', 1), ('WP', 1))].pJoint
-                
-                parent_values = np.concatenate((res[(treatment, lag)][t-abs(lag)], res[('ELT', -1)][t-1]))
-                pJoint_OBS0 = DensityUtils.compute_conditional(pJoint_OBS0, parent_values)
-                pJoint_OBS1 = DensityUtils.compute_conditional(pJoint_OBS1, parent_values)
-
-
-                # Extract GMM parameters
-                means_OBS0, covs_OBS0, weights_OBS0 = np.array(pJoint_OBS0["means"]), np.array(pJoint_OBS0["covariances"]), np.array(pJoint_OBS0["weights"])
-                means_OBS1, covs_OBS1, weights_OBS1 = np.array(pJoint_OBS1["means"]), np.array(pJoint_OBS1["covariances"]), np.array(pJoint_OBS1["weights"])
-
-                # Compute p(OBS)
-                pOBS_0 = DensityUtils.get_density(self.DBNs[sID].dbn['OBS'].PriorDensity, np.array([0]).reshape(-1, 1))  
-                pOBS_1 = DensityUtils.get_density(self.DBNs[sID].dbn['OBS'].PriorDensity, np.array([1]).reshape(-1, 1))  
-
-                # Weight the components
-                weighted_weights_OBS0 = weights_OBS0 * pOBS_0
-                weighted_weights_OBS1 = weights_OBS1 * pOBS_1
-
-                # Concatenate GMM components
-                total_means = np.vstack([means_OBS0, means_OBS1])
-                total_covs = np.vstack([covs_OBS0, covs_OBS1])
-                total_weights = np.concatenate([weighted_weights_OBS0, weighted_weights_OBS1])
-
-                # Normalize the weights
-                total_weights /= np.sum(total_weights)
-                
-                p_Y_given_doX = {'means': total_means,
-                                 'covariances': total_covs,
-                                 'weights': total_weights}
-                res[(outcome, 0)][t] = DensityUtils.expectation_from_params(p_Y_given_doX['means'], p_Y_given_doX['weights'])
-
-                
-            else:
-                system_p = {}
-                context_p = {}
-
-                for s in self.DAG['system'].g[outcome].sources:
-                    system_p[s[0]] = res[(s[0], -abs(s[1]))][t -abs(s[1])]
-                anchestors = self.DAG['complete'].get_anchestors(outcome)
-                context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
-                for a in context_anchestors:
-                    context_p[a] = int(res[(a, 0)][t])
-                pID, pContext, pSegment, occ = self._findSource_intersection(outcome, system_p, context_p)
-                res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][adj_set][pContext]['full'].predict(system_p)
-            # res[(outcome, 0)][t] = np.ceil(res[(outcome, 0)][t])
-            if conditions is not None and any(c[0] == outcome for c in conditions.keys()):
-                res[(outcome, [c[1] for c in conditions if c[0] == outcome][0])][t] = res[(outcome, 0)][t]
-        return res[(outcome, 0)][maxLag:intT+maxLag]
-    # def whatIfDo(self, outcome: str, 
-    #                    treatment: str, lag: int, treatment_values: np.array, 
-    #                    conditions: Dict[tuple, np.array] = None,
-    #                    adjustment: list = None):
-        
-    #     # Check if treatment and conditions values have the same length
-    #     if conditions is not None and len(conditions[list(conditions.keys())[0]]) != len(treatment_values):
-    #         raise ValueError("conditions items must have the same length of the treatment values")
-        
-    #     intT = len(treatment_values)
-    #     maxLag = max(abs(lag), max([abs(c[1]) for c in conditions.keys()]))
-        
-    #     # Initialize result
-    #     res = {(treatment, lag): np.full((intT + maxLag, 1), np.nan),
-    #            (outcome, 0): np.full((intT + maxLag, 1), np.nan)}
-    #     for c in conditions.keys():
-    #         res[c] = np.full((intT + maxLag, 1), np.nan)
-            
-    #     # Fill result with prior knowledge
-    #     res[(treatment, lag)][:intT] = treatment_values
-    #     for c in conditions.keys():
-    #         res[c][:intT] = conditions[c]
-        
-    #     # Predict outcome
-    #     for t in range(maxLag, intT + maxLag):            
-    #         # pID, pContext, pSegment, occ = self._findDoSource(outcome, system_p, context_p)
-    #         sID = ('obs', 0) 
-    #         res[(outcome, 0)][t] = self.DBNs[sID].DO[outcome][(treatment, lag)][frozenset(adjustment)].predict(res[(treatment, lag)][t-abs(lag)], 
-    #                                                                                                            {c: res[c][t-abs(c[1])] for c in conditions.keys()})
-    #         res[(outcome, 0)][t] = np.round(res[(outcome, 0)][t], 1)
-    #     return res[(outcome, 0)][maxLag:intT+maxLag]
-    
+       
     
     def _DAG2NX(self, dag: DAG) -> nx.DiGraph:
         G = nx.DiGraph()
@@ -466,86 +236,7 @@ class CausalInferenceEngine():
                     
         G.add_edges_from(edges)
                 
-        return G
-      
-    
-    def _findDoSource(self, target, parents, context=None):
-        """
-        Find the source population with the maximum number of occurrences 
-        of a given intersection of parent values.
-
-        Args:
-            parents_values (dict): Dictionary where keys are parent variable names 
-                                and values are the desired values for those parents.
-
-        Returns:
-            tuple: number of occurrences, source dataset
-        """
-        max_occurrences = 0
-        pID = None
-        pContext = None
-        pSegment = None
-        
-        context = format_combo(tuple(context.items()))
-        
-        def _find_occurrences(d, parents, atol):
-            mask = np.ones(len(d.d), dtype=bool)
-            for parent, value in parents.items():
-                # mask &= np.isclose(d.d[parent], value, atol = atol)
-                mask &= np.isclose(d.d[parent], value, atol = atol)
-                # mask &= np.isclose(d.d[parent], value, atol = atol, rtol=atol*10)
-                    
-            # Count the number of occurrences where all parents match
-            occurrences = np.sum(mask)
-            return occurrences
-        
-        def compute_adaptive_atol(parent_values, data, scale_factor=0.05):
-            """
-            Compute an adaptive atol based on the variability of the parent values.
-
-            Args:
-                parent_values (dict): Dictionary of parent variable values.
-                data (pd.DataFrame): Data containing the parent variables.
-                scale_factor (float): Factor to scale the variability.
-
-            Returns:
-                float: Adaptive atol.
-            """
-            variances = []
-            for parent in parent_values.keys():
-                parent_data = data[parent].values
-                variances.append(np.std(parent_data))  # Or use np.ptp(parent_data), np.median_absolute_deviation, etc.
-
-            return scale_factor * np.mean(variances)  # Average variability scaled by the factor      
-                        
-        # return pID, pContext, pSegment, max_occurrences
-        for id in self.Ds:
-            if context not in self.Ds[id]['specific'][target]: continue
-            d = self.Ds[id]['specific'][target][context]['full']
-            adaptive_atol = compute_adaptive_atol(parents, d.d)
-            occurrences = _find_occurrences(d, parents, adaptive_atol)
-                
-            # Update the best source if this dataset has more occurrences
-            if occurrences > max_occurrences:
-                max_occurrences = occurrences
-                pID = id
-                pContext = context
-                pSegment = 'full'
-                        
-        if pID is None:
-            max_samples = 0
-            for id in self.Ds:
-                if context not in self.Ds[id]['specific'][target]: continue
-                d = self.Ds[id]['specific'][target][context]['full']
-                num_samples = d.T
-                if num_samples > max_samples:
-                    max_samples = num_samples
-                    pID = id
-                    pContext = context
-                    pSegment = 'full'
-                        
-        return pID, pContext, pSegment, max_occurrences
-    
+        return G 
     
     def _findSource_intersection(self, target, parents, context=None):
         """
@@ -623,23 +314,3 @@ class CausalInferenceEngine():
                     pSegment = 'full'
                         
         return pID, pContext, pSegment, max_occurrences
-        
-            
-    def plot_pE(self, y, parent, density, expectation = None, show = False, path = None):
-        plt.figure(figsize=(10, 6))
-        plt.plot(y.aligndata, density, label='Density')
-        if expectation is not None: plt.axvline(expectation, color='r', linestyle='--', label=f'Expectation = {expectation:.2f}')
-        plt.xlabel(f'${y.varname}$')
-        pa = []
-        for p in parent:
-            if p == self.Q[TREATMENT]: 
-                pa.append(f'do(${self.Q[TREATMENT]}$ = {self.Q[VALUE]:.2f})')
-            else:
-                pa.append(f'${p}$')
-        pa = ','.join(pa)
-        plt.ylabel(f'p(${y.varname}$|{pa})')
-        plt.legend()
-        if show: 
-            plt.show()
-        else:
-            plt.savefig(os.path.join(path, f'p({self.Q[OUTCOME]}|do({self.Q[TREATMENT]} = {str(self.Q[VALUE])})).png'))

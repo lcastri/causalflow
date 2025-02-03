@@ -22,10 +22,10 @@ with open(DAGDIR, 'rb') as f:
 DATA_TYPE = {
     NODES.TOD.value: DataType.Discrete,
     NODES.RV.value: DataType.Continuous,
-    NODES.RB.value: DataType.Discrete,
+    NODES.RB.value: DataType.Continuous,
     NODES.CS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
-    NODES.ELT.value: DataType.Discrete,
+    NODES.ELT.value: DataType.Continuous,
     NODES.OBS.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
@@ -79,16 +79,7 @@ for bagname in BAGNAME:
         DATA_DICT[idx].d[NODES.WP.value] = DATA_DICT[idx].d[NODES.WP.value].astype(int)
         del concatenated_df
         obs_id = cie.addObsData(DATA_DICT[idx])
-        # cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
-        #                                            cie.Ds[obs_id]["complete"], 
-        #                                            'ELT', ('R_V', -1), 
-        #                                            conditions = [('C_S', -1), ('ELT', -1)],
-        #                                            max_adj_size = 1)
-        # cie.DBNs[obs_id].compute_single_do_density(cie.DAG['complete'], 
-        #                                            cie.Ds[obs_id]["complete"], 
-        #                                            'PD', ('TOD', 0), 
-        #                                            conditions = [('PD', -1)],
-        #                                            max_adj_size = 1)
+        break
  
 cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 

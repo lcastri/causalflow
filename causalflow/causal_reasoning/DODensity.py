@@ -3,9 +3,9 @@ import warnings
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from causalflow.basics.constants import *
-from causalflow.causal_reasoning.Utils import *
+from causalflow.causal_reasoning.DensityUtils import *
 from typing import Dict
-import causalflow.causal_reasoning.Utils as DensityUtils
+import causalflow.causal_reasoning.DensityUtils as DensityUtils
 from scipy.integrate import dblquad
 from itertools import product
 from sklearn.exceptions import ConvergenceWarning

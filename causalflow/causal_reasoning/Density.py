@@ -3,7 +3,7 @@ import warnings
 from causalflow.CPrinter import CP
 from causalflow.causal_reasoning.Process import Process
 from causalflow.basics.constants import *
-import causalflow.causal_reasoning.Utils as DensityUtils
+import causalflow.causal_reasoning.DensityUtils as DensityUtils
 from typing import Dict
 from sklearn.exceptions import ConvergenceWarning
 warnings.filterwarnings('ignore', category=ConvergenceWarning)
@@ -57,8 +57,8 @@ class Density():
         Returns:
             dict: GMM parameters for the prior density.
         """
-        CP.info("    - Prior density", noConsole=True)
-        return DensityUtils.fit_gmm(self.max_components, 'Prior', self.y.aligndata)
+        CP.info("    - p(Y) density", noConsole=True)
+        return DensityUtils.fit_gmm(self.max_components, 'p(Y)', self.y.aligndata)
 
 
     def compute_pYX(self):
@@ -68,11 +68,11 @@ class Density():
         Returns:
             dict: GMM parameters for the joint density.
         """
-        CP.info("    - Joint density", noConsole=True)
+        CP.info("    - p(YX) density", noConsole=True)
         if self.parents:
             processes = [self.y] + list(self.parents.values())
             data = np.column_stack([p.aligndata for p in processes])
-            return DensityUtils.fit_gmm(self.max_components, 'Joint', data)
+            return DensityUtils.fit_gmm(self.max_components, 'p(YX)', data)
         else:
             return self.pY
 

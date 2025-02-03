@@ -4,12 +4,12 @@ import itertools
 import numpy as np
 import pandas as pd
 from causalflow.CPrinter import CP
-from causalflow.causal_reasoning.Utils import *
+from causalflow.causal_reasoning.DensityUtils import *
 from causalflow.graph.DAG import DAG
 from causalflow.preprocessing.data import Data
 from causalflow.causal_reasoning.Density import Density
 from causalflow.causal_reasoning.DODensity import DODensity, DOType
-import causalflow.causal_reasoning.Utils as DensityUtils
+import causalflow.causal_reasoning.DensityUtils as DensityUtils
 from causalflow.causal_reasoning.Process import Process
 from causalflow.basics.constants import *
 from typing import Dict
@@ -35,6 +35,8 @@ class DynamicBayesianNetwork():
             data_type (dict[str:DataType]): data type for each node (continuous|discrete). E.g., {"X_2": DataType.Continuous}.
             node_type (dict[str:NodeType]): node type for each node (system|context). E.g., {"X_2": NodeType.Context}.
         """
+        self.dag = dag
+        self.data = data
         self.data_type = data_type
         self.node_type = node_type
         self.max_components = max_components
@@ -43,8 +45,6 @@ class DynamicBayesianNetwork():
         
         self.compute_density(dag, data, recycle)
         
-        del dag, data, recycle
-        gc.collect()
         
         
     def _get_Y_X(self, data, node, dag):
@@ -174,12 +174,13 @@ class DynamicBayesianNetwork():
     def compute_density(self, dag: DAG, data: Data, recycle = None):
         for node in dag.g:
             if recycle is not None and node in recycle:
-                self.dbn[node] = recycle[node]['dbn']
+                self.dbn[node] = recycle[node]
             else:
                 if self.node_type[node] == NodeType.Context:
                     CP.info(f"\n    ### Target context variable: {node}")
                     Y, _ = self._get_Y_X(data.d, node, dag)
-                    self.dbn[node] = Density(Y, None, max_components=self.max_components)
+                    self.dbn[node] = {() : None}
+                    self.dbn[node][()] = Density(Y, None, max_components=self.max_components)
                 else:
                     anchestors = dag.get_anchestors(node)
                     context_anchestors = [a for a in anchestors if self.node_type[a] == NodeType.Context]
@@ -194,6 +195,7 @@ class DynamicBayesianNetwork():
                             if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
                             CP.info(f"    ### No context-specific segments found")
                             continue
+                        
                         self.dbn[node][context] = None
                         
                         # Full DBN using all the segments concatenated
@@ -203,3 +205,47 @@ class DynamicBayesianNetwork():
                         CP.info(f"\n    ### Target variable: {node}{parents_str}")
                         if context: CP.info(f"    ### Context: {', '.join([f'{c[0]}={c[1]}' for c in context])}")
                         self.dbn[node][context] = Density(Y, X if X else None, max_components=self.max_components)
+                        
+                        
+                        
+                        
+# # Nodes
+# "WP_t"
+# "WP_t_1"
+# "TOD_t"
+# "TOD_t_1"
+# "PD_t"
+# "PD_t_1"
+# "RV_t"
+# "RV_t_1"
+# "RB_t"
+# "RB_t_1"
+# "ELT_t"
+# "ELT_t_1"
+# "OBS_t"
+# "OBS_t_1"
+# "CS_t"
+# "CS_t_1"
+
+# # Edges
+# ("WP_t", "PD_t")
+# ("WP_t_1", "PD_t_1")
+# ("TOD_t", "PD_t")
+# ("TOD_t_1", "PD_t_1")
+# ("PD_t_1", "PD_t")
+# ("ELT_t_1", "ELT_t")
+# ("RB_t", "ELT_t")
+# ("WP_t", "ELT_t")
+# ("OBS_t", "ELT_t")
+# ("RB_t_1", "ELT_t_1")
+# ("OBS_t_1", "ELT_t_1")
+# ("WP_t_1", "ELT_t_1")
+# ("CS_t", "RB_t")
+# ("RB_t_1", "RB_t")
+# ("RV_t_1", "RB_t")
+# ("CS_t_1", "RB_t_1")
+# ("RV_t_1", "RV_t")
+# ("CS_t", "RV_t")
+# ("OBS_t", "RV_t")
+# ("CS_t_1", "RV_t_1")
+# ("OBS_t_1", "RV_t_1")

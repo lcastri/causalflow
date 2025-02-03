@@ -116,32 +116,39 @@ def fit_gmm(max_components, caller, data, standardize = True):
     aic = []
     bic = []
 
-    for n in tqdm(components, desc=f"[INFO]:     - {caller} density"):
-        gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
-        gmm.fit(data)
-        aic.append(gmm.aic(data))
-        bic.append(gmm.bic(data))
+    GMMs = {}
+    for n in tqdm(components, desc=f"[INFO]:     - {caller}"):
+        tmp_gmm = GaussianMixture(n_components=n, covariance_type='full', random_state=42)
+        tmp_gmm.fit(data)
+        GMMs[n] = {
+            "means": tmp_gmm.means_,
+            "covariances": tmp_gmm.covariances_,
+            "weights": tmp_gmm.weights_,
+            }
+        aic.append(tmp_gmm.aic(data))
+        bic.append(tmp_gmm.bic(data))
 
     optimal_n_components = components[np.argmin(aic)]  # Or np.argmin(bic)
     # optimal_n_components = components[np.argmin(bic)]  # Switch to np.argmin(aic) if needed
     # CP.debug(f"          Optimal n.components: {optimal_n_components}")
 
-    gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
-    gmm.fit(data)
+    # gmm = GaussianMixture(n_components=optimal_n_components, covariance_type='full', random_state=42)
+    # gmm.fit(data)
         
     # Extract parameters
-    gmm_params = {
-        "means": gmm.means_,
-        "covariances": gmm.covariances_,
-        "weights": gmm.weights_,
-    }
+    gmm_params = GMMs[optimal_n_components]
+    # gmm_params = {
+    #     "means": gmm.means_,
+    #     "covariances": gmm.covariances_,
+    #     "weights": gmm.weights_,
+    # }
 
     # If standardized, adjust means and covariances back to original scale
     if standardize:
-        gmm_params["means"] = scaler.inverse_transform(gmm.means_)
+        gmm_params["means"] = scaler.inverse_transform(gmm_params["means"])
         gmm_params["covariances"] = [
             scaler.scale_[:, None] * cov * scaler.scale_[None, :]
-            for cov in gmm.covariances_
+            for cov in gmm_params["covariances"]
         ]
 
     # Return adjusted parameters
