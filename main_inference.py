@@ -4,28 +4,45 @@ from causalflow.causal_reasoning.SMCFilter import SMCFilter
 cie = CIE.load('CIE_100_HH_v6/cie.pkl')
 
 # Initialize the SMC filter
-smc = SMCFilter(cie.DBNs[('obs', 0)], num_particles=1000)
+smc = SMCFilter(cie.DBNs[('obs', 0)], num_particles=500)
 
-# # Initialize particles for all relevant nodes
-# for node in cie.DBNs[('obs', 0)].dbn.keys():
-#     smc.initialize_particles(node)
+# Define initial evidence (at t = -1)
+given_values = {
+    ('R_V', -1): 0.5,  
+    ('ELT', -1): 89,  
+}
+given_context = {
+    'C_S': 0,  
+    'TOD': 0,  
+    'WP': 1
+}
 
-# Run inference over 10 time steps
-for t in range(10):
-    given_values = {
-        ('R_V', -1): 0.5,  
-        ('C_S', -1): 0,  
-        ('ELT', -1): 88,  
-        ('TOD', -1): 0,  
-        ('WP', -1): 1
-    }
-    smc.step_ancestor_query("ELT", given_values)
+# Run inference for 10 time steps
+expected_values_over_time = smc.sequential_query("ELT", given_values, given_context, num_steps=10)
 
-# Answer queries
-posterior_gmm = smc.estimate_posterior("ELT_t")
-expected_value = smc.compute_expectation("ELT_t")
-map_estimate = smc.compute_map_estimate("ELT_t")
+# Print expectations
+for t, exp_value in enumerate(expected_values_over_time):
+    print(f"Step {t}: Expected Value of ELT = {exp_value}")
+    
+    
+# Initialize SMC filter
+smc_do = SMCFilter(cie.DBNs[('obs', 0)], num_particles=100)
 
-print("Posterior Distribution (GMM):", posterior_gmm)
-print("Expected Value of ELT_t:", expected_value)
-print("MAP Estimate of ELT_t:", map_estimate)
+# Define initial evidence (at t = -1)
+given_values = {
+    ('R_V', -1): 0.5,  
+    ('ELT', -1): 89,  
+}
+given_context = {
+    'C_S': 0,  
+    'TOD': 0,  
+    'WP': 1
+}
+
+# Run inference for 10 time steps
+expected_values_over_time = smc_do.sequential_query("ELT", given_values, given_context, num_steps=10, 
+                                                    intervention_var=('R_V', -1), adjustment_set=[('OBS', -1)])
+
+# Print expectations
+for t, exp_value in enumerate(expected_values_over_time):
+    print(f"Step {t}: Expected Value of ELT = {exp_value}")

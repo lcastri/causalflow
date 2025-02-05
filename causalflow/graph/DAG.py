@@ -427,7 +427,7 @@ class DAG():
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
         node_color = copy.deepcopy(node_color)
-        node_color = {DAG.prettify(f): node_color.pop(f) for f in list(node_color)}
+        if isinstance(node_color, dict): node_color = {DAG.prettify(f): node_color.pop(f) for f in list(node_color)}
 
         Gcont = nx.DiGraph()
         Glag = nx.DiGraph()
@@ -953,6 +953,46 @@ class DAG():
             for s in self.g[t].sources:
                 scm[t][(s[0], -abs(s[1]))] = self.g[t].sources[s][TYPE] 
         return scm
+    
+    
+    def DAG2NX(self) -> nx.DiGraph:
+        G = nx.DiGraph()
+
+        # 1. Nodes definition
+        for i in range(len(self.features)):
+            for j in range(self.max_lag, -1, -1):
+                G.add_node((i, -j))
+
+        # 2. Edges definition
+        edges = list()
+        for t in self.g:
+            for s in self.g[t].sources:
+                s_index = self.features.index(s[0])
+                t_index = self.features.index(t)
+                
+                if s[1] == 0:
+                    for j in range(self.max_lag, -1, -1):
+                        s_node = (s_index, -j)
+                        t_node = (t_index, -j)
+                        edges.append((s_node, t_node))
+                        
+                else:
+                    s_lag = -s[1]
+                    t_lag = 0
+                    while s_lag >= -self.max_lag:
+                        s_node = (s_index, s_lag)
+                        t_node = (t_index, t_lag)
+                        edges.append((s_node, t_node))
+                        s_lag -= 1
+                        t_lag -= 1
+                    
+        G.add_edges_from(edges)        
+        return G
+    
+    
+    def get_topological_order(self) -> list:
+        return [(self.features[node[0]], node[1]) for node in list(nx.topological_sort(self.DAG2NX()))]
+            
     
     
     

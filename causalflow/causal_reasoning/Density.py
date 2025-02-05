@@ -34,8 +34,8 @@ class Density():
         self._preprocess()
             
         # Only compute densities if they were not provided
-        self.pY = self.compute_pY() if pY is None else pY
-        self.pJoint = self.compute_pYX() if pJoint is None else pJoint
+        self.pY = self.get_pY() if pY is None else pY
+        self.pJoint = self.get_pYX() if pJoint is None else pJoint
             
         
     def _preprocess(self):
@@ -50,7 +50,7 @@ class Density():
                 p.align(maxLag)
 
 
-    def compute_pY(self):
+    def get_pY(self):
         """
         Compute the prior density p(y) using GMM.
 
@@ -61,7 +61,7 @@ class Density():
         return DensityUtils.fit_gmm(self.max_components, 'p(Y)', self.y.aligndata)
 
 
-    def compute_pYX(self):
+    def get_pYX(self):
         """
         Compute the joint density p(y, parents) using GMM.
 
@@ -78,7 +78,7 @@ class Density():
 
 
    
-    def predict(self, given_p: Dict[str, float] = None):
+    def get_pY_gX(self, given_p: Dict[str, float] = None):
         """
         Predict the conditional density p(y | parents) and the expected value of y.
 
@@ -93,10 +93,24 @@ class Density():
         else:
             # Extract parent samples and match with given parent values
             parent_values = np.array([given_p[p] for p in self.parents.keys()]).reshape(-1, 1)
-            pJoint = self.pJoint if hasattr(self, 'pJoint') else self.JointDensity
-            conditional_params = DensityUtils.compute_conditional(pJoint, parent_values)
+            conditional_params = DensityUtils.compute_conditional(self.pJoint, parent_values)
+
+        return conditional_params
+    
+    
+    def predict(self, given_p: Dict[str, float] = None):
+        """
+        Predict the conditional density p(y | parents) and the expected value of y.
+
+        Args:
+            given_p (Dict[str, float], optional): A dictionary of parent variable values (e.g., {"p1": 1.5, "p2": 2.0}).
+
+        Returns:
+            float: Expected value of y.
+        """
+        cond_params = self.get_pY_gX(given_p)
 
         # Find the most likely value (mode)
-        expected_value = DensityUtils.expectation_from_params(conditional_params['means'], conditional_params['weights'])
+        expected_value = DensityUtils.expectation_from_params(cond_params['means'], cond_params['weights'])
 
         return expected_value
