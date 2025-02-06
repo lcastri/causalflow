@@ -12,9 +12,9 @@ from utils import *
 import time
 
 DAGDIR = '/home/lcastri/git/darko-peopleflow/HRISim_docker/HRISim/prediction/hrisim_prediction_manager/DAGs/DARKO_v1/res.pkl'
-CIEDIR = '/home/lcastri/git/darko-peopleflow/HRISim_docker/HRISim/prediction/hrisim_prediction_manager/CIEs/CIE_DARKO_v1/cie.pkl'
+CIEDIR = '/home/lcastri/git/darko-peopleflow/HRISim_docker/HRISim/prediction/hrisim_prediction_manager/CIEs/CIE_DARKO_v2/cie.pkl'
 INDIR = '/home/lcastri/git/darko-peopleflow/utilities_ws/src/bag_postprocess/csv'
-BAGNAME= ['24-01-2025-DARKO']
+BAGNAME= ['06-02-2025-DARKO']
 
 cie = CIE.load(CIEDIR)
 with open(DAGDIR, 'rb') as f:
@@ -26,6 +26,7 @@ starting = None
 wp = WP.WA_4_C
 for bagname in BAGNAME:
     for tod in TOD:
+        if tod in [TOD.OFF, TOD.T0, TOD.T19]: continue
         if tod == TOD.T1:
             starting = pd.read_csv(os.path.join(INDIR, "shrunk", f"{bagname}", tod.value, "static", f"{bagname}_{tod.value}_{wp.value}.csv"))
             starting_len = len(starting)-1

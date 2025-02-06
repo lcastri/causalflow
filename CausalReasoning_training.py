@@ -12,7 +12,7 @@ import time
 
 DAGDIR = '/home/lcastri/git/darko-peopleflow/HRISim_docker/HRISim/prediction/hrisim_prediction_manager/DAGs/DARKO_v1/res.pkl'
 INDIR = '/home/lcastri/git/darko-peopleflow/utilities_ws/src/bag_postprocess/csv'
-BAGNAME= ['24-01-2025-DARKO']
+BAGNAME= ['06-02-2025-DARKO']
 
 USE_SUBSAMPLED = True
 
@@ -40,7 +40,7 @@ NODE_TYPE = {
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_DARKO_v1',
+          model_path = 'CIE_DARKO_v2',
           verbosity = CPLevel.INFO)
 
 start_time = time.time()
@@ -52,6 +52,7 @@ for bagname in BAGNAME:
     for wp in WP:
         if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
         for tod in TOD:
+            if tod in [TOD.OFF, TOD.T0, TOD.T19]: continue
             print(f"Loading : {bagname}-{tod.value}-{wp.value}")
             if USE_SUBSAMPLED:
                 filename = os.path.join(INDIR, "shrunk", f"{bagname}", tod.value, 'static', f"{bagname}_{tod.value}_{wp.value}.csv")
