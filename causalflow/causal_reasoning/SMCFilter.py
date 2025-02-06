@@ -98,11 +98,13 @@ class SMCFilter:
         samples = np.array([np.random.multivariate_normal(means[i], covariances[i]) for i in chosen_components])
         return samples.squeeze()
     
+    
     def sample_from_categorical(self, values ,categorical_params, num_samples):
         """Sample particles for discrete variables from a categorical distribution."""
         weights = categorical_params["weights"]  # Probabilities for each value
         samples = np.random.choice(values, size=num_samples, p=weights)
         return samples
+    
     
     def update_weights(self, target_node, given_values, given_context, adjustment_set=None):
         """
@@ -132,10 +134,23 @@ class SMCFilter:
 
         ADJ_particles = self.particles[-abs(adj[1])][adj[0]][adj_context]
         for j, z_val in enumerate(unique_Z_values):
-            adj_indices = np.where(ADJ_particles == z_val)[0]
+            joint_index = {}
+            # for evidence in given_values:
+            #     evidence_context = self.get_context(evidence, given_context)
+            #     particles = self.particles[evidence[1]][evidence[0]][evidence_context]
+            #     joint_index.update({evidence: np.where(np.abs(particles - given_values[evidence] < 1e-3))[0].tolist()})
+            joint_index.update({adjustment_set[0]: np.where(ADJ_particles == z_val)[0].tolist()})
+            joint_index_set = list(set.intersection(*map(set, joint_index.values())))
             joint_likelihoods_Z = np.ones(self.num_particles)  # Separate likelihood for each Z
+            
+            all_relevant_nodes = set(self.get_intermediate_nodes(target_node, given_values.keys()))
+            for evidence in given_values.keys():
+                for a in self.dag.get_anchestors(evidence[0], include_lag=True):
+                    all_relevant_nodes.add((a[0], -abs(a[1])))
+            all_relevant_nodes = [node for node in all_relevant_nodes if self.node_type[node[0]] != NodeType.Context]
+            all_relevant_nodes = sorted(all_relevant_nodes, key=lambda n: self.dag.get_topological_order().index(n))
 
-            for node in self.get_intermediate_nodes(target_node, given_values.keys()):
+            for node in all_relevant_nodes:
                 node_name, node_lag = node
                     
                 node_context = self.get_context(node, given_context)
@@ -143,22 +158,12 @@ class SMCFilter:
                 X_p = self.distributions[node_lag][node_name][node_context]['p']
 
                 likelihoods_X_t = np.zeros(self.num_particles)
-                for i in range(self.num_particles):
-                    if i not in adj_indices: 
-                        likelihoods_X_t[i] = 0
-                        continue
-                    else:
-                        means = np.array(X_p[i]["means"])
-                        covariances = np.array(X_p[i]["covariances"])
-                        weights_gmm = np.array(X_p[i]["weights"])
-                        num_components = len(weights_gmm)
-
-                        # Compute likelihood for given Z
-                        likelihoods_X_t[i] = np.sum([
-                            weights_gmm[k] * multivariate_normal.pdf(
-                                X_particles[i], mean=means[k], cov=covariances[k]
-                            ) for k in range(num_components)
-                        ])
+                for i in joint_index_set:
+                    # Compute likelihood for given Z
+                    likelihoods_X_t[i] = np.sum([
+                        X_p[i]["weights"][k] * multivariate_normal.pdf(X_particles[i], mean=X_p[i]["means"][k], cov=X_p[i]["covariances"][k]) 
+                        for k in range(len(X_p[i]["weights"]))
+                    ])
 
                 likelihoods_X_t += 1e-300
                 joint_likelihoods_Z *= likelihoods_X_t  # Multiply into likelihood chain
@@ -187,7 +192,12 @@ class SMCFilter:
 
         ### **Step 3: Normalize Weights**
         self.weights *= adjustment_likelihoods * observation_likelihoods
-        self.weights /= np.sum(self.weights)  # Ensure sum to 1
+        # Normalize weights safely
+        total_weight = np.sum(self.weights)
+        if total_weight == 0 or np.isnan(total_weight):  
+            self.weights = np.ones_like(self.weights) / len(self.weights)  # Reset to uniform weights
+        else:
+            self.weights /= total_weight  # Normalize properly
         
     def _observational_update_weights(self, target_node, given_values, given_context):
         """
@@ -201,31 +211,39 @@ class SMCFilter:
             given_values (dict): Dictionary of observed variables and their values.
             given_context (dict): Context information for evidence variables.
         """
+        # joint_index = {}
+        # for evidence in given_values:
+        #     evidence_context = self.get_context(evidence, given_context)
+        #     particles = self.particles[evidence[1]][evidence[0]][evidence_context]
+        #     joint_index.update({evidence: np.where(np.abs(particles - given_values[evidence] < 1e-3))[0].tolist()})
+        # joint_index_set = list(set.intersection(*map(set, joint_index.values())))
+            
         # Initialize joint likelihoods for all particles
         joint_likelihoods = np.ones(self.num_particles)
 
         ### **Step 1: Compute Likelihood P(X_t | Parent(X_t)) for All Intermediate Nodes**
-        intermediate_nodes = self.get_intermediate_nodes(target_node, evidence_nodes=given_values.keys())
-
-        for node in intermediate_nodes:
+        all_relevant_nodes = set(self.get_intermediate_nodes(target_node, given_values.keys()))
+        for evidence in given_values.keys():
+            for a in self.dag.get_anchestors(evidence[0], include_lag=True):
+                all_relevant_nodes.add((a[0], -abs(a[1])))
+        all_relevant_nodes.add((target_node, 0))
+        all_relevant_nodes = [node for node in all_relevant_nodes if self.node_type[node[0]] != NodeType.Context]
+        all_relevant_nodes = sorted(all_relevant_nodes, key=lambda n: self.dag.get_topological_order().index(n))
+        for node in all_relevant_nodes:
             node_name, node_lag = node
             node_context = self.get_context(node, given_context)
 
             # Extract sampled values for this node
             X_particles = self.particles[node_lag][node_name][node_context]
             X_p = self.distributions[node_lag][node_name][node_context]['p']
-            X_parents = self.distributions[node_lag][node_name][node_context]['parents']
 
             # Compute likelihood P(X_t | Parent(X_t)) for each particle
             likelihoods_X_t = np.zeros(self.num_particles)
+            # for i in joint_index_set:
             for i in range(self.num_particles):
-                # Extract GMM parameters
-                means = np.array(X_p[i]["means"])
-                covariances = np.array(X_p[i]["covariances"])
-                weights_gmm = np.array(X_p[i]["weights"])
-                num_components = len(weights_gmm)
                 likelihoods_X_t[i] = np.sum([
-                    weights_gmm[k] * multivariate_normal.pdf(X_particles[i], mean=means[k], cov=covariances[k]) for k in range(num_components)
+                    X_p[i]["weights"][k] * multivariate_normal.pdf(X_particles[i], mean=X_p[i]["means"][k], cov=X_p[i]["covariances"][k]) 
+                    for k in range(len(X_p[i]["weights"]))
                 ])
 
             # Avoid numerical issues
@@ -256,28 +274,64 @@ class SMCFilter:
 
         ### **Step 3: Normalize Weights**
         self.weights *= joint_likelihoods
-        self.weights /= np.sum(self.weights)  # Ensure sum to 1
+        # Normalize weights safely
+        total_weight = np.sum(self.weights)
+        if total_weight == 0 or np.isnan(total_weight):  
+            self.weights = np.ones_like(self.weights) / len(self.weights)  # Reset to uniform weights
+        else:
+            self.weights /= total_weight  # Normalize properly
           
     
+    # def resample(self):
+    #     """
+    #     Resample particles at the most recent time step (t=0) using systematic resampling.
+    #     Ensures particle diversity while avoiding degeneration.
+    #     """
+    #     indices = np.random.choice(self.num_particles, size=self.num_particles, p=self.weights)
+
+    #     # Only resample at t=0
+    #     t = 0  
+    #     for node, contexts in self.particles[t].items():
+    #         for context, particles in contexts.items():
+    #             if particles is not None:
+    #                 self.particles[t][node][context] = particles[indices]
+    #                 self.distributions[t][node][context]['p'] = [self.distributions[t][node][context]['p'][i] for i in indices]
+    #                 if self.distributions[t][node][context]['parents'] is not None:
+    #                     self.distributions[t][node][context]['parents'] = [self.distributions[t][node][context]['parents'][i] for i in indices]
+
+    #     # Reset weights after resampling
+    #     self.init_weights()
     def resample(self):
         """
-        Resample particles at the most recent time step (t=0) using systematic resampling.
-        Ensures particle diversity while avoiding degeneration.
+        Perform Adaptive Stratified Resampling.
+        - Computes the Effective Sample Size (ESS).
+        - Resamples only when necessary.
+        - Uses Stratified Resampling to improve diversity.
         """
-        indices = np.random.choice(self.num_particles, size=self.num_particles, p=self.weights)
+        # Compute Effective Sample Size (ESS)
+        ESS = 1.0 / np.sum(self.weights ** 2)  
+        threshold = self.num_particles / 2  # Resample if ESS falls below half
 
-        # Only resample at t=0
-        t = 0  
-        for node, contexts in self.particles[t].items():
-            for context, particles in contexts.items():
-                if particles is not None:
-                    self.particles[t][node][context] = particles[indices]
-                    self.distributions[t][node][context]['p'] = [self.distributions[t][node][context]['p'][i] for i in indices]
-                    if self.distributions[t][node][context]['parents'] is not None:
-                        self.distributions[t][node][context]['parents'] = [self.distributions[t][node][context]['parents'][i] for i in indices]
+        if ESS < threshold:  # Only resample if necessary
+            # Compute cumulative sum of weights
+            cumulative_sum = np.cumsum(self.weights)
+            cumulative_sum[-1] = 1.0  # Fix rounding errors
 
-        # Reset weights after resampling
-        self.init_weights()
+            # Stratified positions (split weight space evenly)
+            positions = (np.arange(self.num_particles) + np.random.uniform(0, 1, self.num_particles)) / self.num_particles
+            indices = np.searchsorted(cumulative_sum, positions)
+
+            t = 0  # Only resample for the most recent timestep
+            for node, contexts in self.particles[t].items():
+                for context, particles in contexts.items():
+                    if particles is not None:
+                        self.particles[t][node][context] = particles[indices]
+                        self.distributions[t][node][context]['p'] = [self.distributions[t][node][context]['p'][i] for i in indices]
+                        if self.distributions[t][node][context]['parents'] is not None:
+                            self.distributions[t][node][context]['parents'] = [self.distributions[t][node][context]['parents'][i] for i in indices]
+
+            # Reset weights to be uniform after resampling
+            self.init_weights()
 
 
     def estimate_posterior(self, node, given_values):
@@ -381,9 +435,9 @@ class SMCFilter:
                     self.particles[t-1][node][context] = self.particles[t][node][context]
                     self.distributions[t-1][node][context] = self.distributions[t][node][context]
 
-                    # Create an empty placeholder for new time step t=0
-                    self.particles[0][node][context] = None  # Ready for the next query step
-                    self.distributions[0][node][context] = {'p': None, 'parents': None}  # Ready for the next query step
+        # Create an empty placeholder for new time step t=0
+        self.particles[0][node][context] = None  # Ready for the next query step
+        self.distributions[0][node][context] = {'p': None, 'parents': None}  # Ready for the next query step
                     
                     
     def particle_propagation(self, target_node, given_values, given_context, intervention_set = None):
@@ -401,17 +455,11 @@ class SMCFilter:
                 #! THIS IS USEFUl IF THE INTERVENTION IS REALLY PERFORMED
                 # # If variable is intervened upon (do-operation), assign fixed value instead of sampling
                 # if intervention_set is not None and node in intervention_set:
-                #     self.particles[-abs(node[1])][node[0]][node_context] = np.full(self.num_particles, intervention_set[node[0]])
+                #     self.particles[-abs(node[1])][node[0]][node_context] = np.full(self.num_particles, intervention_set[node])
                 #     continue  # Skip sampling
                             
                 # Special case: If the node is a context variable, sample directly (no prediction needed)
                 if self.node_type[node[0]] == NodeType.Context:
-                    # if node[0] in given_context:
-                    #     # Use evidence values directly if given
-                    #     self.particles[-abs(node[1])][node[0]][node_context] = np.full(self.num_particles, given_context[node[0]])
-                    #     self.distributions[-abs(node[1])][node[0]][node_context]['p'] = [self.dbn[node[0]][node_context].pY]*self.num_particles
-                    # else:
-                    # Otherwise, sample from prior pY
                     self.particles[-abs(node[1])][node[0]][node_context] = self.gen_particles(node, 
                                                                                               node_context, 
                                                                                               self.dbn[node[0]][node_context].pY, 
@@ -509,6 +557,7 @@ class SMCFilter:
             given_v = {v: given_values[v][t] for v in given_values}
             # Perform one-step inference
             expected_value = self.query(target_node, given_v, given_context, intervention_set, adjustment_set)
+            # expected_value = self.query(target_node, given_values, given_context, intervention_set, adjustment_set)
             
             # Store expectation
             expectations.append(expected_value)
@@ -517,7 +566,8 @@ class SMCFilter:
             self.shift_particles()
             
             # Prepare new given_values for the next step
-            #! given_values = copy.deepcopy(given_values)
-            #! given_values[(target_node, -1)] = expected_value  # Use expectation as new evidence
+            if (target_node, -1) in given_values and t+1 <= num_steps-1:
+                given_values = copy.deepcopy(given_values)
+                given_values[(target_node, -1)][t+1] = expected_value  # Use expectation as new evidence
             
         return expectations

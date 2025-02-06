@@ -1,99 +1,87 @@
-import numpy as np
 import pymc as pm
-import matplotlib.pyplot as plt
-from scipy.stats import norm
+import numpy as np
+import arviz as az
+import pymc.math as pmm
 
-# Set a fixed seed
-np.random.seed(42)
+# Generate synthetic data (following the DBN structure)
+T = 100  # Number of timesteps
+A = np.random.normal(0, 1, T)
+E = np.random.normal(0, 1, T)
+B = 0.1 * A + 1.5 * np.roll(E, 1) + np.random.normal(0, 0.1, T)
+C = 0.7 * B + np.random.normal(0, 0.1, T)
+D = 0.1 * C + 10.1 * np.roll(E, 1) + np.random.normal(0, 0.1, T)
 
-# Define network parameters
-mean_A = 0
-mean_B_given_A = 1
-mean_C_given_B = 2
-mean_D_given_C_E = 3
-mean_E = 0
-
-sigma_A = 1
-sigma_B_given_A = 1
-sigma_C_given_B = 1
-sigma_D_given_C_E = 1
-sigma_E = 1
-
-cov_BD = 0.5  # Correlation factor
-
-# Analytical Sampling
-def analytical_posterior_D_given_B(b, n_samples=1000):
-    # Sample E first
-    E_samples = np.random.normal(loc=mean_E, scale=sigma_E, size=n_samples)
-    
-    # Sample C given B
-    C_samples = np.random.normal(loc=mean_C_given_B + b, scale=sigma_C_given_B, size=n_samples)
-    
-    # Compute D given C and E
-    D_samples = np.random.normal(loc=mean_D_given_C_E + C_samples + E_samples, 
-                                 scale=sigma_D_given_C_E, size=n_samples)
-    
-    return D_samples
-
-b = 5  # Fixed observed value
-n_samples = 500
-analytical_samples = analytical_posterior_D_given_B(b, n_samples=n_samples)
-
-# PyMC Model
-with pm.Model() as model:
+with pm.Model() as bayesian_model:
     # Priors
-    A = pm.Normal("A", mu=mean_A, sigma=sigma_A)
-    E = pm.Normal("E", mu=mean_E, sigma=sigma_E)
+    sigma_B = pm.Exponential("sigma_B", 1.0)
+    sigma_C = pm.Exponential("sigma_C", 1.0)
+    sigma_D = pm.Exponential("sigma_D", 1.0)
 
-    # Conditional distributions
-    B = pm.Normal("B", mu=mean_B_given_A + A, sigma=sigma_B_given_A, observed=b)
-    C = pm.Normal("C", mu=mean_C_given_B + B, sigma=sigma_C_given_B)
-    D = pm.Normal("D", mu=mean_D_given_C_E + C + E, sigma=sigma_D_given_C_E)
+    # Latent variables
+    A_t = pm.Normal("A", mu=0, sigma=1, shape=T)
+    E_t = pm.Normal("E", mu=0, sigma=1, shape=T)
 
-    # Use Metropolis sampling for efficiency
-    step = pm.Metropolis()
-    trace = pm.sample(n_samples, step=step, tune=300, return_inferencedata=True, progressbar=True, cores=1)
+    # Lagged E
+    E_t_lag = pm.Deterministic("E_lag", pmm.concatenate([[0], E_t[:-1]]))
 
-# Extract PyMC posterior samples
-posterior_samples_pymc = trace.posterior['D'].values.flatten()
+    # System equations
+    B_t = pm.Normal("B", mu=0.1 * A_t + 1.5 * E_t_lag, sigma=sigma_B, shape=T)
+    C_t = pm.Normal("C", mu=0.7 * B_t, sigma=sigma_C, shape=T)
+    D_t = pm.Normal("D", mu=0.1 * C_t + 10.1 * E_t_lag, sigma=sigma_D, shape=T)
 
-# Expected value from PyMC sampling
-expected_D_pymc = np.mean(posterior_samples_pymc)
-print(expected_D_pymc)
-# Plot comparison
-plt.figure(figsize=(12, 6))
-plt.hist(analytical_samples, bins=30, alpha=0.5, label='Analytical Posterior', density=True)
-plt.hist(posterior_samples_pymc, bins=30, alpha=0.5, label='PyMC Posterior', density=True)
-plt.legend()
-plt.title(f'Comparison of Analytical and PyMC Posterior Distributions for D | B = {b}')
-plt.xlabel('D')
-plt.ylabel('Density')
-plt.show()
+    # Observation model (conditioning on observed B)
+    B_obs = pm.Data("B_obs", B)
+    D_obs = pm.Normal("D_obs", mu=0.6 * C_t + 10.1 * E_t_lag, sigma=sigma_D, observed=D)
+
+    # Posterior Sampling
+    trace_bayesian = pm.sample(1000, return_inferencedata=True, cores=2, target_accept=0.9)
+
+# Extract Bayesian Posterior Prediction of D given B
+D_pymc_obs = az.summary(trace_bayesian, var_names=["D"])["mean"].values
 
 
-
-# PyMC Interventional Model
 with pm.Model() as causal_model:
-    # Sample E from its prior P(E)
-    E = pm.Normal("E", mu=mean_E, sigma=sigma_E)
+    # Priors
+    sigma_C = pm.Exponential("sigma_C", 1.0)
+    sigma_D = pm.Exponential("sigma_D", 1.0)
 
-    # Intervene: Set B to a fixed value b (do(B = b))
-    B = b  # Fixed intervention
+    # Latent variable (E)
+    E_t = pm.Normal("E", mu=0, sigma=1, shape=T)
+    E_t_lag = pm.Deterministic("E_lag", pmm.concatenate([[0], E_t[:-1]]))
 
-    # Compute C based on the intervened B
-    C = pm.Normal("C", mu=mean_C_given_B + B, sigma=sigma_C_given_B)
+    # Intervened variable: B is now externally set (not dependent on A or E)
+    B_do = pm.Normal("B_do", mu=0.5, sigma=0.1, shape=T)  # Intervened B = 0.5
 
-    # Compute D based on C and E
-    D = pm.Normal("D", mu=mean_D_given_C_E + C + E, sigma=sigma_D_given_C_E)
+    # Compute effects
+    C_t = pm.Normal("C", mu=0.7 * B_do, sigma=sigma_C, shape=T)
+    D_t = pm.Normal("D", mu=0.6 * C_t + 10.1 * E_t_lag, sigma=sigma_D, shape=T)
+    D_obs = pm.Normal("D_obs", mu=0.6 * C_t + 10.1 * E_t_lag, sigma=sigma_D, observed=D)
 
-    # Sample from the interventional distribution
-    causal_trace = pm.sample(500, return_inferencedata=True, tune=300, progressbar=True, cores=1)
+    # Posterior Sampling
+    trace_causal = pm.sample(1000, return_inferencedata=True, cores=2, target_accept=0.9)
 
-# Extract posterior samples for D under do(B = b)
-posterior_samples_do_B_pymc = causal_trace.posterior['D'].values.flatten()
+# Extract Causal Posterior Prediction of D given do(B)
+D_pymc_do = az.summary(trace_causal, var_names=["D"])["mean"].values
 
-# Compute expected value of D under do(B = b) from PyMC samples
-expected_D_do_B_pymc = np.mean(posterior_samples_do_B_pymc)
 
-# Print results
-print(f"PyMC E[D | do(B = b)]: {expected_D_do_B_pymc}")
+import matplotlib.pyplot as plt
+
+# Compute RMSE
+obs_RMSE = np.sqrt(np.mean((D_pymc_obs - D) ** 2))
+obs_NRMSE = obs_RMSE / np.std(D)
+
+do_RMSE = np.sqrt(np.mean((D_pymc_do - D) ** 2))
+do_NRMSE = do_RMSE / np.std(D)
+
+# Plot
+plt.figure(figsize=(10, 5))
+plt.plot(range(T), D, label="Ground Truth", linestyle="solid", marker="o")
+plt.plot(range(T), D_pymc_obs, label=f"E[D] -- P(D | B), NRMSE={obs_NRMSE:.2f}", linestyle="dashed", marker="x", color="green")
+plt.plot(range(T), D_pymc_do, label=f"E[D] -- P(D | do(B)), NRMSE={do_NRMSE:.2f}", linestyle="dashed", marker="o", color="red")
+
+plt.xlabel("Time Step")
+plt.ylabel("D Value")
+plt.title("PyMC Predictions: Observational vs. Causal")
+plt.legend()
+plt.grid(True)
+plt.show()

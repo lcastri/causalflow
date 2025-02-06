@@ -10,10 +10,7 @@ from causalflow.graph import DAG
 from causalflow.preprocessing.data import Data
 from utils import *
 from pgmpy.models import BayesianNetwork
-from pgmpy.inference import VariableElimination
-from pgmpy.estimators import MaximumLikelihoodEstimator, ExpectationMaximization
 import matplotlib.pyplot as plt
-import json
 
 def get_DBN(link_assumptions, tau_max) -> BayesianNetwork:
     DBN = BayesianNetwork()
