@@ -65,9 +65,20 @@ for f in FEATURES:
     axes[FEATURES.index(f)].plot(observation[:, i], linestyle = '-', color = "black", label = "observation")
     axes[FEATURES.index(f)].plot(ground_truth[:, i], linestyle = '-', color = "tab:orange", label = "ground-truth")
     axes[FEATURES.index(f)].plot(prediction_f[:, i], linestyle = '--', color = "tab:blue", label = "prediction")
+    
+    # Add vertical bands (shade regions)
+    step = 120
+    plotB = True
+    for j in range(0, len(observation[:, i]), step):
+        if plotB:
+            axes[FEATURES.index(f)].axvspan(j, j+step, color='r', alpha=0.3)  # Adjust alpha for transparency
+            plotB = False
+        else:
+            axes[FEATURES.index(f)].axvspan(j, j+step, color='b', alpha=0.3)  # Adjust alpha for transparency
+            plotB = True
+    
     axes[FEATURES.index(f)].set_ylabel(DATA_DICT_TRAIN.features[i])
     axes[FEATURES.index(f)].grid(True)
-    title = {}
     RMSE = np.sqrt(np.mean((res[:, i] - DATA_DICT_TEST.d.values[:, i]) ** 2))
     NRMSE = RMSE/np.std(DATA_DICT_TEST.d.values[:, i]) if np.std(DATA_DICT_TEST.d.values[:, i]) != 0 else 0
     axes[FEATURES.index(f)].set_title(f"NRMSE: {NRMSE:.4f}")
