@@ -4,10 +4,10 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 import pandas as pd
-from causalflow.causal_reasoning.CausalInferenceEngine import CausalInferenceEngine as CIE
-from causalflow.causal_reasoning.SMCFilter import SMCFilter
-from causalflow.graph import DAG
-from causalflow.preprocessing.data import Data
+# from causalflow.causal_reasoning.CausalInferenceEngine import CausalInferenceEngine as CIE
+# from causalflow.causal_reasoning.SMCFilter import SMCFilter
+# from causalflow.graph import DAG
+# from causalflow.preprocessing.data import Data
 from utils import *
 
 import numpy as np
@@ -21,13 +21,65 @@ import pyAgrum.causal as pyc
 from cairosvg import svg2png
 import pyAgrum.causal.notebook as cslnb
 
+
+import matplotlib.pyplot as plt
+
+import re
+
+def format_evidence_for_latex(evidence):
+    formatted_evidence = []
+    
+    for var in evidence.keys():
+        # Replace the part after the underscore with curly braces, if applicable
+        var = re.sub(r'_(\w+)', r'_{\1}', var)  # Add {} around the part after the underscore
+        
+        # Replace '0' with '_{t-1}'
+        var = var.replace('t', '_t')
+        var = var.replace('0', '_{t-1}')
+
+        # Append formatted variable to the list
+        formatted_evidence.append(f"${var}$")  # Adding $ for LaTeX format
+        
+    return ', '.join(formatted_evidence)
+
+def plot_distributions(var, distributions, name):
+    # Number of distributions to plot
+    n = len(distributions)
+    
+    # Create subplots (one for each distribution)
+    fig, axes = plt.subplots(n, 1, figsize=(12, 4 * n))  # n rows, 1 column
+
+    # If there's only one plot, axes is not a list, so we handle it separately
+    if n == 1:
+        axes = [axes]
+
+    for i, (data, title) in enumerate(distributions):
+        # Plot the distribution in the corresponding subplot
+        axes[i].bar(range(len(data)), data)
+        var_str = format_evidence_for_latex({var: None})
+        axes[i].set_xlabel(f"{var_str} States")
+        axes[i].set_ylabel("Probability")
+        axes[i].set_title(title)
+
+    # Adjust layout to prevent overlap
+    plt.tight_layout()
+
+    # Save the figure with a dynamic filename (e.g., based on variable name and distributions)
+    path = f"/home/lcastri/git/causalflow/results/my_pyAgrum/{var}/"
+    filename = f"{name}.png"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    plt.savefig(path+filename)
+    plt.close(fig)
+
+
+
+
+
 # DATA
 DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
 BAGNAME= ['noncausal-03012025']
-with open(DAGDIR, 'rb') as f:
-    CM = DAG.load(pickle.load(f))
-
+variables = ['TOD', 'R_V', 'R_B', 'C_S', 'PD', 'ELT', 'OBS', 'WP']
 starting_t = 100
 treatment_len = 100
 
@@ -48,19 +100,19 @@ for bagname in BAGNAME:
         concat_df = pd.concat(dfs, ignore_index=True)
         break
     
-DATA_DICT_TRAIN = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[:starting_t], vars = CM.features + ["pf_elapsed_time"])
-DATA_DICT_TEST = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[starting_t:starting_t+treatment_len], vars = CM.features + ["pf_elapsed_time"])
-T = DATA_DICT_TEST.d["pf_elapsed_time"].values
-DATA_DICT_TRAIN.shrink(CM.features)
-DATA_DICT_TEST.shrink(CM.features)
-DATA_DICT = Data(np.concatenate((DATA_DICT_TRAIN.d.values, DATA_DICT_TEST.d.values), axis=0), vars = CM.features)
+# DATA_DICT_TRAIN = Data(concat_df[variables + ["pf_elapsed_time"]].values[:starting_t], vars = variables + ["pf_elapsed_time"])
+# DATA_DICT_TEST = Data(concat_df[variables + ["pf_elapsed_time"]].values[starting_t:starting_t+treatment_len], vars = variables + ["pf_elapsed_time"])
+# T = DATA_DICT_TEST.d["pf_elapsed_time"].values
+# DATA_DICT_TRAIN.shrink(variables)
+# DATA_DICT_TEST.shrink(variables)
+# DATA_DICT = Data(np.concatenate((DATA_DICT_TRAIN.d.values, DATA_DICT_TEST.d.values), axis=0), vars = variables)
 
 D = concat_df.drop('pf_elapsed_time', axis=1)
 D = D.drop('WP', axis=1)
-D.columns = [f'{v}t' for v in CM.features if v != 'WP']
+D.columns = [f'{v}t' for v in variables if v != 'WP']
 
 # Add lagged variable
-for v in CM.features:
+for v in variables:
     if v != 'WP':
         D[f'{v}0'] = np.concatenate([D[f'{v}t'].values[1:], [0]])
 D = D.iloc[1:].reset_index(drop=True)  # Remove first row
@@ -71,12 +123,12 @@ D = D.iloc[:-1].reset_index(drop=True)  # Remove last row
 discretizer=skbn.BNDiscretizer(defaultDiscretizationMethod='uniform', discretizationThreshold=15, defaultNumberOfBins=50)
 # discretizer.setDiscretizationParameters('PD0','quantile', 50)
 # discretizer.setDiscretizationParameters('PDt','quantile', 50)
-discretizer.setDiscretizationParameters('ELT0','quantile', 300)
-discretizer.setDiscretizationParameters('ELTt','quantile', 300)
-discretizer.setDiscretizationParameters('R_B0','quantile', 300)
-discretizer.setDiscretizationParameters('R_Bt','quantile', 300)
-discretizer.setDiscretizationParameters('R_V0','quantile', 50)
-discretizer.setDiscretizationParameters('R_Vt','quantile', 50)
+discretizer.setDiscretizationParameters('ELT0','quantile', 50)
+discretizer.setDiscretizationParameters('ELTt','quantile', 50)
+discretizer.setDiscretizationParameters('R_B0','quantile', 50)
+discretizer.setDiscretizationParameters('R_Bt','quantile', 50)
+discretizer.setDiscretizationParameters('R_V0','quantile', 5)
+discretizer.setDiscretizationParameters('R_Vt','quantile', 5)
 
 template = discretizer.discretizedBN(D)
 auditDict=discretizer.audit(D)
@@ -116,7 +168,7 @@ time_slices_bn = gdyn.getTimeSlices(bn, size=20)
 svg2png(bytestring=time_slices_bn,write_to='results/my_pyAgrum/dbn.png')
 
 gimg.export(bn,"results/my_pyAgrum/bn.pdf", size="20!")
-# gimg.exportInference(bn, "results/my_pyAgrum/inference.pdf", size="60!")
+gimg.exportInference(bn, "results/my_pyAgrum/inference.pdf", size="50!")
 
 cm = pyc.CausalModel(bn)
 
@@ -152,11 +204,12 @@ midpoints_ELTt = [(edges_ELTt[i] + edges_ELTt[i+1]) / 2.0 for i in range(len(edg
 # ------------------------------
 # Evaluate Predictions on a Test Set using BN inference and CausalModel (do-intervention)
 # ------------------------------
-n_test = 100
+n_test = 20
 predicted_ELTt_bn = []      # Predictions using BN conditioning (setEvidence)
-# predicted_ELTt_causal = []  # Predictions using CausalModel (do-intervention)
+predicted_ELTt_causal = []  # Predictions using CausalModel (do-intervention)
 ground_truth_ELTt = []
-
+target_var = "ELTt"
+target_var_str = format_evidence_for_latex({target_var: None})
 for i in range(n_test):
     # Use the continuous Bt value from the test instance
     RV_val = D.iloc[i]['R_V0']
@@ -166,78 +219,59 @@ for i in range(n_test):
     RB_val = D.iloc[i]['R_Bt']
     RB_bin_idx = find_bin(RB_val, edges_R_Bt)
     
-    # --- BN prediction: Conditioning on Bt = bin_idx ---
-    # For a variable "Dt":
-    # ie = pyAgrum.LazyPropagation(bn)
+    # --- BN prediction ---
     ie = pyAgrum.VariableElimination(bn)
-    # prior_ELTt = ie.posterior("ELTt").toarray()  # prior marginal, as a NumPy array
-    # plt.figure()
-    # plt.bar(range(len(prior_ELTt)), prior_ELTt, color='skyblue')
-    # plt.xlabel("States of ELTt")
-    # plt.ylabel("Probability")
-    # plt.title("Prior Distribution for ELTt")
-    # ie.setEvidence({"R_V0": RV_bin_idx, "R_Bt": RB_bin_idx, "C_S0": 0})
-    ie.setEvidence({"R_V0": RV_bin_idx, "ELT0": ELT_bin_idx, "C_S0": 0, "R_Bt": RB_bin_idx, "C_St": 0})
-    ie.makeInference()
-    bn_posterior = ie.posterior("ELTt")
-    bn_posterior_values = bn_posterior.toarray()
-    # pred_bn = sum(bn_posterior_values[j] * midpoints_ELTt[j] for j in range(len(bn_posterior_values)))
-    pred_bn = midpoints_ELTt[np.argmax(bn_posterior_values)]
-    predicted_ELTt_bn.append(pred_bn)
-    # After setting evidence:
-    # plt.figure()
-    # plt.bar(range(len(bn_posterior_values)), bn_posterior_values, color='lightgreen')
-    # plt.xlabel("States of ELTt")
-    # plt.ylabel("Probability")
-    # plt.title(f"Posterior Distribution for ELTt after setting ELT0 = {ELT_val}")
-    # plt.show()
-    
-    
+    prior_ELTt = ie.posterior(target_var).toarray()  # prior marginal, as a NumPy array
+    evidence = {"R_V0": RV_bin_idx, "ELT0": ELT_bin_idx, "C_S0": 0}
+    evidence_str = format_evidence_for_latex(evidence)
 
-    # # --- CausalModel prediction: Intervention do(Bt = bin_idx) ---
-    # # Convert the BN to a CausalModel.
-    # # Note: In pyAgrum, the CausalModel is built directly from the BN.
-    # formula, adj, exp = pyc.causalImpact(cm, on="ELTt", doing="R_V0", knowing={"ELT0", "C_S0"}, values={"R_V0":RV_bin_idx, "ELT0":ELT_bin_idx, "C_S0": 0})
-    # posterior_causal = adj.toarray()
-    # pred_causal = sum(posterior_causal[j] * midpoints_ELTt[j] for j in range(len(bn_posterior_values)))
-    # predicted_ELTt_causal.append(pred_causal)
+    ie.setEvidence(evidence)
+    # ie.setEvidence({"R_V0": RV_bin_idx, "ELT0": ELT_bin_idx, "C_S0": 0, "R_Bt": RB_bin_idx, "C_St": 0})
+    ie.makeInference()
+    bn_posterior = ie.posterior(target_var)
+    bn_posterior_values = bn_posterior.toarray()
+    pred_bn = sum(bn_posterior_values[j] * midpoints_ELTt[j] for j in range(len(bn_posterior_values)))
+    # pred_bn = midpoints_ELTt[np.argmax(bn_posterior_values)]
+    predicted_ELTt_bn.append(pred_bn)
+    plot_distributions(target_var, [(prior_ELTt, f"p({target_var_str})"), 
+                                    (bn_posterior_values, f"p({target_var_str}|" + f"{evidence_str})")], 'BN_' + str(i))
+    # --- CausalModel prediction ---
+    # formula, adj, exp = pyc.causalImpact(cm, on="ELTt", doing="R_V0", values={"R_V0":RV_bin_idx})
+    cslnb.showCausalImpact(cm, on="ELTt", doing="R_V0", knowing={"ELT0", "C_S0"}, values={"R_V0":RV_bin_idx, "ELT0":ELT_bin_idx, "C_S0": 0})
+    formula, adj, exp = pyc.causalImpact(cm, on="ELTt", doing="R_V0", knowing={"ELT0", "C_S0"}, values={"R_V0":RV_bin_idx, "ELT0":ELT_bin_idx, "C_S0": 0})
+    posterior_causal = adj.toarray()
+    pred_causal = sum(posterior_causal[j] * midpoints_ELTt[j] for j in range(len(posterior_causal)))
+    # pred_causal = midpoints_ELTt[np.argmax(posterior_causal)]
+    predicted_ELTt_causal.append(pred_causal)
+    plot_distributions(target_var, [(prior_ELTt, f"p({target_var_str})"), 
+                                    (posterior_causal, f"p({target_var_str}|" + f"{evidence_str})")], 'CM_' + str(i))
     
     # Ground-truth Dt value
-    ground_truth_ELTt.append(D.iloc[i]['ELTt'])
+    ground_truth_ELTt.append(D.iloc[i][target_var])
 
 predicted_ELTt_bn = np.array(predicted_ELTt_bn)
-# predicted_Dt_causal = np.array(predicted_ELTt_causal)
-ground_truth_Dt = np.array(ground_truth_ELTt)
+predicted_ELTt_causal = np.array(predicted_ELTt_causal)
+ground_truth_ELTt = np.array(ground_truth_ELTt)
 
 # ------------------------------
 # Compare Predictions to Ground Truth
 # ------------------------------
 import matplotlib.pyplot as plt
-bn_RMSE = np.sqrt(np.mean((predicted_ELTt_bn - ground_truth_Dt) ** 2))
-bn_NRMSE = bn_RMSE/np.std(ground_truth_Dt)
-# cm_RMSE = np.sqrt(np.mean((predicted_Dt_causal - ground_truth_Dt) ** 2))
-# cm_NRMSE = cm_RMSE/np.std(ground_truth_Dt)
+bn_RMSE = np.sqrt(np.mean((predicted_ELTt_bn - ground_truth_ELTt) ** 2))
+bn_NRMSE = bn_RMSE/np.std(ground_truth_ELTt)
+cm_RMSE = np.sqrt(np.mean((predicted_ELTt_causal - ground_truth_ELTt) ** 2))
+cm_NRMSE = cm_RMSE/np.std(ground_truth_ELTt)
 
 # ------------------------------
 # Plot Predictions and Residuals
 # ------------------------------
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
-
 # Plot predicted vs. ground truth
-ax1.plot(ground_truth_Dt, label=r'Ground Truth: $ELT_{t}$', linestyle='-')
-ax1.plot(predicted_ELTt_bn, label=r'BN: $E[ELT_{t}|ELT_{t-1}, R_{V_{t-1}}, C_{S_{t-1}}]$' + f" (NRMSE: {bn_NRMSE:.2f})", linestyle='--')
-# ax1.plot(predicted_Dt_causal, label=r'CM: $E[ELT_{t}|do(R_{V_{t-1}}), ELT_{t-1}, C_{S_{t-1}}]$' + f" (NRMSE: {cm_NRMSE:.2f})", linestyle=':')
-ax1.set_ylabel(r'$ELT_{t}$')
-ax1.set_title('Predictions: BN vs. CausalModel')
-ax1.legend()
-
-# Plot absolute errors for each method
-abs_error_bn = np.abs(predicted_ELTt_bn - ground_truth_Dt)
-# abs_error_cm = np.abs(predicted_Dt_causal - ground_truth_Dt)
-ax2.plot(abs_error_bn, label='BN Absolute Error', linestyle='--')
-# ax2.plot(abs_error_cm, label='CM Absolute Error', linestyle=':')
-ax2.set_xlabel('Test Instance')
-ax2.set_ylabel('Absolute Error')
-ax2.set_title('Absolute Prediction Errors')
-ax2.legend()
+plt.figure(figsize=(10, 5))
+plt.plot(ground_truth_ELTt, label=f'Ground Truth: {target_var_str}', linestyle='-')
+plt.plot(predicted_ELTt_bn, label=f'BN: E[{target_var_str}|{evidence_str}]' + f" (NRMSE: {bn_NRMSE:.2f})", linestyle='--')
+plt.plot(predicted_ELTt_causal, label=r'CM: $E[ELT_{t}|do(R_{V_{t-1}}), ELT_{t-1}]$' + f" (NRMSE: {cm_NRMSE:.2f})", linestyle=':')
+plt.ylabel(f'{target_var_str}')
+plt.xlabel(f'Time steps')
+plt.title('Predictions: BN vs. CausalModel')
+plt.legend()
 plt.show()
