@@ -10,9 +10,9 @@ from causalflow.preprocessing.data import Data
 from utils import *
 import time
 
-DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024_new/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/myCM/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-BAGNAME= ['noncausal-03012025']
+BAGNAME= ['noncausal-16022025']
 
 
 with open(DAGDIR, 'rb') as f:
@@ -21,27 +21,25 @@ with open(DAGDIR, 'rb') as f:
 DATA_TYPE = {
     NODES.TOD.value: DataType.Discrete,
     NODES.RV.value: DataType.Continuous,
-    NODES.RB.value: DataType.Discrete,
     NODES.CS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
-    NODES.ELT.value: DataType.Discrete,
-    NODES.OBS.value: DataType.Discrete,
+    NODES.EC.value: DataType.Continuous,
+    NODES.WP_COND.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
 NODE_TYPE = {
     NODES.TOD.value: NodeType.Context,
     NODES.RV.value: NodeType.System,
-    NODES.RB.value: NodeType.System,
     NODES.CS.value: NodeType.Context,
     NODES.PD.value: NodeType.System,
-    NODES.ELT.value: NodeType.System,
-    NODES.OBS.value: NodeType.Context,
+    NODES.EC.value: NodeType.System,
+    NODES.WP_COND.value: NodeType.Context,
     NODES.WP.value: NodeType.Context,
 }
 cie = CIE(CM, 
           data_type = DATA_TYPE, 
           node_type = NODE_TYPE,
-          model_path = 'CIE_100_HH_v4',
+          model_path = 'CIE_100_HH_v5',
           verbosity = CPLevel.DEBUG)
 
 start_time = time.time()
@@ -65,11 +63,20 @@ for bagname in BAGNAME:
             filename = os.path.join(INDIR, "HH/my_nonoise", f"{bagname}", f"{tod.value}", f"{wp_file}")
             dfs.append(pd.read_csv(filename))
         concatenated_df = pd.concat(dfs, ignore_index=True)
+        concatenated_df = concatenated_df.drop('ELT', axis=1)
+        concatenated_df = concatenated_df.drop('G_X', axis=1)
+        concatenated_df = concatenated_df.drop('G_Y', axis=1)
+        concatenated_df = concatenated_df.drop('NP', axis=1)
+        concatenated_df = concatenated_df.drop('R_B', axis=1)
+        concatenated_df = concatenated_df.drop('R_X', axis=1)
+        concatenated_df = concatenated_df.drop('R_Y', axis=1)
+        concatenated_df = concatenated_df.rename(columns={'L': 'WP_COND'})
         dfs = []
         idx = len(DATA_DICT)
         DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
         del concatenated_df
         cie.addObsData(DATA_DICT[idx])
+        break
     
 cie.save(os.path.join(cie.model_path, 'cie.pkl'))
 

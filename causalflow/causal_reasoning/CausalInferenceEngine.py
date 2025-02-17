@@ -144,155 +144,114 @@ class CausalInferenceEngine():
                                                recycle if recycle else None, 
                                                max_components = self.max_components)
         return id
-    
-    
+       
     
     def Query(self, outcome: str, treatment: Dict[tuple, np.array], evidence : Dict[tuple, np.array] = None, wp: int = 0):
-        import pyAgrum as gum
-        bn_pgmpy = DAG.get_DBN(self.DBNs[('obs', wp)].dag.get_Adj(), self.DBNs[('obs', wp)].dag.max_lag)
+        bn = DAG.get_DBN(self.DBNs[('obs', wp)].dag.get_Adj(), self.DBNs[('obs', wp)].dag.max_lag)
 
-        nodes = [(f, -abs(l)) for f in self.DAG['complete'].features for l in range(self.DAG['complete'].max_lag + 1)]
+        nodes = [(f, -abs(l)) for f in self.DAG['complete'].features if f != 'WP' for l in range(self.DAG['complete'].max_lag + 1)]
         outcome = (outcome, 0)
+        # dconnected_nodes = [n for n in nodes if bn.is_dconnected(n, outcome, list(treatment.keys()) + list(evidence.keys()))]
         
         treatment_f = list(treatment.keys())[0][0]
         treatment_values = treatment[list(treatment.keys())[0]]
         treatment_lag = list(treatment.keys())[0][1]
-         
-        # Get all possible values for non-evidence variables
-        value_ranges = {var: self.DBNs[('obs', wp)].data.d[var[0]].unique() for var in nodes}
+        evidence_fs = list(evidence.keys())
+        nonevidence_fs = [n for n in nodes if n != (treatment_f, treatment_lag) and n not in evidence_fs and n != outcome]
         
-        # Step 1: Create Bayesian Network
-        bn = gum.BayesNet('MyBN')
-
-        # Add Nodes
-        for n in nodes:
-            bn.add(gum.LabelizedVariable(str(n), str(n), len(value_ranges[n])))
-
-        # Step 2: Add Edges based on the Graph
-        for edge in list(bn_pgmpy.edges):
-            bn.addArc(str(edge[0]), str(edge[1]))
-        
-
-        # Step 3: Compute P(ELT' | RV, CS, ELT)
-        ie = gum.LazyPropagation(bn)
-        all_evidence = {}
-        all_evidence.update({str((treatment_f, treatment_lag)): treatment_values[0]})
-        for e in evidence:
-            all_evidence.update({str(e): evidence[e][0]})
-        ie.setEvidence(all_evidence)  # Example: setting observed values
-        ie.makeInference()
-
-        # Query P(ELT' | RV, CS, ELT)
-        print(ie.posterior("ELT'"))
-
-    
-    
-    # def Query(self, outcome: str, treatment: Dict[tuple, np.array], evidence : Dict[tuple, np.array] = None, wp: int = 0):
-    #     bn = DAG.get_DBN(self.DBNs[('obs', wp)].dag.get_Adj(), self.DBNs[('obs', wp)].dag.max_lag)
-
-    #     nodes = [(f, -abs(l)) for f in self.DAG['complete'].features if f != 'WP' for l in range(self.DAG['complete'].max_lag + 1)]
-    #     outcome = (outcome, 0)
-    #     dconnected_nodes = [n for n in nodes if bn.is_dconnected(n, outcome, list(treatment.keys()) + list(evidence.keys()))]
-        
-    #     treatment_f = list(treatment.keys())[0][0]
-    #     treatment_values = treatment[list(treatment.keys())[0]]
-    #     treatment_lag = list(treatment.keys())[0][1]
-    #     evidence_fs = list(evidence.keys())
-    #     nonevidence_fs = [n for n in nodes if n != (treatment_f, treatment_lag) and n not in evidence_fs and n != outcome]
-        
-    #     intT = len(treatment_values)
-    #     maxLag = max(abs(treatment_lag), max([abs(c[1]) for c in evidence.keys()]))        
-    #     res = {(treatment_f, treatment_lag): np.full((intT + maxLag, 1), np.nan),
-    #            outcome: np.full((intT + maxLag, 1), np.nan)}
-    #     for c in evidence.keys(): res[c] = np.full((intT + maxLag, 1), np.nan)
+        intT = len(treatment_values)
+        maxLag = max(abs(treatment_lag), max([abs(c[1]) for c in evidence.keys()]))        
+        res = {(treatment_f, treatment_lag): np.full((intT + maxLag, 1), np.nan),
+               outcome: np.full((intT + maxLag, 1), np.nan)}
+        for c in evidence.keys(): res[c] = np.full((intT + maxLag, 1), np.nan)
             
-    #     res[(treatment_f, treatment_lag)][maxLag-abs(treatment_lag): len(res[c])-abs(treatment_lag)] = treatment_values
-    #     for c in evidence.keys():
-    #         res[c][maxLag-abs(c[1]): len(res[c])-abs(c[1])] = evidence[c]   
+        res[(treatment_f, treatment_lag)][maxLag-abs(treatment_lag): len(res[c])-abs(treatment_lag)] = treatment_values
+        for c in evidence.keys():
+            res[c][maxLag-abs(c[1]): len(res[c])-abs(c[1])] = evidence[c]   
                  
-    #     # Get all possible values for non-evidence variables
-    #     value_ranges = {var: self.DBNs[('obs', wp)].data.d[var[0]].unique() for var in nonevidence_fs}
+        # Get all possible values for non-evidence variables
+        value_ranges = {var: self.DBNs[('obs', wp)].data.d[var[0]].unique() for var in nonevidence_fs}
         
-    #     def _get_density(node, p):
-    #         f, lag = node
-    #         if node in nonevidence_fs:
-    #             # Marginalize the GMM parameters over all values
-    #             return np.sum([DensityUtils.get_density(p, tmp_value.reshape(-1, 1)) for tmp_value in value_ranges[node]])
-    #         # f observed => P(f=f)
-    #         elif node in evidence_fs or node == (treatment_f, treatment_lag):
-    #             value = res[(f, -abs(lag))][t-abs(lag)]
-    #             # value = [evidence[e] for e in evidence if e[0] == f][0][t-abs(lag)]
-    #             return DensityUtils.get_density(p, np.array(value).reshape(-1, 1))
-    #         # f outcome
-    #         elif node == outcome:
-    #             return p
+        def _get_density(node, p):
+            f, lag = node
+            if node in nonevidence_fs:
+                # Marginalize the GMM parameters over all values
+                return np.sum([DensityUtils.get_density(p, tmp_value.reshape(-1, 1)) for tmp_value in value_ranges[node]])
+            # f observed => P(f=f)
+            elif node in evidence_fs or node == (treatment_f, treatment_lag):
+                value = res[(f, -abs(lag))][t-abs(lag)]
+                # value = [evidence[e] for e in evidence if e[0] == f][0][t-abs(lag)]
+                return DensityUtils.get_density(p, np.array(value).reshape(-1, 1))
+            # f outcome
+            elif node == outcome:
+                return p
         
-    #     for t in range(maxLag, intT + maxLag):
+        for t in range(maxLag, intT + maxLag):
             
-    #         if self.DBNs[('obs', wp)].DBN[outcome].parents is None:
-    #             cond_params = self.DBNs[('obs', wp)].DBN[outcome].pY
-    #         else:
-    #             # p(outcome, treatment, evidence)
-    #             cond_params = {'means': [], 'covariances': [], 'weights': []}
-    #             accumulate_weight = 1.0
+            if self.DBNs[('obs', wp)].dbn_data[outcome].parents is None:
+                cond_params = self.DBNs[('obs', wp)].dbn_data[outcome].pY
+            else:
+                # p(outcome, treatment, evidence)
+                cond_params = {'means': [], 'covariances': [], 'weights': []}
+                accumulate_weight = 1.0
 
-    #             # Chain rule for computing p(outcome, treatment, evidence)
-    #             for node in nodes:
-    #                 f, lag = node
-    #                 if self.DBNs[('obs', wp)].DBN[node].parents is not None:
-    #                     parents = [(name, -abs(process.lag)) for name, process in self.DBNs[('obs', wp)].DBN[node].parents.items() if name != 'WP']
-    #                     p = self.DBNs[('obs', wp)].DBN[node].pJoint
-    #                     parent_values = {}
-    #                     for parent in parents:
-    #                         parent_name, parent_lag = parent
-    #                         if parent in evidence_fs or parent == (treatment_f, treatment_lag):
-    #                             parent_values[parent] = res[parent][t-abs(parent_lag)]
-    #                         else:
-    #                             parent_values[parent] = value_ranges[parent]
+                # Chain rule for computing p(outcome, treatment, evidence)
+                for node in nodes:
+                    f, lag = node
+                    if self.DBNs[('obs', wp)].dbn_data[node].parents is not None:
+                        parents = [(name, -abs(process.lag)) for name, process in self.DBNs[('obs', wp)].dbn_data[node].parents.items() if name != 'WP']
+                        p = self.DBNs[('obs', wp)].dbn_data[node].pJoint
+                        parent_values = {}
+                        for parent in parents:
+                            parent_name, parent_lag = parent
+                            if parent in evidence_fs or parent == (treatment_f, treatment_lag):
+                                parent_values[parent] = res[parent][t-abs(parent_lag)]
+                            else:
+                                parent_values[parent] = value_ranges[parent]
                                 
-    #                     parent_values_combos = list(itertools.product(*parent_values.values()))
-    #                     dens_accum = 0
-    #                     for parent_values_combo in parent_values_combos:
-    #                         pconditional = DensityUtils.compute_conditional(p, np.array(parent_values_combo).reshape(-1, 1))
-    #                         dens = _get_density(node, pconditional)
-    #                         if isinstance(dens, dict): 
-    #                             cond_params = dens
-    #                         elif isinstance(dens, float): 
-    #                             dens_accum += dens
-    #                     if isinstance(dens, dict): 
-    #                         cond_params = dens_accum
-    #                     elif isinstance(dens, float): 
-    #                         accumulate_weight *= dens_accum
+                        parent_values_combos = list(itertools.product(*parent_values.values()))
+                        dens_accum = 0
+                        for parent_values_combo in parent_values_combos:
+                            pconditional = DensityUtils.compute_conditional(p, np.array(parent_values_combo).reshape(-1, 1))
+                            dens = _get_density(node, pconditional)
+                            if isinstance(dens, dict): 
+                                cond_params["means"].extend(dens["means"])
+                                cond_params["covariances"].extend(dens["covariances"])
+                                cond_params["weights"].extend(dens["weights"])
+                            elif isinstance(dens, float): 
+                                dens_accum += dens
+                        if isinstance(dens, float): 
+                            accumulate_weight *= dens_accum
 
-    #                 else:
-    #                     # Use prior P(f) if no parents
-    #                     p = self.DBNs[('obs', wp)].DBN[node].pY
-    #                     dens = _get_density(node, p)
-    #                     if isinstance(dens, dict): 
-    #                         cond_params = dens
-    #                     elif isinstance(dens, float): 
-    #                         accumulate_weight *= dens
+                    else:
+                        # Use prior P(f) if no parents
+                        p = self.DBNs[('obs', wp)].dbn_data[node].pY
+                        dens = _get_density(node, p)
+                        if isinstance(dens, dict): 
+                            cond_params = dens
+                        elif isinstance(dens, float): 
+                            accumulate_weight *= dens
                             
-    #         # Accumulate weighted means and weights
-    #         weighted_means = []
-    #         weighted_weights = []
-    #         for k in range(len(cond_params["weights"])):
-    #             weighted_means.append(cond_params["means"][k])
-    #             weighted_weights.append(cond_params["weights"][k] * accumulate_weight)
+            # Accumulate weighted means and weights
+            weighted_means = []
+            weighted_weights = []
+            for k in range(len(cond_params["weights"])):
+                weighted_means.append(cond_params["means"][k])
+                weighted_weights.append(cond_params["weights"][k] * accumulate_weight)
 
-    #         # Construct conditional_params from the accumulated means and weights
-    #         total_weight = sum(weighted_weights)
-    #         if total_weight == 0:
-    #             raise ValueError("Total weight is zero. Check adjustment sets or inputs.")
+            # Construct conditional_params from the accumulated means and weights
+            total_weight = sum(weighted_weights)
+            if total_weight == 0:
+                raise ValueError("Total weight is zero. Check adjustment sets or inputs.")
 
-    #         cond_params = {
-    #             "means": np.array(weighted_means),
-    #             "weights": np.array(weighted_weights) / total_weight,
-    #         }
+            cond_params = {
+                "means": np.array(weighted_means),
+                "weights": np.array(weighted_weights) / total_weight,
+            }
             
-    #         expected_value = DensityUtils.expectation_from_params(cond_params['means'], cond_params['weights'])
-    #         res[(outcome, 0)][t] = expected_value
-    #     return res[(outcome, 0)][maxLag:intT+maxLag]
+            expected_value = DensityUtils.expectation_from_params(cond_params['means'], cond_params['weights'])
+            res[outcome][t] = expected_value
+        return res[outcome][maxLag:intT+maxLag]
 
        
     def whatIf(self, 

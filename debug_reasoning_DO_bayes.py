@@ -9,16 +9,13 @@ from causalflow.causal_reasoning.CausalInferenceEngine import CausalInferenceEng
 from causalflow.graph import DAG
 from causalflow.preprocessing.data import Data
 from utils import *
-from pgmpy.models import BayesianNetwork
-from pgmpy.inference import VariableElimination
-from pgmpy.estimators import MaximumLikelihoodEstimator, ExpectationMaximization
 import matplotlib.pyplot as plt
 import json
 
 # DATA
-DAGDIR = '/home/lcastri/git/causalflow/results/BL100_21102024/res.pkl'
+DAGDIR = '/home/lcastri/git/causalflow/results/myCM/res.pkl'
 INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-BAGNAME= ['noncausal-03012025']
+BAGNAME= ['noncausal-16022025']
 cie = CIE.load('CIE_100_HH_v5/cie.pkl')
 with open(DAGDIR, 'rb') as f:
     CM = DAG.load(pickle.load(f))
@@ -26,11 +23,10 @@ with open(DAGDIR, 'rb') as f:
 DATA_TYPE = {
     NODES.TOD.value: DataType.Discrete,
     NODES.RV.value: DataType.Continuous,
-    NODES.RB.value: DataType.Continuous,
     NODES.CS.value: DataType.Discrete,
     NODES.PD.value: DataType.Continuous,
-    NODES.ELT.value: DataType.Continuous,
-    NODES.OBS.value: DataType.Discrete,
+    NODES.EC.value: DataType.Continuous,
+    NODES.WP_COND.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
 }
 
@@ -39,24 +35,34 @@ PD_means = []
 starting_t = 500
 treatment_len = 20
 
+dfs = []
 for bagname in BAGNAME:
     for wp in WP:
-        dfs = []
         if wp == WP.PARKING or wp == WP.CHARGING_STATION: continue
         for tod in TOD:
             files = [f for f in os.listdir(os.path.join(INDIR, "HH/my_nonoise", f"{bagname}", f"{tod.value}"))]
             files_split = [f.split('_') for f in files]
-            wp_files = [f for f in files_split if len(f) == 3 and f[2].split('.')[0] == wp.value][0]
-            wp_file = '_'.join(wp_files)
+            
+            wp_file = [f for f in files_split if len(f) == 3 and f[2].split('.')[0] == wp.value][0]
+            wp_file = '_'.join(wp_file)
             print(f"Loading : {wp_file}")
-            filename = os.path.join(INDIR, "HH/my_nonoise", f"{bagname}", f"{tod.value}", wp_file)
-
+            filename = os.path.join(INDIR, "HH/my_nonoise", f"{bagname}", f"{tod.value}", f"{wp_file}")
             df = pd.read_csv(filename)
             dfs.append(df)
             PD_means.append(df['PD'].mean() * np.ones(df.shape[0]))
+
         concat_df = pd.concat(dfs, ignore_index=True)
+        concat_df = concat_df.drop('ELT', axis=1)
+        concat_df = concat_df.drop('G_X', axis=1)
+        concat_df = concat_df.drop('G_Y', axis=1)
+        concat_df = concat_df.drop('NP', axis=1)
+        concat_df = concat_df.drop('R_B', axis=1)
+        concat_df = concat_df.drop('R_X', axis=1)
+        concat_df = concat_df.drop('R_Y', axis=1)
+        concat_df = concat_df.rename(columns={'L': 'WP_COND'})
         concat_PD = np.concatenate(PD_means, axis=0)       
         break
+
     
 DATA_DICT_TRAIN = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[:starting_t], vars = CM.features + ["pf_elapsed_time"])
 DATA_DICT_TEST = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[starting_t:starting_t+treatment_len], vars = CM.features + ["pf_elapsed_time"])
@@ -68,13 +74,12 @@ DATA_DICT_TEST.shrink(CM.features)
 DATA_DICT = Data(np.concatenate((DATA_DICT_TRAIN.d.values, DATA_DICT_TEST.d.values), axis=0), vars = CM.features)
 
 #! Causal Inference: this must be used for the original CIE -- CIE_100_HH_v4
-resELT = cie.Query(outcome = NODES.ELT.value, 
-                   treatment = {(NODES.RV.value, -1): 0.5*np.ones(shape = (treatment_len, 1))},
-                   evidence = {(NODES.CS.value, -1): np.zeros(shape = (treatment_len, 1)).astype(int),
-                               (NODES.ELT.value, -1): DATA_DICT_TEST.d['ELT'].to_numpy().reshape(-1, 1)},
+resEC = cie.Query(outcome = NODES.EC.value, 
+                   treatment = {(NODES.RV.value, 0): DATA_DICT_TEST.d['R_V'].values.reshape(-1, 1)},
+                   evidence = {(NODES.CS.value, 0): np.zeros(shape = (treatment_len, 1)).astype(int)},
                    wp = 0)
 
-gtELT = DATA_DICT_TEST.d['ELT'].to_numpy().reshape(-1, 1)
+gtEC = DATA_DICT_TEST.d['EC'].to_numpy().reshape(-1, 1)
 
 # # Bayesian Inference
 # bn = get_DBN(cie.DAG["complete"].get_Adj(), cie.DAG["complete"].max_lag)
@@ -125,20 +130,20 @@ gtELT = DATA_DICT_TEST.d['ELT'].to_numpy().reshape(-1, 1)
 # bayesian_result = np.array(bayesian_result).reshape(-1, 1)
 
 plt.figure()
-plt.plot(gtELT, label='ELT - Ground Truth', color='k')
-plt.plot(resELT, label=r"E[ELT] - $p(\mathrm{ELT}_{t} | \mathrm{Do}(R_{V_{t-1}}), \mathrm{C_{S_{t-1}}}, \mathrm{ELT}_{t-1})$", color='blue', linestyle='--')
+plt.plot(gtEC, label='ELT - Ground Truth', color='k')
+plt.plot(resEC, label=r"E[ELT] - $p(\mathrm{ELT}_{t} | \mathrm{Do}(R_{V_{t-1}}), \mathrm{C_{S_{t-1}}}, \mathrm{ELT}_{t-1})$", color='blue', linestyle='--')
 # plt.plot(resELT_context, label=r"E[ELT] - $p(\mathrm{ELT}_{t} | \mathrm{Do}(R_{V_{t-1}}), \mathrm{C_{S_{t-1}}}, \mathrm{ELT}_{t-1})$", color='green', linestyle=':')
 plt.plot(resELT_bayes, label=r"E[ELT] - $p(\mathrm{ELT}_{t} | \mathrm{R_{V_{t-1}}}, \mathrm{C_{S_{t-1}}}, \mathrm{ELT}_{t-1})$", color='red', linestyle=':')
 plt.xlabel('Time')
 plt.ylabel('Values')
-RMSE_do = np.sqrt(np.mean((resELT - gtELT) ** 2))
-NRMSE_do = RMSE_do/np.std(gtELT) if np.std(gtELT) != 0 else 0
-RMSE_bayes = np.sqrt(np.mean((resELT_bayes - gtELT) ** 2))
-NRMSE_bayes = RMSE_bayes/np.std(gtELT) if np.std(gtELT) != 0 else 0
+RMSE_do = np.sqrt(np.mean((resEC - gtEC) ** 2))
+NRMSE_do = RMSE_do/np.std(gtEC) if np.std(gtEC) != 0 else 0
+RMSE_bayes = np.sqrt(np.mean((resELT_bayes - gtEC) ** 2))
+NRMSE_bayes = RMSE_bayes/np.std(gtEC) if np.std(gtEC) != 0 else 0
 plt.title(f'Comparison of GT - DO (NRMSE: {NRMSE_do:.4f}) - Bayes (NRMSE: {NRMSE_bayes:.4f})')
 plt.legend()
 num_ticks = 25
-tick_indices = np.linspace(0, len(gtELT) - 1, num_ticks, dtype=int)
+tick_indices = np.linspace(0, len(gtEC) - 1, num_ticks, dtype=int)
 safe_indices = [idx for idx in tick_indices if idx < len(T)]
 tick_labels = [time.strftime("%H:%M:%S", time.gmtime(8 * 3600 + T[idx])) for idx in safe_indices]
 plt.xticks(ticks=safe_indices, labels=tick_labels, rotation=45)
