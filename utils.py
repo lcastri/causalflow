@@ -103,11 +103,9 @@ WPS = {wp.value: i for i, wp in enumerate(WP)}
   
   
 class NODES(Enum):
-  TOD = 'TOD'
-  RV = 'R_V'
-  RB = 'R_B'
-  CS = 'C_S'
-  PD = 'PD'
-  ELT = 'ELT'
-  OBS = 'OBS'
   WP = 'WP'
+  TOD = 'TOD'
+  PD = 'PD'
+  RV = 'R_V'
+  EC = 'EC'
+  LOAD = 'L'

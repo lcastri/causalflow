@@ -8,7 +8,7 @@ from causalflow.basics.constants import DataType
 from causalflow.causal_discovery.baseline.JPCMCIplus import JPCMCIplus
 from tigramite.independence_tests.regressionCI import RegressionCI
 from causalflow.preprocessing.data import Data
-from utils_2 import *
+from utils import *
 
 def detrend(signal, window_size):
     detrended_signal = np.copy(signal)
@@ -26,15 +26,12 @@ BAGNAME= ['BL100_21102024']
 USE_SUBSAMPLED = True
 
 node_classification = {
-    list(NODES).index(NODES.TOD): "space_context",
-    list(NODES).index(NODES.RV): "system",
-    list(NODES).index(NODES.RB): "system",
-    list(NODES).index(NODES.CS): "space_context",
-    list(NODES).index(NODES.PD): "system",
-    list(NODES).index(NODES.ELT): "system",
-    # list(NODES).index(NODES.OBS): "system",
-    list(NODES).index(NODES.OBS): "space_context",
     list(NODES).index(NODES.WP): "space_context",
+    list(NODES).index(NODES.TOD): "space_context",
+    list(NODES).index(NODES.PD): "system",
+    list(NODES).index(NODES.EC): "system",
+    list(NODES).index(NODES.RV): "system",
+    list(NODES).index(NODES.LOAD): "space_context",
 }
 
 NODE_COLOR = {}
@@ -70,25 +67,16 @@ for bagname in BAGNAME:
         concatenated_df["TOD"] = detrend(concatenated_df["TOD"], 500)
 
         DATA_DICT[idx] = Data(concatenated_df, vars = var_names)
-        # if wp == WP.DOOR_ENTRANCE:
-        #     dd = copy.deepcopy(DATA_DICT[idx])
-        #     dd.shrink(['TOD', 'T', 'R_V'])
-        #     dd.plot_timeseries()
-        # if wp == WP.DOOR_ENTRANCE: DATA_DICT[idx].plot_timeseries()
-            # idx = len(DATA_DICT)
-            # DATA_DICT[idx] = Data(WPDF[var_names], vars = var_names)
-            # DATA_DICT[idx].plot_timeseries()
 
 DATA_TYPE = {
-    NODES.TOD.value: DataType.Continuous,
-    NODES.RV.value: DataType.Continuous,
-    NODES.RB.value: DataType.Continuous,
-    NODES.CS.value: DataType.Discrete,
-    NODES.PD.value: DataType.Continuous,
-    NODES.ELT.value: DataType.Continuous,
-    NODES.OBS.value: DataType.Discrete,
     NODES.WP.value: DataType.Discrete,
+    NODES.TOD.value: DataType.Continuous,
+    NODES.PD.value: DataType.Continuous,
+    NODES.EC.value: DataType.Continuous,
+    NODES.RV.value: DataType.Continuous,
+    NODES.LOAD.value: DataType.Discrete,
 }
+
 jpcmciplus = JPCMCIplus(data = DATA_DICT,
                         min_lag = 0,
                         max_lag = 1,
