@@ -388,7 +388,7 @@ class DAG():
         else:
             raise ValueError(f"{r.g[t].sources[s][TYPE]} not included in LinkType")
              
-    
+            
     def dag(self,
         node_layout='dot',
         min_auto_width=0.25, 
@@ -424,6 +424,29 @@ class DAG():
             save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
             img_extention (ImageExt, optional): Image Extension. Defaults to PNG.
         """
+        
+        def _get_edge_layout(graph, arrows, edge_label, edge_width, contemporaneous = True):
+            g = Graph(graph,
+                    node_layout=node_layout,
+                    node_size=node_size,
+                    node_color=node_color,
+                    node_edge_color=edge_color,
+                    node_alpha=1,
+
+                    arrows=arrows,
+                    edge_layout='straight' if contemporaneous else 'curved',
+                    edge_label=label_type != LabelType.NoLabels,
+                    edge_labels=edge_label,
+                    edge_label_fontdict=dict(size=font_size),
+                    edge_color=edge_color,
+                    tail_color=tail_color,
+                    edge_width=edge_width,
+                    edge_alpha=1,
+                    edge_zorder=1,
+                    edge_label_position=0.35)
+                
+            return g.edge_layout.edge_paths
+        
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
         node_color = copy.deepcopy(node_color)
@@ -431,10 +454,12 @@ class DAG():
 
         Gcont = nx.DiGraph()
         Glag = nx.DiGraph()
+        G = nx.DiGraph()
 
         # 1. Nodes definition
         Gcont.add_nodes_from(r.g.keys())
         Glag.add_nodes_from(r.g.keys())
+        G.add_nodes_from(r.g.keys())
         
         # 2. Nodes border definition
         border = dict()
@@ -460,7 +485,7 @@ class DAG():
                                 node_label[t].append(round(r.g[t].sources[s][SCORE], 3))
                 node_label[t] = ",".join(str(s) for s in node_label[t])
 
-        # 3. Edges definition
+        # 4. Edges definition
         cont_edges = []
         cont_edge_width = dict()
         cont_arrows = {}
@@ -478,15 +503,20 @@ class DAG():
                         self.__add_edge(min_cross_width, max_cross_width, 0, self.max_cross_score,
                                         lagged_edges, lagged_edge_width, lagged_arrows, r, t, s, s[0], t)
                         
+        edges = cont_edges + lagged_edges
+        edges_width = cont_edge_width.copy()
+        edges_width.update(lagged_edge_width)
+        arrows = cont_arrows.copy()
+        arrows.update(lagged_arrows)
+        
         Gcont.add_edges_from(cont_edges)
         Glag.add_edges_from(lagged_edges)
-
-
-        fig, ax = plt.subplots(figsize=(8, 6))
-
-        # 4. Edges label definition
+        G.add_edges_from(edges)
+        
+        # 5. Edges label definition
         cont_edge_label = None
         lagged_edge_label = None
+        edges_label = None
         if label_type == LabelType.Lag or label_type == LabelType.Score:
             cont_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] == 0}
             lagged_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] != 0}
@@ -507,82 +537,244 @@ class DAG():
                 cont_edge_label[k] = ",".join(str(s) for s in cont_edge_label[k])
             for k in lagged_edge_label.keys():
                 lagged_edge_label[k] = ",".join(str(s) for s in lagged_edge_label[k])
+        edges_label = cont_edge_label.copy()
+        edges_label.update(lagged_edge_label)
 
-        # 5. Draw graph - contemporaneous
+        # 6. Edges layout - contemporaneous
+        edges_layout = {}
         if cont_edges:
-            # node_layout = {'$WP$': np.array([0.05, 0.95]), 
-            #                '$TOD$': np.array([0.45, 0.95  ]), 
-            #                '$OBS$': np.array([0.64375, 0.95   ]), 
-            #                '$C_{S}$': np.array([0.88125, 0.95   ]), 
-            #                '$PD$': np.array([0.45, 0.475 ]), 
-            #                '$R_{V}$': np.array([0.7625, 0.475 ]), 
-            #                '$R_{B}$': np.array([1.   , 0.475]), 
-            #                '$ELT$': np.array([ 0.525, -0.   ])}
-            a = Graph(Gcont,
-                    node_layout=node_layout,
-                    node_size=node_size,
-                    node_color=node_color,
-                    node_labels=None,
-                    node_edge_width=border,
-                    node_label_fontdict=dict(size=font_size),
-                    node_edge_color=edge_color,
-                    node_label_offset=0.05,
-                    node_alpha=1,
+            cont_edges_layout = _get_edge_layout(Gcont, cont_arrows, cont_edge_label, cont_edge_width, contemporaneous = True)
+            edges_layout.update(cont_edges_layout)
 
-                    arrows=cont_arrows,
-                    edge_layout='straight',
-                    edge_label=label_type != LabelType.NoLabels,
-                    edge_labels=cont_edge_label,
-                    edge_label_fontdict=dict(size=font_size),
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=cont_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    edge_label_position=0.35)
-
-            nx.draw_networkx_labels(Gcont,
-                                    pos=a.node_positions,
-                                    labels={n: n for n in Gcont},
-                                    font_size=font_size)
-
-        # 6. Draw graph - lagged
+        # 7. Edges layout - lagged
         if lagged_edges:
-            a = Graph(Glag,
-                    node_layout=a.node_positions if cont_edges else node_layout,
-                    node_size=node_size,
-                    node_color=node_color,
-                    node_labels=node_label,
-                    node_edge_width=border,
-                    node_label_fontdict=dict(size=font_size),
-                    node_edge_color=edge_color,
-                    node_label_offset=0.05,
-                    node_alpha=1,
+            lagged_edges_layout = _get_edge_layout(Glag, lagged_arrows, lagged_edge_label, lagged_edge_width, contemporaneous = False)
+            edges_layout.update(lagged_edges_layout)
+        
+        # 8. Draw graph
+        fig, ax = plt.subplots(figsize=(8, 6))
+        a = Graph(G,
+                node_layout=node_layout,
+                node_size=node_size,
+                node_color=node_color,
+                node_labels=node_label,
+                node_edge_width=border,
+                node_label_fontdict=dict(size=font_size),
+                node_edge_color=edge_color,
+                node_label_offset=1.35 * node_size * 0.01,
+                node_alpha=1,
+                
+                arrows=arrows,
+                edge_layout=edges_layout,
+                edge_label=label_type != LabelType.NoLabels,
+                edge_labels=edges_label,
+                edge_label_fontdict=dict(size=font_size),
+                edge_color=edge_color,
+                tail_color=tail_color,
+                edge_width=edges_width,
+                edge_alpha=1,
+                edge_zorder=1,
+                edge_label_position=0.35)
 
-                    arrows=lagged_arrows,
-                    # edge_layout='straight',
-                    edge_layout='curved',
-                    edge_label=label_type != LabelType.NoLabels,
-                    edge_labels=lagged_edge_label,
-                    edge_label_fontdict=dict(size=font_size),
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=lagged_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    edge_label_position=0.35)
-            
-            if not cont_edges:
-                nx.draw_networkx_labels(Glag,
-                                        pos=a.node_positions,
-                                        labels={n: n for n in Glag},
-                                        font_size=font_size)
-
-        # 7. Plot or save
+        nx.draw_networkx_labels(G,
+                                pos=a.node_positions,
+                                labels={n: n for n in G},
+                                font_size=font_size)
+        # 9. Plot or save
         if save_name is not None:
             plt.savefig(save_name + img_extention.value, dpi=300)
         else:
             plt.show()
+    # def dag(self,
+    #     node_layout='dot',
+    #     min_auto_width=0.25, 
+    #     max_auto_width=0.75,
+    #     min_cross_width=1, 
+    #     max_cross_width=5,
+    #     node_size=8, 
+    #     node_color='orange',
+    #     edge_color='grey',
+    #     tail_color='black',
+    #     font_size=8,
+    #     label_type=LabelType.Lag,
+    #     save_name=None,
+    #     img_extention=ImageExt.PNG):
+    #     """
+    #     Build a dag, first with contemporaneous links, then lagged links.
+
+    #     Args:
+    #         node_layout (str, optional): Node layout. Defaults to 'dot'.
+    #         min_auto_width (float, optional): minimum border linewidth. Defaults to 0.25.
+    #         max_auto_width (float, optional): maximum border linewidth. Defaults to 0.75.
+    #         min_cross_width (float, optional): minimum edge linewidth. Defaults to 1.
+    #         max_cross_width (float, optional): maximum edge linewidth. Defaults to 5.
+    #         node_size (int, optional): node size. Defaults to 8.
+    #         node_color (str/dict, optional): node color. 
+    #                                          If a string, all the nodes will have the same colour. 
+    #                                          If a dict, each node will have its specified colour.
+    #                                          Defaults to 'orange'.
+    #         edge_color (str, optional): edge color for contemporaneous links. Defaults to 'grey'.
+    #         tail_color (str, optional): tail color. Defaults to 'black'.
+    #         font_size (int, optional): font size. Defaults to 8.
+    #         label_type (LabelType, optional): Show the lag time (LabelType.Lag), the strength (LabelType.Score), or no labels (LabelType.NoLabels). Default LabelType.Lag.
+    #         save_name (str, optional): Filename path. If None, plot is shown and not saved. Defaults to None.
+    #         img_extention (ImageExt, optional): Image Extension. Defaults to PNG.
+    #     """
+    #     r = copy.deepcopy(self)
+    #     r.g = r.make_pretty()
+    #     node_color = copy.deepcopy(node_color)
+    #     if isinstance(node_color, dict): node_color = {DAG.prettify(f): node_color.pop(f) for f in list(node_color)}
+
+    #     Gcont = nx.DiGraph()
+    #     Glag = nx.DiGraph()
+
+    #     # 1. Nodes definition
+    #     Gcont.add_nodes_from(r.g.keys())
+    #     Glag.add_nodes_from(r.g.keys())
+        
+    #     # 2. Nodes border definition
+    #     border = dict()
+    #     for t in r.g:
+    #         border[t] = 0
+    #         if r.g[t].is_autodependent:
+    #             border[t] = max(DAG.__scale(r.g[t].sources[r.g[t].get_max_autodependent][SCORE], 
+    #                                          min_auto_width, max_auto_width, 
+    #                                          0, r.max_auto_score), 
+    #                             border[t])
+        
+    #     # 3. Nodes border label definition
+    #     node_label = None
+    #     if label_type == LabelType.Lag or label_type == LabelType.Score:
+    #         node_label = {t: [] for t in r.g.keys()}
+    #         for t in r.g:
+    #             if r.g[t].is_autodependent:
+    #                 for s in r.g[t].sources:
+    #                     if s[0] == t:
+    #                         if label_type == LabelType.Lag:
+    #                             node_label[t].append(s[1])
+    #                         elif label_type == LabelType.Score:
+    #                             node_label[t].append(round(r.g[t].sources[s][SCORE], 3))
+    #             node_label[t] = ",".join(str(s) for s in node_label[t])
+
+    #     # 3. Edges definition
+    #     cont_edges = []
+    #     cont_edge_width = dict()
+    #     cont_arrows = {}
+    #     lagged_edges = []
+    #     lagged_edge_width = dict()
+    #     lagged_arrows = {}
+    #     auto_border = [k for k, v in border.items() if v != 0]
+    #     auto_border_width = border
+        
+    #     for t in r.g:
+    #         for s in r.g[t].sources:
+    #             if t != s[0]:  # skip self-loops
+    #                 if s[1] == 0:  # Contemporaneous link (no lag)
+    #                     self.__add_edge(min_cross_width, max_cross_width, 0, self.max_cross_score,
+    #                                     cont_edges, cont_edge_width, cont_arrows, r, t, s, s[0], t)
+    #                 else:  # Lagged link
+    #                     self.__add_edge(min_cross_width, max_cross_width, 0, self.max_cross_score,
+    #                                     lagged_edges, lagged_edge_width, lagged_arrows, r, t, s, s[0], t)
+                        
+    #     Gcont.add_edges_from(cont_edges)
+    #     Glag.add_edges_from(lagged_edges)
+
+
+    #     fig, ax = plt.subplots(figsize=(8, 6))
+
+    #     # 4. Edges label definition
+    #     cont_edge_label = None
+    #     lagged_edge_label = None
+    #     if label_type == LabelType.Lag or label_type == LabelType.Score:
+    #         cont_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] == 0}
+    #         lagged_edge_label = {(s[0], t): [] for t in r.g for s in r.g[t].sources if t != s[0] and s[1] != 0}
+    #         for t in r.g:
+    #             for s in r.g[t].sources:
+    #                 if t != s[0]:
+    #                     if s[1] == 0:  # Contemporaneous
+    #                         if label_type == LabelType.Lag:
+    #                             cont_edge_label[(s[0], t)].append(s[1])
+    #                         elif label_type == LabelType.Score:
+    #                             cont_edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
+    #                     else:  # Lagged
+    #                         if label_type == LabelType.Lag:
+    #                             lagged_edge_label[(s[0], t)].append(s[1])
+    #                         elif label_type == LabelType.Score:
+    #                             lagged_edge_label[(s[0], t)].append(round(r.g[t].sources[s][SCORE], 3))
+    #         for k in cont_edge_label.keys():
+    #             cont_edge_label[k] = ",".join(str(s) for s in cont_edge_label[k])
+    #         for k in lagged_edge_label.keys():
+    #             lagged_edge_label[k] = ",".join(str(s) for s in lagged_edge_label[k])
+
+    #     # 5. Draw graph - contemporaneous
+    #     if cont_edges:
+    #         node_layout = {'$OBS$': np.array([1.  , 0.95]), 
+    #                        '$R_{V}$': np.array([0.75 , (0.95+0.35)/2]), 
+    #                        '$\\Delta R_{B}$': np.array([ 1., 0.35])}
+    #         a = Graph(Gcont,
+    #                 node_layout=node_layout,
+    #                 node_size=node_size,
+    #                 node_color=node_color,
+    #                 node_labels=None,
+    #                 node_edge_width=0,
+    #                 node_label_fontdict=dict(size=font_size),
+    #                 node_edge_color=edge_color,
+    #                 node_label_offset=0.05,
+    #                 node_alpha=1,
+
+    #                 arrows=cont_arrows,
+    #                 edge_layout='straight',
+    #                 edge_label=label_type != LabelType.NoLabels,
+    #                 edge_labels=cont_edge_label,
+    #                 edge_label_fontdict=dict(size=font_size),
+    #                 edge_color=edge_color,
+    #                 tail_color=tail_color,
+    #                 edge_width=cont_edge_width,
+    #                 edge_alpha=1,
+    #                 edge_zorder=1,
+    #                 edge_label_position=0.35)
+
+    #         nx.draw_networkx_labels(Gcont,
+    #                                 pos=a.node_positions,
+    #                                 labels={n: n for n in Gcont},
+    #                                 font_size=font_size)
+
+    #     # 6. Draw graph - lagged
+    #     if lagged_edges or auto_border:
+    #         a = Graph(Glag,
+    #                 node_layout=a.node_positions if cont_edges else node_layout,
+    #                 node_size=node_size,
+    #                 node_color=node_color,
+    #                 node_labels=node_label,
+    #                 node_edge_width=border,
+    #                 node_label_fontdict=dict(size=font_size),
+    #                 node_edge_color=edge_color,
+    #                 node_label_offset=0.05,
+    #                 node_alpha=1,
+
+    #                 arrows=lagged_arrows,
+    #                 edge_layout='curved',
+    #                 edge_label=label_type != LabelType.NoLabels,
+    #                 edge_labels=lagged_edge_label,
+    #                 edge_label_fontdict=dict(size=font_size),
+    #                 edge_color=edge_color,
+    #                 tail_color=tail_color,
+    #                 edge_width=lagged_edge_width,
+    #                 edge_alpha=1,
+    #                 edge_zorder=1,
+    #                 edge_label_position=0.35)
+            
+    #         if not cont_edges:
+    #             nx.draw_networkx_labels(Glag,
+    #                                     pos=a.node_positions,
+    #                                     labels={n: n for n in Glag},
+    #                                     font_size=font_size)
+
+    #     # 7. Plot or save
+    #     if save_name is not None:
+    #         plt.savefig(save_name + img_extention.value, dpi=300)
+    #     else:
+    #         plt.show()
           
    
     def ts_dag(self,

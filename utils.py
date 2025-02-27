@@ -100,12 +100,3 @@ class WP(Enum):
     CHARGING_STATION= "charging-station"
 
 WPS = {wp.value: i for i, wp in enumerate(WP)}
-  
-  
-class NODES(Enum):
-  WP = 'WP'
-  TOD = 'TOD'
-  PD = 'PD'
-  RV = 'R_V'
-  EC = 'EC'
-  LOAD = 'L'
