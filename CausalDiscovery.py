@@ -63,7 +63,7 @@ for bagname in BAGNAME:
         idx = len(DATA_DICT)
         # concatenated_df["TOD"] = detrend(concatenated_df["TOD"], 500)
 
-        DATA_DICT[idx] = Data(concatenated_df, vars = var_names)
+        DATA_DICT[idx] = Data(concatenated_df, varnames = var_names)
         DATA_DICT[idx].plot_timeseries()
 
 DATA_TYPE = {

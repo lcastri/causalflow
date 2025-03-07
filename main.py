@@ -28,7 +28,7 @@ if __name__ == '__main__':
         d[t, 2] += 0.3 * d[t-1, 0] * 0.75 * d[t-2, 1] - 2.5
         d[t, 3] += 0.7 * d[t-1, 3] * d[t-2, 4]
        
-    df = Data(d, vars = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
+    df = Data(d, varnames = ['X_0', 'X_1', 'X_2', 'X_3', 'X_4'])
     
     
     fpcmci = FPCMCI(df,

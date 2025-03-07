@@ -57,8 +57,8 @@ for bagname in BAGNAME:
             
     concat_df = pd.concat(dfs, ignore_index=True)
     concat_df.drop(concat_df[concat_df['B_S'] == 1].index, inplace=True)
-    DATA_DICT_TRAIN = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[:len(concat_df) - treatment_len], vars = CM.features + ["pf_elapsed_time"])
-    DATA_DICT_TEST = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[len(concat_df) - treatment_len:], vars = CM.features + ["pf_elapsed_time"])
+    DATA_DICT_TRAIN = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[:len(concat_df) - treatment_len], varnames = CM.features + ["pf_elapsed_time"])
+    DATA_DICT_TEST = Data(concat_df[CM.features+ ["pf_elapsed_time"]].values[len(concat_df) - treatment_len:], varnames = CM.features + ["pf_elapsed_time"])
     T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], DATA_DICT_TEST.d["pf_elapsed_time"].values[0:]), axis=0)
     DATA_DICT_TRAIN.shrink(CM.features)
     DATA_DICT_TEST.shrink(CM.features)

@@ -55,7 +55,7 @@ for bagname in BAGNAME:
         concatenated_df = pd.concat(dfs, ignore_index=True)
         idx = len(DATA_DICT)
 
-        DATA_DICT[idx] = Data(concatenated_df, vars = var_names)
+        DATA_DICT[idx] = Data(concatenated_df, varnames = var_names)
         # DATA_DICT[idx].plot_timeseries()
 
 DATA_TYPE = {

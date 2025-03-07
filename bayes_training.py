@@ -106,7 +106,7 @@ for bagname in BAGNAME:
         concatenated_df = pd.concat(dfs, ignore_index=True)
         dfs = []
         idx = len(DATA_DICT)
-        DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
+        DATA_DICT[idx] = Data(concatenated_df[var_names].values, varnames = var_names)
         del concatenated_df
         break
 

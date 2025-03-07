@@ -78,14 +78,14 @@ for bagname in BAGNAME:
         concat_PD = np.concatenate(PD_means, axis=0)       
         break
     
-DATA_DICT_TRAIN = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[:starting_t], vars = CM.features + ["pf_elapsed_time"])
-DATA_DICT_TEST = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[starting_t:starting_t+treatment_len], vars = CM.features + ["pf_elapsed_time"])
-DATA_PD_TRAIN = Data(concat_PD[:starting_t], vars = ["PD"])
-DATA_PD_TEST = Data(concat_PD[starting_t:starting_t+treatment_len], vars = ["PD"])
+DATA_DICT_TRAIN = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[:starting_t], varnames = CM.features + ["pf_elapsed_time"])
+DATA_DICT_TEST = Data(concat_df[CM.features + ["pf_elapsed_time"]].values[starting_t:starting_t+treatment_len], varnames = CM.features + ["pf_elapsed_time"])
+DATA_PD_TRAIN = Data(concat_PD[:starting_t], varnames = ["PD"])
+DATA_PD_TEST = Data(concat_PD[starting_t:starting_t+treatment_len], varnames = ["PD"])
 T = np.concatenate((DATA_DICT_TRAIN.d["pf_elapsed_time"].values[- CM.max_lag:], DATA_DICT_TEST.d["pf_elapsed_time"].values), axis=0)
 DATA_DICT_TRAIN.shrink(CM.features)
 DATA_DICT_TEST.shrink(CM.features)
-DATA_DICT = Data(np.concatenate((DATA_DICT_TRAIN.d.values, DATA_DICT_TEST.d.values), axis=0), vars = CM.features)
+DATA_DICT = Data(np.concatenate((DATA_DICT_TRAIN.d.values, DATA_DICT_TEST.d.values), axis=0), varnames = CM.features)
 
 #! Causal Inference: this must be used for the original CIE -- CIE_100_HH_v4
 resELT = cie.whatIfDo(outcome = NODES.ELT.value, 

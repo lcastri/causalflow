@@ -56,14 +56,14 @@ from causalflow.graph.DAG import DAG
 #               'C_S': 'lightgray', 
 #               'OBS': 'lightgray'}
 
-# CM.dag(node_layout = 'circular', node_size = 4, 
-#        min_cross_width = 0.5, max_cross_width = 1.5, save_name=DAGDIR+"dag_circular", node_color=NODE_COLOR)
+# CM.dag(node_layout = 'circular', node_size = 7, font_size=20,
+#        min_cross_width = 1, max_cross_width = 2, save_name=DAGDIR+"dag_circular", node_color=NODE_COLOR, img_extention=ImageExt.PDF,)
 # CM.dag(node_layout = 'dot', node_size = 4, 
-#        min_cross_width = 0.5, max_cross_width = 1.5, save_name=DAGDIR+"dag_dot", node_color=NODE_COLOR)
+#        min_cross_width = 0.5, max_cross_width = 1.5, save_name=DAGDIR+"dag_dot", node_color=NODE_COLOR, img_extention=ImageExt.PDF,)
 # CM.ts_dag(node_size = 4, 
 #           min_cross_width = 0.5, max_cross_width = 1.5, 
 #           x_disp=1.5, y_disp=0.2,
-#           save_name=DAGDIR+"ts_dag", node_color=NODE_COLOR)
+#           save_name=DAGDIR+"ts_dag", node_color=NODE_COLOR, img_extention=ImageExt.PDF,)
 # CM.save(DAGDIR + 'res_modified.pkl')
 
 DAGDIR = '/home/lcastri/git/causalflow/results/BC_PRELIMINARY/'

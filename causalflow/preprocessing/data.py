@@ -17,14 +17,14 @@ from causalflow.preprocessing.subsampling_methods.SubsamplingMethod import Subsa
 class Data():
     """Data class manages the preprocess of the data before the causal analysis."""
     
-    def __init__(self, data, vars = None, fill_nan = True, stand = False, subsampling : SubsamplingMethod = None, show_subsampling = False):
+    def __init__(self, data, varnames = None, fill_nan = True, stand = False, subsampling : SubsamplingMethod = None, show_subsampling = False):
         """
         Class constructor.
 
         Args:
             data (str/DataFrame/np.array): it can be a string specifing the path of a csv file to load/pandas.DataFrame/numpy.array.
-            vars (list(str), optional): List containing variable names. If unset then, 
-                if data = (str/DataFrame) vars = data columns name elif data = np.array vars = [X_0 .. X_N]
+            varnames (list(str), optional): List containing variable names. If unset then, 
+                if data = (str/DataFrame) varnames = data columns name elif data = np.array varnames = [X_0 .. X_N]
                 Defaults to None.
             fill_nan (bool, optional): Fill NaNs bit. Defaults to True.
             stand (bool, optional): Standardization bit. Defaults to False.
@@ -37,7 +37,7 @@ class Data():
         # Data handling
         if type(data) == np.ndarray:
             self.d = pd.DataFrame(data)
-            if vars is None: self.d.columns = list(['X_' + str(f) for f in range(len(self.d.columns))])
+            if varnames is None: self.d.columns = list(['X_' + str(f) for f in range(len(self.d.columns))])
         elif type(data) == pd.DataFrame:
             self.d = data
         elif type(data) == str:
@@ -47,8 +47,8 @@ class Data():
             
         
         # Columns name handling
-        if vars is not None:
-            self.d.columns = list(vars)
+        if varnames is not None:
+            self.d.columns = list(varnames)
                 
         
         self.orig_features = self.features

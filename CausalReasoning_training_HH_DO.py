@@ -68,7 +68,7 @@ for bagname in BAGNAME:
         concatenated_df = pd.concat(dfs, ignore_index=True)
         dfs = []
         idx = len(DATA_DICT)
-        DATA_DICT[idx] = Data(concatenated_df[var_names].values, vars = var_names)
+        DATA_DICT[idx] = Data(concatenated_df[var_names].values, varnames = var_names)
         DATA_DICT[idx].d[NODES.TOD.value] = DATA_DICT[idx].d[NODES.TOD.value].astype(int)
         DATA_DICT[idx].d[NODES.RV.value] = DATA_DICT[idx].d[NODES.RV.value]
         DATA_DICT[idx].d[NODES.RB.value] = DATA_DICT[idx].d[NODES.RB.value]

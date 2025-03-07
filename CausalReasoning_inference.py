@@ -24,8 +24,8 @@ DATA_DICT = {}
 print(f"Loading : {BAGNAME}-{tod}-{wp}")
 filename = os.path.join(INDIR, "my_nonoise", f"{BAGNAME}", tod, f"{BAGNAME}_{tod}_{wp}.csv")
 df = pd.read_csv(filename)
-OBS = Data(df[var_names].values[:int(len(df.values)/2)], vars = var_names)
-DF = Data(df[var_names].values[int(len(df.values)/2):int(len(df.values)/2)+treatment_len], vars = var_names)
+OBS = Data(df[var_names].values[:int(len(df.values)/2)], varnames = var_names)
+DF = Data(df[var_names].values[int(len(df.values)/2):int(len(df.values)/2)+treatment_len], varnames = var_names)
 T = np.array(df["pf_elapsed_time"].values[int(len(df.values)/2)-2:int(len(df.values)/2)+treatment_len])
 
 prior_knowledge = {f: DF.d.values[:treatment_len, DF.features.index(f)] for f in ['TOD', 'B_S']}

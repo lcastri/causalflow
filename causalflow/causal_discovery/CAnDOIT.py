@@ -286,7 +286,7 @@ class CAnDOIT(CausalDiscoveryMethod):
         # Filter phase data preparation
         filter_data = copy.deepcopy(obser_data.d)
         for int_data in inter_data.values(): filter_data = pd.concat([filter_data, int_data.d], axis = 0, ignore_index = True)
-        filter_data = Data(filter_data, vars = obser_data.features)
+        filter_data = Data(filter_data, varnames = obser_data.features)
         
         # Validator phase data preparation
         validator_data = copy.deepcopy(obser_data.d)
@@ -313,7 +313,7 @@ class CAnDOIT(CausalDiscoveryMethod):
             new_column[context_vars[var]['start']: context_vars[var]['end']] = context_vars[var]['data']
             validator_data[var] = new_column
         
-        validator_data = Data(validator_data, vars = list(validator_data.columns))
+        validator_data = Data(validator_data, varnames = list(validator_data.columns))
         
         if plot_data: validator_data.plot_timeseries()
         return filter_data, validator_data
