@@ -1,5 +1,6 @@
 ::: causalflow.causal_discovery.CausalDiscoveryMethod
 ::: causalflow.causal_discovery.baseline.DYNOTEARS
+::: causalflow.causal_discovery.baseline.JPCMCIplus
 ::: causalflow.causal_discovery.baseline.LPCMCI
 ::: causalflow.causal_discovery.baseline.PCMCI
 ::: causalflow.causal_discovery.baseline.PCMCIplus

@@ -485,6 +485,7 @@ pip install py-causalflow
 
 | Version | Changes |
 | :---: | ----------- |
+| 4.0.5 | JPCMCI+ fix<br>DAG __add_edge dockstring fix<br>DAG load and filter methods added<br>DAG node colour with dict<br>DAG dag() node border label fix: it allows multiple lags/scores|
 | 4.0.4 | IDTxl v1.4 |
 | 4.0.3 | numba version fix<br>DAG dag() fix<br>CAnDOIT fix: min_lag must be equal to 0|
 | 4.0.2 | PyPI fixes<br>rectangle-packer and grandalf added to requirements<br>numba version fix<br>causal_discovery/baseline/pkgs fix|

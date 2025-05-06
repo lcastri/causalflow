@@ -24,10 +24,19 @@ CausalFlow is a python library for causal analysis from time-series data. It com
   ```
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
-  [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
+  [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://onlinelibrary.wiley.com/doi/epdf/10.1002/aisy.202400181),<br>
   Advanced Intelligent Systems.<br>
   ```
-  BibTex coming soon!
+  @article{castri2024candoit,
+    title={CAnDOIT: Causal Discovery with Observational and Interventional Data from Time Series},
+    author={Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
+    journal={Advanced Intelligent Systems},
+    volume={6},
+    number={12},
+    pages={2400181},
+    year={2024},
+    publisher={Wiley Online Library}
+  }
   ```
 * Tutorials [Coming soon..]
 
@@ -367,10 +376,19 @@ Please consider citing the following papers depending on which method you use:
   ```
 * <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/candoit_icon.png" width="15"> CAnDOIT:<br>
   L. Castri, S. Mghames, M. Hanheide and N. Bellotto (2024).<br>
-  [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://arxiv.org/pdf/2410.02844),<br>
+  [CAnDOIT: Causal Discovery with Observational and Interventional Data from Time-Series](https://onlinelibrary.wiley.com/doi/epdf/10.1002/aisy.202400181),<br>
   Advanced Intelligent Systems.<br>
   ```
-  BibTex coming soon!
+  @article{castri2024candoit,
+    title={CAnDOIT: Causal Discovery with Observational and Interventional Data from Time Series},
+    author={Castri, Luca and Mghames, Sariah and Hanheide, Marc and Bellotto, Nicola},
+    journal={Advanced Intelligent Systems},
+    volume={6},
+    number={12},
+    pages={2400181},
+    year={2024},
+    publisher={Wiley Online Library}
+  }
   ```
 
 
@@ -444,6 +462,7 @@ pip install py-causalflow
 
 | Version | Changes |
 | :---: | ----------- |
+| 4.0.5 | JPCMCI+ fix<br>DAG __add_edge dockstring fix<br>DAG load and filter methods added<br>DAG node colour with dict<br>DAG dag() node border label fix: it allows multiple lags/scores|
 | 4.0.4 | IDTxl v1.4 |
 | 4.0.3 | numba version fix<br>DAG dag() fix<br>CAnDOIT fix: min_lag must be equal to 0|
 | 4.0.2 | PyPI fixes<br>rectangle-packer and grandalf added to requirements<br>numba version fix<br>causal_discovery/baseline/pkgs fix|

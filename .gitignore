@@ -362,3 +362,11 @@ results/
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/data.txt
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/knowledge.txt
 causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/resultFCI.txt
+/CIE
+/CIE_DARKO_v1
+/CIE_DARKO_v2
+/CIE_DARKO_v3
+/CIE3.8
+/my_pd
+CIE.bifxml
+res_v3.pkl
