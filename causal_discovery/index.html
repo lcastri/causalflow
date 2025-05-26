@@ -16,7 +16,7 @@
       
         <link rel="next" href="../FPCMCI/">
       
-      <link rel="icon" href="../assets/causalflow_icon.png">
+      <link rel="icon" href="../assets/causalflow-icon-color.png">
       <meta name="generator" content="mkdocs-1.5.2, mkdocs-material-9.1.21">
     
     
@@ -93,7 +93,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="CausalFlow" class="md-header__button md-logo" aria-label="CausalFlow" data-md-component="logo">
       
-  <img src="../assets/causalflow_logo.png" alt="logo">
+  <img src="../assets/causalflow-icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -204,7 +204,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="CausalFlow" class="md-nav__button md-logo" aria-label="CausalFlow" data-md-component="logo">
       
-  <img src="../assets/causalflow_logo.png" alt="logo">
+  <img src="../assets/causalflow-icon.png" alt="logo">
 
     </a>
     CausalFlow
@@ -381,6 +381,40 @@
         
           <li class="md-nav__item">
   <a href="#causalflow.causal_discovery.baseline.DYNOTEARS.DYNOTEARS.run" class="md-nav__link">
+    run()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus" class="md-nav__link">
+    causalflow.causal_discovery.baseline.JPCMCIplus
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus" class="md-nav__link">
+    JPCMCIplus
+  </a>
+  
+    <nav class="md-nav" aria-label="JPCMCIplus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus.__init__" class="md-nav__link">
+    __init__()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus.run" class="md-nav__link">
     run()
   </a>
   
@@ -766,6 +800,40 @@
         
           <li class="md-nav__item">
   <a href="#causalflow.causal_discovery.baseline.DYNOTEARS.DYNOTEARS.run" class="md-nav__link">
+    run()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus" class="md-nav__link">
+    causalflow.causal_discovery.baseline.JPCMCIplus
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus" class="md-nav__link">
+    JPCMCIplus
+  </a>
+  
+    <nav class="md-nav" aria-label="JPCMCIplus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus.__init__" class="md-nav__link">
+    __init__()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus.run" class="md-nav__link">
     run()
   </a>
   
@@ -2198,6 +2266,806 @@ large-scale time series datasets.</p>
             <span class="n">graph_dict</span><span class="p">[</span><span class="n">tname_to_name_dict</span><span class="p">[</span><span class="n">e</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">tname_to_name_dict</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">w</span><span class="p">,</span> <span class="o">-</span><span class="n">t</span><span class="p">))</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_DAG</span><span class="p">(</span><span class="n">graph_dict</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">resfolder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CM</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+
+  </div>
+
+  </div>
+
+</div>
+
+
+
+
+  </div>
+
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+<a id="causalflow.causal_discovery.baseline.JPCMCIplus"></a>
+  <div class="doc doc-contents first">
+  
+      <p>This module provides the J-PCMCI+ class.</p>
+
+<details class="classes" open>
+  <summary>Classes</summary>
+  <p>JPCMCIplus: class containing the J-PCMCI+ causal discovery algorithm.</p>
+</details>
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus" class="doc doc-heading">
+          <code>JPCMCIplus</code>
+
+
+</h2>
+
+
+  <div class="doc doc-contents ">
+          <p class="doc doc-class-bases">
+            Bases: <code><a class="autorefs autorefs-internal" title="causalflow.causal_discovery.CausalDiscoveryMethod.CausalDiscoveryMethod" href="#causalflow.causal_discovery.CausalDiscoveryMethod.CausalDiscoveryMethod">CausalDiscoveryMethod</a></code></p>
+
+  
+      <p>J-PCMCI+ causal discovery method.</p>
+
+            <details class="quote">
+              <summary>Source code in <code>causalflow/causal_discovery/baseline/JPCMCIplus.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">JPCMCIplus</span><span class="p">(</span><span class="n">CausalDiscoveryMethod</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;J-PCMCI+ causal discovery method.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">data</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span>
+                 <span class="n">min_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">,</span> 
+                 <span class="n">val_condtest</span><span class="p">:</span> <span class="n">CondIndTest</span><span class="p">,</span>
+                 <span class="n">node_classification</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+                 <span class="n">data_type</span> <span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+                 <span class="n">verbosity</span><span class="p">:</span> <span class="n">CPLevel</span><span class="p">,</span>
+                 <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> 
+                 <span class="n">resfolder</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">neglect_only_autodep</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">clean_cls</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class constructor.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (Iterable[Data]): list/tuple/dict of data to analyse.</span>
+<span class="sd">            min_lag (int): minimum time lag.</span>
+<span class="sd">            max_lag (int): maximum time lag.</span>
+<span class="sd">            val_condtest (CondIndTest): validation method.</span>
+<span class="sd">            node_classification (dict): {node index: &quot;system&quot; | &quot;space_context&quot; | &quot;time_context&quot;}.</span>
+<span class="sd">            data_type (dict): {node index: DataType.Continuos | DataType.Discrete}.</span>
+<span class="sd">            verbosity (CPLevel): verbosity level.</span>
+<span class="sd">            alpha (float, optional): significance level. Defaults to 0.05.</span>
+<span class="sd">            resfolder (string, optional): result folder to create. Defaults to None.</span>
+<span class="sd">            neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.</span>
+<span class="sd">            clean_cls (bool): Clean console bit. Default to True.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: data_type field needed if Conditional Independece Test == RegressionCI</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val_condtest</span><span class="p">,</span> <span class="n">RegressionCI</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data_type field needed if Conditional Independece Test == RegressionCI&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">min_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">,</span> <span class="n">verbosity</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">resfolder</span><span class="p">,</span> <span class="n">neglect_only_autodep</span><span class="p">,</span> <span class="n">clean_cls</span><span class="p">)</span>
+        <span class="n">DATA_DICT</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">DATA_TYPE</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">DATA_DICT</span><span class="p">)</span>
+            <span class="n">DATA_DICT</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">DATA_TYPE</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">features</span><span class="p">:</span>
+                <span class="n">DATA_TYPE</span><span class="p">[</span><span class="n">idx</span><span class="p">][:,</span> <span class="n">d</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span> <span class="o">=</span> <span class="n">data_type</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="n">dataframe</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">DATA_DICT</span><span class="p">,</span>
+            <span class="n">data_type</span> <span class="o">=</span> <span class="n">DATA_TYPE</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val_condtest</span><span class="p">,</span> <span class="n">RegressionCI</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">analysis_mode</span> <span class="o">=</span> <span class="s1">&#39;multiple&#39;</span><span class="p">,</span>
+            <span class="n">var_names</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">features</span>
+            <span class="p">)</span>
+
+
+        <span class="c1"># init pcmci</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jpcmci</span> <span class="o">=</span> <span class="n">jpcmci</span><span class="p">(</span><span class="n">dataframe</span> <span class="o">=</span> <span class="n">dataframe</span><span class="p">,</span>
+                             <span class="n">cond_ind_test</span> <span class="o">=</span> <span class="n">val_condtest</span><span class="p">,</span>
+                             <span class="n">node_classification</span> <span class="o">=</span> <span class="n">node_classification</span><span class="p">,</span>
+                             <span class="n">verbosity</span> <span class="o">=</span> <span class="n">verbosity</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link_assumptions</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DAG</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run causal discovery algorithm.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            link_assumptions (dict, optional): prior knowledge on causal model links. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (DAG): estimated causal model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">CP</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">CP</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">DASH</span><span class="p">)</span>
+        <span class="n">CP</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running Causal Discovery Algorithm&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jpcmci</span><span class="o">.</span><span class="n">run_jpcmciplus</span><span class="p">(</span><span class="n">link_assumptions</span><span class="o">=</span><span class="n">link_assumptions</span><span class="p">,</span>
+                                                 <span class="n">tau_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_lag</span><span class="p">,</span>
+                                                 <span class="n">tau_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_lag</span><span class="p">,</span>
+                                                 <span class="n">pc_alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">CM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_DAG</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">resfolder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CM</span>
+
+
+    <span class="k">def</span> <span class="nf">_to_DAG</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Re-elaborates the PCMCI result in a new dictionary.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (DAG): pcmci result re-elaborated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">features</span>
+        <span class="n">tmp_dag</span> <span class="o">=</span> <span class="n">DAG</span><span class="p">(</span><span class="nb">vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_lag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_lag</span><span class="p">)</span>
+        <span class="n">tmp_dag</span><span class="o">.</span><span class="n">sys_context</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">N</span><span class="p">,</span> <span class="n">lags</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;graph&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;graph&#39;</span><span class="p">])):</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">lag</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lags</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;graph&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                        <span class="n">arrowtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;graph&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">]</span>
+
+                        <span class="k">if</span> <span class="n">arrowtype</span> <span class="o">==</span> <span class="n">LinkType</span><span class="o">.</span><span class="n">Bidirected</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="p">((</span><span class="nb">vars</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="nb">abs</span><span class="p">(</span><span class="n">lag</span><span class="p">))</span> <span class="ow">in</span> <span class="n">tmp_dag</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="nb">vars</span><span class="p">[</span><span class="n">t</span><span class="p">]]</span><span class="o">.</span><span class="n">sources</span> <span class="ow">and</span> 
+                                <span class="n">tmp_dag</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">sources</span><span class="p">[(</span><span class="nb">vars</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="nb">abs</span><span class="p">(</span><span class="n">lag</span><span class="p">))][</span><span class="n">TYPE</span><span class="p">]</span> <span class="o">==</span> <span class="n">LinkType</span><span class="o">.</span><span class="n">Bidirected</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
+                                <span class="k">continue</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">tmp_dag</span><span class="o">.</span><span class="n">add_source</span><span class="p">(</span><span class="nb">vars</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> 
+                                                <span class="nb">vars</span><span class="p">[</span><span class="n">s</span><span class="p">],</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;val_matrix&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">],</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;p_matrix&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">],</span>
+                                                <span class="n">lag</span><span class="p">,</span>
+                                                <span class="n">arrowtype</span><span class="p">)</span>
+
+
+                        <span class="k">elif</span> <span class="n">arrowtype</span> <span class="o">==</span> <span class="n">LinkType</span><span class="o">.</span><span class="n">Uncertain</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="p">((</span><span class="nb">vars</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="nb">abs</span><span class="p">(</span><span class="n">lag</span><span class="p">))</span> <span class="ow">in</span> <span class="n">tmp_dag</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="nb">vars</span><span class="p">[</span><span class="n">s</span><span class="p">]]</span><span class="o">.</span><span class="n">sources</span> <span class="ow">and</span> 
+                                <span class="n">tmp_dag</span><span class="o">.</span><span class="n">g</span><span class="p">[</span><span class="nb">vars</span><span class="p">[</span><span class="n">s</span><span class="p">]]</span><span class="o">.</span><span class="n">sources</span><span class="p">[(</span><span class="nb">vars</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="nb">abs</span><span class="p">(</span><span class="n">lag</span><span class="p">))][</span><span class="n">TYPE</span><span class="p">]</span> <span class="o">==</span> <span class="n">LinkType</span><span class="o">.</span><span class="n">Uncertain</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
+                                <span class="k">continue</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">tmp_dag</span><span class="o">.</span><span class="n">add_source</span><span class="p">(</span><span class="nb">vars</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> 
+                                                <span class="nb">vars</span><span class="p">[</span><span class="n">s</span><span class="p">],</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;val_matrix&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">],</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;p_matrix&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">],</span>
+                                                <span class="n">lag</span><span class="p">,</span>
+                                                <span class="n">arrowtype</span><span class="p">)</span>
+
+
+                        <span class="k">elif</span> <span class="p">(</span><span class="n">arrowtype</span> <span class="o">==</span> <span class="n">LinkType</span><span class="o">.</span><span class="n">Directed</span><span class="o">.</span><span class="n">value</span> <span class="ow">or</span>
+                              <span class="n">arrowtype</span> <span class="o">==</span> <span class="n">LinkType</span><span class="o">.</span><span class="n">HalfUncertain</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
+                            <span class="n">tmp_dag</span><span class="o">.</span><span class="n">add_source</span><span class="p">(</span><span class="nb">vars</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> 
+                                            <span class="nb">vars</span><span class="p">[</span><span class="n">s</span><span class="p">],</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;val_matrix&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">],</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;p_matrix&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="n">lag</span><span class="p">],</span>
+                                            <span class="n">lag</span><span class="p">,</span>
+                                            <span class="n">arrowtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tmp_dag</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+
+  
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus.__init__" class="doc doc-heading">
+<code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">min_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">,</span> <span class="n">val_condtest</span><span class="p">,</span> <span class="n">node_classification</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">verbosity</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">resfolder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neglect_only_autodep</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clean_cls</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Class constructor.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>data</code></td>
+          <td>
+                <code><span title="collections.abc.Iterable">Iterable</span>[<a class="autorefs autorefs-internal" title="causalflow.preprocessing.data.Data" href="../preprocessing/#causalflow.preprocessing.data.Data">Data</a>]</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>list/tuple/dict of data to analyse.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>min_lag</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>minimum time lag.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>max_lag</code></td>
+          <td>
+                <code>int</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>maximum time lag.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>val_condtest</code></td>
+          <td>
+                <code><span title="tigramite.independence_tests.independence_tests_base.CondIndTest">CondIndTest</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>validation method.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>node_classification</code></td>
+          <td>
+                <code>dict</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>{node index: "system" | "space_context" | "time_context"}.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>data_type</code></td>
+          <td>
+                <code>dict</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>{node index: DataType.Continuos | DataType.Discrete}.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>verbosity</code></td>
+          <td>
+                <code><span title="causalflow.CPrinter.CPLevel">CPLevel</span></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>verbosity level.</p>
+            </div>
+          </td>
+          <td>
+              <em>required</em>
+          </td>
+        </tr>
+        <tr>
+          <td><code>alpha</code></td>
+          <td>
+                <code>float</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>significance level. Defaults to 0.05.</p>
+            </div>
+          </td>
+          <td>
+                <code>0.05</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>resfolder</code></td>
+          <td>
+                <code>string</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>result folder to create. Defaults to None.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>neglect_only_autodep</code></td>
+          <td>
+                <code>bool</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Bit for neglecting variables with only autodependency. Defaults to False.</p>
+            </div>
+          </td>
+          <td>
+                <code>False</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>clean_cls</code></td>
+          <td>
+                <code>bool</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>Clean console bit. Default to True.</p>
+            </div>
+          </td>
+          <td>
+                <code>True</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Raises:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code>ValueError</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>data_type field needed if Conditional Independece Test == RegressionCI</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>causalflow/causal_discovery/baseline/JPCMCIplus.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+             <span class="n">data</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span>
+             <span class="n">min_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">,</span> 
+             <span class="n">val_condtest</span><span class="p">:</span> <span class="n">CondIndTest</span><span class="p">,</span>
+             <span class="n">node_classification</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+             <span class="n">data_type</span> <span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+             <span class="n">verbosity</span><span class="p">:</span> <span class="n">CPLevel</span><span class="p">,</span>
+             <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> 
+             <span class="n">resfolder</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+             <span class="n">neglect_only_autodep</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="n">clean_cls</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class constructor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (Iterable[Data]): list/tuple/dict of data to analyse.</span>
+<span class="sd">        min_lag (int): minimum time lag.</span>
+<span class="sd">        max_lag (int): maximum time lag.</span>
+<span class="sd">        val_condtest (CondIndTest): validation method.</span>
+<span class="sd">        node_classification (dict): {node index: &quot;system&quot; | &quot;space_context&quot; | &quot;time_context&quot;}.</span>
+<span class="sd">        data_type (dict): {node index: DataType.Continuos | DataType.Discrete}.</span>
+<span class="sd">        verbosity (CPLevel): verbosity level.</span>
+<span class="sd">        alpha (float, optional): significance level. Defaults to 0.05.</span>
+<span class="sd">        resfolder (string, optional): result folder to create. Defaults to None.</span>
+<span class="sd">        neglect_only_autodep (bool, optional): Bit for neglecting variables with only autodependency. Defaults to False.</span>
+<span class="sd">        clean_cls (bool): Clean console bit. Default to True.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: data_type field needed if Conditional Independece Test == RegressionCI</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val_condtest</span><span class="p">,</span> <span class="n">RegressionCI</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data_type field needed if Conditional Independece Test == RegressionCI&quot;</span><span class="p">)</span>
+
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">min_lag</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">,</span> <span class="n">verbosity</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">resfolder</span><span class="p">,</span> <span class="n">neglect_only_autodep</span><span class="p">,</span> <span class="n">clean_cls</span><span class="p">)</span>
+    <span class="n">DATA_DICT</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">DATA_TYPE</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">DATA_DICT</span><span class="p">)</span>
+        <span class="n">DATA_DICT</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">DATA_TYPE</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">features</span><span class="p">:</span>
+            <span class="n">DATA_TYPE</span><span class="p">[</span><span class="n">idx</span><span class="p">][:,</span> <span class="n">d</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span> <span class="o">=</span> <span class="n">data_type</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="n">dataframe</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">DATA_DICT</span><span class="p">,</span>
+        <span class="n">data_type</span> <span class="o">=</span> <span class="n">DATA_TYPE</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val_condtest</span><span class="p">,</span> <span class="n">RegressionCI</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">analysis_mode</span> <span class="o">=</span> <span class="s1">&#39;multiple&#39;</span><span class="p">,</span>
+        <span class="n">var_names</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">features</span>
+        <span class="p">)</span>
+
+
+    <span class="c1"># init pcmci</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">jpcmci</span> <span class="o">=</span> <span class="n">jpcmci</span><span class="p">(</span><span class="n">dataframe</span> <span class="o">=</span> <span class="n">dataframe</span><span class="p">,</span>
+                         <span class="n">cond_ind_test</span> <span class="o">=</span> <span class="n">val_condtest</span><span class="p">,</span>
+                         <span class="n">node_classification</span> <span class="o">=</span> <span class="n">node_classification</span><span class="p">,</span>
+                         <span class="n">verbosity</span> <span class="o">=</span> <span class="n">verbosity</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="causalflow.causal_discovery.baseline.JPCMCIplus.JPCMCIplus.run" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">run</span><span class="p">(</span><span class="n">link_assumptions</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Run causal discovery algorithm.</p>
+
+
+
+  <p><strong>Parameters:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>link_assumptions</code></td>
+          <td>
+                <code>dict</code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>prior knowledge on causal model links. Defaults to None.</p>
+            </div>
+          </td>
+          <td>
+                <code>None</code>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+  <p><strong>Returns:</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+                <code><a class="autorefs autorefs-internal" title="causalflow.graph.DAG.DAG" href="../graph/#causalflow.graph.DAG.DAG">DAG</a></code>
+          </td>
+          <td>
+            <div class="doc-md-description">
+              <p>estimated causal model.</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>causalflow/causal_discovery/baseline/JPCMCIplus.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">link_assumptions</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DAG</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run causal discovery algorithm.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        link_assumptions (dict, optional): prior knowledge on causal model links. Defaults to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (DAG): estimated causal model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">CP</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">CP</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">DASH</span><span class="p">)</span>
+    <span class="n">CP</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running Causal Discovery Algorithm&quot;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jpcmci</span><span class="o">.</span><span class="n">run_jpcmciplus</span><span class="p">(</span><span class="n">link_assumptions</span><span class="o">=</span><span class="n">link_assumptions</span><span class="p">,</span>
+                                             <span class="n">tau_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_lag</span><span class="p">,</span>
+                                             <span class="n">tau_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_lag</span><span class="p">,</span>
+                                             <span class="n">pc_alpha</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CM</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_DAG</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">resfolder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CM</span>
