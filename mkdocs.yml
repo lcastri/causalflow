@@ -23,8 +23,8 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
 
-  logo: assets/causalflow_logo.png
-  favicon: assets/causalflow_icon.png
+  logo: assets/causalflow-icon.png
+  favicon: assets/causalflow-icon-color.png
 
 
 plugins:
