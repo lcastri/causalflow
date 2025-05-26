@@ -1,4 +1,6 @@
-## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="25"> CausalFlow: a Collection of Methods for Causal Discovery from Time-series
+<!-- ## <img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow_icon.png" width="25"> CausalFlow: a Collection of Methods for Causal Discovery from Time-series -->
+
+<img src="https://github.com/lcastri/causalflow/raw/main/docs/assets/causalflow-logo.png" width="100%">
 
 [![PyPI version](https://badge.fury.io/py/py-causalflow.svg)](https://pypi.org/project/py-causalflow/)
 [![Documentation Status](https://img.shields.io/badge/docs-latest-blue.svg)](https://lcastri.github.io/causalflow/)
