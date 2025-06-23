@@ -6,6 +6,8 @@ Classes:
 """
     
 import copy
+import pickle
+from matplotlib.patches import Rectangle
 import numpy as np
 from causalflow.graph.Node import Node
 from causalflow.basics.constants import *
@@ -53,18 +55,7 @@ class DAG():
         """
         return list(self.g.keys())
     
-    
-    @property
-    def pretty_features(self) -> list:
-        """
-        Return list of features with LaTeX symbols.
-                
-        Returns:
-            list(str): list of feature names.
-        """
-        return [r'$' + str(v) + '$' for v in self.g.keys()]
-
-    
+        
     @property
     def autodep_nodes(self) -> list:
         """
@@ -130,10 +121,31 @@ class DAG():
         Returns:
             DAG: loaded DAG object.
         """
-        cm = cls(list(pkl['causal_model'].g.keys()), pkl['causal_model'].min_lag, pkl['causal_model'].max_lag)
-        cm.g = pkl['causal_model'].g
+        if 'neglect_autodep' not in pkl: 
+            cm = cls(list(pkl['features']), pkl['min_lag'], pkl['max_lag'])
+        else:
+            cm = cls(list(pkl['features']), pkl['min_lag'], pkl['max_lag'], pkl['neglect_autodep'])
+            
+        cm.g = pkl['graph']
 
         return cm
+    
+
+    def save(self, respath):
+        """
+        Save DAG object as pickle file at respath.
+
+        Args:
+            respath (str): path where to save the DAG object.
+        """
+        res = dict()
+        res['graph'] = self.g
+        res['features'] = self.features
+        res['min_lag'] = self.min_lag
+        res['max_lag'] = self.max_lag
+        res['neglect_autodep'] = self.neglect_autodep
+        with open(respath, 'wb') as resfile:
+            pickle.dump(res, resfile)
     
     
     def filter_alpha(self, alpha):
@@ -151,7 +163,7 @@ class DAG():
             for s in self.g[t].sources:
                 if self.g[t].sources[s][PVAL] > alpha:
                     cm.del_source(t, s[0], s[1])
-        return cm      
+        return cm        
     
     
     def add_source(self, t, s, score, pval, lag, mode = LinkType.Directed.value):
@@ -255,7 +267,23 @@ class DAG():
                     link_assump[self.features.index(t)][(self.features.index(s[0]), -abs(s[1]))] = '-->'
                     
         return link_assump
-   
+    
+    @staticmethod
+    def prettify(name: str):
+        """
+        Turn a string in LaTeX-style.
+
+        Args:
+            name (str): string to convert.
+
+        Returns:
+            str: converted string.
+        """
+        # Check if the name is already in LaTeX-style format
+        if name.startswith('$') and name.endswith('$') and re.search(r'_\{\w+\}', name):
+            return name
+        return '$' + re.sub(r'_(\w+)', r'_{\1}', name) + '$'
+    
     
     def make_pretty(self) -> dict:
         """
@@ -264,18 +292,15 @@ class DAG():
         Returns:
             dict: pretty DAG.
         """
-        def prettify(name):
-            return '$' + re.sub(r'_(\w+)', r'_{\1}', name) + '$'
-        
         pretty = dict()
         for t in self.g:
-            p_t = prettify(t)
+            p_t = DAG.prettify(t)
             pretty[p_t] = copy.deepcopy(self.g[t])
             pretty[p_t].name = p_t
-            pretty[p_t].children = [prettify(c) for c in self.g[t].children]
+            pretty[p_t].children = [DAG.prettify(c) for c in self.g[t].children]
             for s in self.g[t].sources:
                 del pretty[p_t].sources[s]
-                p_s = prettify(s[0])
+                p_s = DAG.prettify(s[0])
                 pretty[p_t].sources[(p_s, s[1])] = {
                     SCORE: self.g[t].sources[s][SCORE],
                     PVAL: self.g[t].sources[s][PVAL],
@@ -307,14 +332,14 @@ class DAG():
         """
         edges.append((s_node, t_node))
         score = r.g[t].sources[s][SCORE] if r.g[t].sources[s][SCORE] != float('inf') else 1
-        edge_width[(s_node, t_node)] = self.__scale(score, min_width, max_width, min_score, max_score)
+        edge_width[(s_node, t_node)] = DAG.__scale(score, min_width, max_width, min_score, max_score)
         
         if r.g[t].sources[s][TYPE] == LinkType.Directed.value:
             arrows[(s_node, t_node)] = {'h':'>', 't':''}
             
         elif r.g[t].sources[s][TYPE] == LinkType.Bidirected.value:
             edges.append((t_node, s_node))
-            edge_width[(t_node, s_node)] = self.__scale(score, min_width, max_width, min_score, max_score)
+            edge_width[(t_node, s_node)] = DAG.__scale(score, min_width, max_width, min_score, max_score)
             arrows[(t_node, s_node)] = {'h':'>', 't':''}
             arrows[(s_node, t_node)] = {'h':'>', 't':''}
             
@@ -328,7 +353,7 @@ class DAG():
             raise ValueError(f"{r.g[t].sources[s][TYPE]} not included in LinkType")
              
     
-    def dag(self,
+    def plot_graph(self,
         node_layout='dot',
         min_auto_width=0.25, 
         max_auto_width=0.75,
@@ -352,7 +377,10 @@ class DAG():
             min_cross_width (float, optional): minimum edge linewidth. Defaults to 1.
             max_cross_width (float, optional): maximum edge linewidth. Defaults to 5.
             node_size (int, optional): node size. Defaults to 8.
-            node_color (str, optional): node color. Defaults to 'orange'.
+            node_color (str/dict, optional): node color. 
+                                             If a string, all the nodes will have the same colour. 
+                                             If a dict, each node will have its specified colour.
+                                             Defaults to 'orange'.
             edge_color (str, optional): edge color for contemporaneous links. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
             font_size (int, optional): font size. Defaults to 8.
@@ -362,6 +390,10 @@ class DAG():
         """
         r = copy.deepcopy(self)
         r.g = r.make_pretty()
+        if not isinstance(node_color, str):
+            node_color = copy.deepcopy(node_color)
+            node_color = {DAG.prettify(f): node_color.pop(f) for f in list(node_color)}
+
 
         Gcont = nx.DiGraph()
         Glag = nx.DiGraph()
@@ -375,9 +407,9 @@ class DAG():
         for t in r.g:
             border[t] = 0
             if r.g[t].is_autodependent:
-                border[t] = max(self.__scale(r.g[t].sources[r.g[t].get_max_autodependent][SCORE], 
+                border[t] = max(DAG.__scale(r.g[t].sources[r.g[t].get_max_autodependent][SCORE], 
                                              min_auto_width, max_auto_width, 
-                                             0, self.max_auto_score), 
+                                             0, r.max_auto_score), 
                                 border[t])
         
         # 3. Nodes border label definition
@@ -386,11 +418,12 @@ class DAG():
             node_label = {t: [] for t in r.g.keys()}
             for t in r.g:
                 if r.g[t].is_autodependent:
-                    autodep = r.g[t].get_max_autodependent
-                    if label_type == LabelType.Lag:
-                        node_label[t].append(autodep[1])
-                    elif label_type == LabelType.Score:
-                        node_label[t].append(round(r.g[t].sources[autodep][SCORE], 3))
+                    for s in r.g[t].sources:
+                        if s[0] == t:
+                            if label_type == LabelType.Lag:
+                                node_label[t].append(s[1])
+                            elif label_type == LabelType.Score:
+                                node_label[t].append(round(r.g[t].sources[s][SCORE], 3))
                 node_label[t] = ",".join(str(s) for s in node_label[t])
 
         # 3. Edges definition
@@ -474,7 +507,7 @@ class DAG():
         # 6. Draw graph - lagged
         if lagged_edges:
             a = Graph(Glag,
-                    node_layout=a.node_positions,
+                    node_layout=a.node_positions if cont_edges else node_layout,
                     node_size=node_size,
                     node_color=node_color,
                     node_labels=node_label,
@@ -495,7 +528,12 @@ class DAG():
                     edge_alpha=1,
                     edge_zorder=1,
                     edge_label_position=0.35)
-
+            
+            if not cont_edges:
+                nx.draw_networkx_labels(Gcont,
+                                        pos=a.node_positions,
+                                        labels={n: n for n in Glag},
+                                        font_size=font_size)
         # 7. Plot or save
         if save_name is not None:
             plt.savefig(save_name + img_extention.value, dpi=300)
@@ -503,7 +541,7 @@ class DAG():
             plt.show()
           
    
-    def ts_dag(self,
+    def plot_ts_graph(self,
                min_cross_width = 1, 
                max_cross_width = 5,
                node_size = 8,
@@ -524,9 +562,9 @@ class DAG():
             node_size (int, optional): node size. Defaults to 8.
             x_disp (float, optional): node displacement along x. Defaults to 1.5.
             y_disp (float, optional): node displacement along y. Defaults to 0.2.
-            node_color (str/list, optional): node color. 
+            node_color (str/dict, optional): node color. 
                                              If a string, all the nodes will have the same colour. 
-                                             If a list (same dimension of features), each colour will have the specified colour.
+                                             If a dict, each node will have its specified colour.
                                              Defaults to 'orange'.
             edge_color (str, optional): edge color. Defaults to 'grey'.
             tail_color (str, optional): tail color. Defaults to 'black'.
@@ -541,8 +579,8 @@ class DAG():
         Glagcross = nx.DiGraph()
         Glagauto = nx.DiGraph()
 
-        # 1. Nodes definition
-        if isinstance(node_color, list):
+         # 1. Nodes definition
+        if isinstance(node_color, dict):
             node_c = dict()
         else:
             node_c = node_color
@@ -551,7 +589,7 @@ class DAG():
                 Glagauto.add_node((j, i))
                 Glagcross.add_node((j, i))
                 Gcont.add_node((j, i))
-                if isinstance(node_color, list): node_c[(j, i)] = node_color[abs(i - (len(r.g.keys()) - 1))]
+                if isinstance(node_color, dict): node_c[(j, i)] = node_color[self.features[abs(i - (len(r.g.keys()) - 1))]]
                 
         pos = {n : (n[0]*x_disp, n[1]*y_disp) for n in Glagauto.nodes()}
         scale = max(pos.values())
@@ -624,68 +662,77 @@ class DAG():
         
         # 5. Draw graph - contemporaneous
         if cont_edges:
-            a = Graph(Gcont,
-                    node_layout={p : np.array(pos[p]) for p in pos},
-                    node_size=node_size,
-                    node_color=node_c,
-                    node_edge_width=0,
-                    node_label_fontdict=dict(size=font_size),
-                    node_label_offset=0,
-                    node_alpha=1,
+            Graph(Gcont,
+                  node_layout={p : np.array(pos[p]) for p in pos},
+                  node_size=node_size,
+                  node_color=node_c,
+                  node_edge_width=0,
+                  node_label_fontdict=dict(size=font_size),
+                  node_label_offset=0,
+                  node_alpha=1,
 
-                    arrows=cont_arrows,
-                    edge_layout=edge_layout,
-                    edge_label=False,
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=cont_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    scale = (scale[0] + 2, scale[1] + 2))
+                  arrows=cont_arrows,
+                  edge_layout=edge_layout,
+                  edge_label=False,
+                  edge_color=edge_color,
+                  tail_color=tail_color,
+                  edge_width=cont_edge_width,
+                  edge_alpha=1,
+                  edge_zorder=1,
+                  scale = (scale[0] + 2, scale[1] + 2))
 
         # 6. Draw graph - lagged cross
         if lagged_cross_edges:
-            a = Graph(Glagcross,
-                    node_layout={p : np.array(pos[p]) for p in pos},
-                    node_size=node_size,
-                    node_color=node_c,
-                    node_edge_width=0,
-                    node_label_fontdict=dict(size=font_size),
-                    node_label_offset=0,
-                    node_alpha=1,
+            Graph(Glagcross,
+                  node_layout={p : np.array(pos[p]) for p in pos},
+                  node_size=node_size,
+                  node_color=node_c,
+                  node_edge_width=0,
+                  node_label_fontdict=dict(size=font_size),
+                  node_label_offset=0,
+                  node_alpha=1,
 
-                    arrows=lagged_cross_arrows,
-                    edge_layout='curved',
-                    edge_label=False,
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=lagged_cross_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    scale = (scale[0] + 2, scale[1] + 2))
+                  arrows=lagged_cross_arrows,
+                  edge_layout='curved',
+                  edge_label=False,
+                  edge_color=edge_color,
+                  tail_color=tail_color,
+                  edge_width=lagged_cross_edge_width,
+                  edge_alpha=1,
+                  edge_zorder=1,
+                  scale = (scale[0] + 2, scale[1] + 2))
             
         # 7. Draw graph - lagged auto
         if lagged_auto_edges:
-            a = Graph(Glagauto,
-                    node_layout={p : np.array(pos[p]) for p in pos},
-                    node_size=node_size,
-                    node_color=node_c,
-                    node_edge_width=0,
-                    node_label_fontdict=dict(size=font_size),
-                    node_label_offset=0,
-                    node_alpha=1,
+            Graph(Glagauto,
+                  node_layout={p : np.array(pos[p]) for p in pos},
+                  node_size=node_size,
+                  node_color=node_c,
+                  node_edge_width=0,
+                  node_label_fontdict=dict(size=font_size),
+                  node_label_offset=0,
+                  node_alpha=1,
 
-                    arrows=lagged_auto_arrows,
-                    edge_layout='straight',
-                    edge_label=False,
-                    edge_color=edge_color,
-                    tail_color=tail_color,
-                    edge_width=lagged_auto_edge_width,
-                    edge_alpha=1,
-                    edge_zorder=1,
-                    scale = (scale[0] + 2, scale[1] + 2))
+                  arrows=lagged_auto_arrows,
+                  edge_layout='straight',
+                  edge_label=False,
+                  edge_color=edge_color,
+                  tail_color=tail_color,
+                  edge_width=lagged_auto_edge_width,
+                  edge_alpha=1,
+                  edge_zorder=1,
+                  scale = (scale[0] + 2, scale[1] + 2))
         
-        # 7. Plot or save
+        # 8. Draw rectangular for context variables (if any)
+        # for c in self.sys_context.values():
+        #     rect = Rectangle(
+        #         (x_min - 0.5, row_y - height / 2),  # position (bottom-left corner)
+        #         width, height,  # width and height
+        #         edgecolor='orange', facecolor='orange', alpha=0.3  # colors and transparency
+        #     )
+        #     ax.add_patch(rect)
+        
+        # 9. Plot or save
         if save_name is not None:
             plt.savefig(save_name + img_extention.value, dpi = 300)
         else:
@@ -741,15 +788,11 @@ class DAG():
                         if fixed_edge == edge: continue
                         if fixed_edge[0][0] == t and fixed_edge[0][1] == edge[0][1] and fixed_edge[1][0] == t and fixed_edge[1][1] == edge[1][1]:
                             res[fixed_edge] = edge_path - np.array([(self.max_lag - t)*x_disp,0])*np.ones_like(a.edge_layout.edge_paths[edge])
-            # if edge[0][0] == 0 and edge[1][0] == 0: # t-tau_max
-            #     for shifted_edge, shifted_edge_path in a.edge_layout.edge_paths.items():
-            #         if shifted_edge == edge: continue
-            #         if shifted_edge[0][0] == self.max_lag and shifted_edge[0][1] == edge[0][1] and shifted_edge[1][0] == self.max_lag and shifted_edge[1][1] == edge[1][1]:
-            #             res[edge] = shifted_edge_path - np.array([x_disp,0])*np.ones_like(a.edge_layout.edge_paths[shifted_edge])
         ax.clear()              
         return res
         
-    def __scale(self, score, min_width, max_width, min_score = 0, max_score = 1):
+    @staticmethod
+    def __scale(score, min_width, max_width, min_score = 0, max_score = 1):
         """
         Scale the score of the cause-effect relationship strength to a linewitdth.
 
@@ -870,5 +913,3 @@ class DAG():
             for s in self.g[t].sources:
                 scm[t][(s[0], -abs(s[1]))] = self.g[t].sources[s][TYPE] 
         return scm
-    
-        

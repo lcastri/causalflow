@@ -146,5 +146,7 @@ class Node():
         if self.is_autodependent:
             for s in self.sources: 
                 if s[0] == self.name:
-                    if self.sources[s][SCORE] > max_score: max_s = s
+                    if self.sources[s][SCORE] > max_score: 
+                        max_s = s
+                        max_score = self.sources[s][SCORE]
         return max_s
