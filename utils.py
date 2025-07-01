@@ -3,7 +3,7 @@ from enum import Enum
 
 class TOD(Enum):
     S1 = "S1"
-    # S2 = "S2"
+    S2 = "S2"
 
 TODS = {t.value: i for i, t in enumerate(TOD)}
 
