@@ -11,8 +11,8 @@ import numpy as np
 import sklearn
 import sklearn.linear_model
 import networkx
-from tigramite.data_processing import DataFrame
-from tigramite.pcmci import PCMCI
+from causalflow.causal_discovery.tigramite.data_processing import DataFrame
+from causalflow.causal_discovery.tigramite.pcmci import PCMCI
 
 class Models():
     """Base class for time series models.

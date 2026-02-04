@@ -5,9 +5,9 @@ Classes:
     PCMCIplus: class containing the PCMCI+ causal discovery algorithm.
 """
 
-from tigramite.pcmci import PCMCI as pcmci
-from tigramite.independence_tests.independence_tests_base import CondIndTest
-import tigramite.data_processing as pp
+from causalflow.causal_discovery.tigramite.pcmci import PCMCI as pcmci
+from causalflow.causal_discovery.tigramite.independence_tests.independence_tests_base import CondIndTest
+import causalflow.causal_discovery.tigramite.data_processing as pp
 import numpy as np
 from causalflow.CPrinter import CPLevel, CP
 from causalflow.basics.constants import *

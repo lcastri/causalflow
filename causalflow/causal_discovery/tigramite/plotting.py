@@ -17,7 +17,7 @@ from matplotlib.collections import PatchCollection
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import sys
 from operator import sub
-import tigramite.data_processing as pp
+import causalflow.causal_discovery.tigramite.data_processing as pp
 from copy import deepcopy
 import matplotlib.path as mpath
 import matplotlib.patheffects as PathEffects

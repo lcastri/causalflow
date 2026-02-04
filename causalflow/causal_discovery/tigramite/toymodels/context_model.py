@@ -1,6 +1,6 @@
 import numpy as np
 
-from tigramite.toymodels import structural_causal_processes as toys
+from causalflow.causal_discovery.tigramite.toymodels import structural_causal_processes as toys
 
 
 def _nb_latent_before(node, observed_context_indices, node_classification):

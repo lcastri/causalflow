@@ -7,7 +7,7 @@ Classes:
 
 import copy
 import pickle
-from tigramite.independence_tests.independence_tests_base import CondIndTest
+from causalflow.causal_discovery.tigramite.independence_tests.independence_tests_base import CondIndTest
 from causalflow.graph.DAG import DAG
 from causalflow.selection_methods.SelectionMethod import SelectionMethod
 from causalflow.CPrinter import CPLevel, CP

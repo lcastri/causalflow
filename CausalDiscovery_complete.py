@@ -1,5 +1,6 @@
 # Imports
 import os
+from time import time
 import numpy as np
 import pandas as pd
 from causalflow.CPrinter import CPLevel
@@ -21,23 +22,23 @@ def detrend(signal, window_size):
     return detrended_signal
 
 
-INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/RA-L/hrisim_postprocess/csv'
-BAGNAME= ['test-obs-21022025']
+INDIR = '/home/lcastri/git/PeopleFlow/utilities_ws/src/ESWA/hrisim_postprocess/csv'
+BAGNAME= ['noncausal-03012025']
 USE_SUBSAMPLED = True
 
-var_names =  ["EC", "R_V", "OBS"]
+var_names =  ["TOD", "B_S", "R_V", "R_B", "PD", "WP"]
 node_classification = {
-    0: "system",
-    1: "system",
-    2: "space_context",
+    0: "space_context",
+    1: "space_context",
+    2: "system",
+    3: "system",
+    4: "system",
+    5: "space_context",
 }
 
 NODE_COLOR = {}
 for node, classification in node_classification.items():
-    # if classification == "system":
     NODE_COLOR[var_names[node]] = 'orange' if classification == "system" else 'lightgray'
-    # elif classification == "space_context":
-    #     NODE_COLOR[list(NODES)[node].value] = 'lightgray'
 
 DATA_DICT = {}
 DATA_TYPE = {}
@@ -49,7 +50,7 @@ for bagname in BAGNAME:
         for tod in TOD:
             print(f"- {tod.value}")
             if USE_SUBSAMPLED:
-                filename = os.path.join(INDIR, "HH/my_nonoise", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
+                filename = os.path.join(INDIR, "HH/shrunk", f"{bagname}", tod.value, "static", f"{bagname}_{tod.value}_{wp.value}.csv")
             else:
                 filename = os.path.join(INDIR, "original", f"{bagname}", tod.value, f"{bagname}_{tod.value}_{wp.value}.csv")
             WPDF = pd.read_csv(filename)
@@ -61,21 +62,17 @@ for bagname in BAGNAME:
             dfs.append(WPDF[var_names])
         concatenated_df = pd.concat(dfs, ignore_index=True)
         idx = len(DATA_DICT)
-        # concatenated_df["TOD"] = detrend(concatenated_df["TOD"], 500)
 
         DATA_DICT[idx] = Data(concatenated_df, varnames = var_names)
-        DATA_DICT[idx].plot_timeseries()
+        # DATA_DICT[idx].plot_timeseries()
 
 DATA_TYPE = {
-    # NODES.WP.value: DataType.Discrete,
-    # NODES.TOD.value: DataType.Discrete,
-    # NODES.PD.value: DataType.Continuous,
-    'EC': DataType.Continuous,
+    'TOD': DataType.Discrete,
+    'B_S': DataType.Discrete,
     'R_V': DataType.Continuous,
-    'OBS': DataType.Discrete,
-    # NODES.EC.value: DataType.Continuous,
-    # NODES.RV.value: DataType.Continuous,
-    # NODES.OBS.value: DataType.Discrete,
+    'R_B': DataType.Continuous,
+    'PD': DataType.Continuous,
+    'WP': DataType.Discrete,
 }
 
 jpcmciplus = JPCMCIplus(data = DATA_DICT,
@@ -89,7 +86,10 @@ jpcmciplus = JPCMCIplus(data = DATA_DICT,
                         resfolder=f"results/{'__'.join(BAGNAME)}_new")
 
 # Run J-PCMCI+
+start_time = time()
 CM = jpcmciplus.run()
+end_time = time()
+print(f"J-PCMCI+ completed in {end_time - start_time:.2f} seconds.")
 
 # CM = CM.filter_alpha(0.00001)
 CM.dag(node_layout = 'circular', node_size = 4, min_cross_width = 0.5, max_cross_width = 1.5,

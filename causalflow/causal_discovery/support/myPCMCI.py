@@ -5,10 +5,10 @@ Classes:
     myPCMCI: support class for F-PCMCI.
 """
 
-from tigramite.pcmci import PCMCI as VAL
-from tigramite.lpcmci import LPCMCI
-from tigramite.independence_tests.independence_tests_base import CondIndTest
-import tigramite.data_processing as pp
+from causalflow.causal_discovery.tigramite.pcmci import PCMCI as VAL
+from causalflow.causal_discovery.tigramite.lpcmci import LPCMCI
+from causalflow.causal_discovery.tigramite.independence_tests.independence_tests_base import CondIndTest
+import causalflow.causal_discovery.tigramite.data_processing as pp
 import numpy as np
 from causalflow.CPrinter import CPLevel, CP
 from causalflow.basics.constants import *

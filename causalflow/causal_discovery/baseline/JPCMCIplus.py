@@ -5,10 +5,10 @@ Classes:
     JPCMCIplus: class containing the J-PCMCI+ causal discovery algorithm.
 """
 
-from tigramite.jpcmciplus import JPCMCIplus as jpcmci
-from tigramite.independence_tests.independence_tests_base import CondIndTest
-from tigramite.independence_tests.regressionCI import RegressionCI
-import tigramite.data_processing as pp
+from causalflow.causal_discovery.tigramite.jpcmciplus import JPCMCIplus as jpcmci
+from causalflow.causal_discovery.tigramite.independence_tests.independence_tests_base import CondIndTest
+from causalflow.causal_discovery.tigramite.independence_tests.regressionCI import RegressionCI
+import causalflow.causal_discovery.tigramite.data_processing as pp
 import numpy as np
 from causalflow.CPrinter import CPLevel, CP
 from causalflow.basics.constants import *

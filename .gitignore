@@ -368,3 +368,9 @@ causalflow/causal_discovery/baseline/pkgs/R_packages/ts-FCI_RCode_TETRADjar/resu
 *.bifxml
 my_pd/
 CIE-realworld/figs_pd/*
+CIE_0.1Hz/*
+CIE_0.5Hz/*
+CIE_1Hz/*
+CIE_3Hz/*
+CIE_5Hz/*
+CIE_10Hz/*

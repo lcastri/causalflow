@@ -6,11 +6,11 @@
 
 from __future__ import print_function
 import numpy as np
-from tigramite.pcmci import PCMCI
+from causalflow.causal_discovery.tigramite.pcmci import PCMCI
 from copy import deepcopy
 import itertools
 
-from tigramite.toymodels.context_model import _group_links
+from causalflow.causal_discovery.tigramite.toymodels.context_model import _group_links
 
 
 class JPCMCIplus(PCMCI):
