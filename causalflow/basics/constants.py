@@ -36,6 +36,7 @@ class LabelType(Enum):
     Lag = "Lag"
     Score = "Score"
     NoLabels = "NoLabels"
+    OnlyLagged = "OnlyLagged"
     
     
 class DataType(Enum):
